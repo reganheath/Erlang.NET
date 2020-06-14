@@ -1,3 +1,13 @@
+# What?
+
+I need a C# erlang node which works with OTP 23.
+
+I like the idea of a native implementation. But, I don't really like the
+design of this library.
+
+So, I may make radical changes..
+
+### Original README
 Welcome to Erlang.NET!
 
 Erlang.NET is an implementation of an Erlang node in C# which was manually
