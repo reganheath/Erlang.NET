@@ -94,13 +94,9 @@ namespace Erlang.NET
             int oldpos = (int)base.Position;
 
             if (pos > base.Length)
-            {
                 pos = (int)base.Length;
-            }
             else if (pos < 0)
-            {
                 pos = 0;
-            }
 
             base.Position = pos;
 
@@ -271,6 +267,21 @@ namespace Erlang.NET
         }
 
         /**
+         * Read a eight byte big endian integer from the stream.
+         *
+         * @return the bytes read, converted from big endian to a long integer.
+         *
+         * @exception OtpErlangDecodeException
+         *                if the next byte cannot be read.
+         */
+        public long read8BE()
+        {
+            long high = read4BE();
+            long low = read4BE();
+            return (high << 32) | (low & 0xffffffff);
+        }
+
+        /**
          * Read a two byte little endian integer from the stream.
          * 
          * @return the bytes read, converted from little endian to an integer.
@@ -404,17 +415,25 @@ namespace Erlang.NET
             String atom;
 
             tag = read1skip_version();
-
-            if (tag != OtpExternal.atomTag)
+            switch (tag)
             {
-                throw new OtpErlangDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag + ", got " + tag);
+                case OtpExternal.atomTag:
+                    len = read2BE();
+                    strbuf = new byte[len];
+                    this.readN(strbuf);
+                    atom = OtpErlangString.newString(strbuf);
+                    break;
+                case OtpExternal.smallAtomUtf8Tag:
+                case OtpExternal.atomUtf8Tag:
+                    len = (tag == OtpExternal.smallAtomUtf8Tag ? read1() : read2BE());
+	                strbuf = new byte[len];
+	                this.readN(strbuf);
+                    atom = OtpErlangString.newString(strbuf, "UTF-8");
+	                break;
+                default:
+                    throw new OtpErlangDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag 
+                        + ", or " + OtpExternal.atomUtf8Tag + ", got " + tag);
             }
-
-            len = read2BE();
-
-            strbuf = new byte[len];
-            this.readN(strbuf);
-            atom = OtpErlangString.newString(strbuf);
 
             if (atom.Length > OtpExternal.maxAtomLength)
             {
@@ -1252,6 +1271,8 @@ namespace Erlang.NET
                     return new OtpErlangLong(this);
 
                 case OtpExternal.atomTag:
+                case OtpExternal.smallAtomUtf8Tag:
+                case OtpExternal.atomUtf8Tag:
                     return new OtpErlangAtom(this);
 
                 case OtpExternal.floatTag:

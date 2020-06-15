@@ -33,7 +33,7 @@ namespace Erlang.NET
      * Provides methods for registering, unregistering and looking up nodes with the
      * Erlang portmapper daemon (Epmd). For each registered node, Epmd maintains
      * information about the port on which incoming connections are accepted, as
-     * well as which versions of the Erlang communication protocolt the node
+     * well as which versions of the Erlang communication protocol the node
      * supports.
      * 
      * <p>
@@ -99,6 +99,7 @@ namespace Erlang.NET
         private const byte port4resp = (byte)119;
         private const byte publish4req = (byte)120;
         private const byte publish4resp = (byte)121;
+        private const byte publish4Xresp = (byte)118;
         private const byte names4req = (byte)110;
 
         private static int traceLevel = 0;
@@ -168,7 +169,7 @@ namespace Erlang.NET
          */
         public static bool publishPort(OtpLocalNode node)
         {
-            TcpClient s = null;
+            OtpTransport s = null;
 
             try
             {
@@ -198,13 +199,13 @@ namespace Erlang.NET
         {
             try
             {
-                using (TcpClient s = new TcpClient(Dns.GetHostName(), EpmdPort.get()))
+                using (OtpTransport s = node.createTransport(Dns.GetHostName(), EpmdPort.get()))
                 {
                     OtpOutputStream obuf = new OtpOutputStream();
                     obuf.write2BE(node.Alive.Length + 1);
                     obuf.write1(stopReq);
                     obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
-                    obuf.WriteTo(s.GetStream());
+                    obuf.WriteTo(s.getOutputStream());
                     // don't even wait for a response (is there one?)
                     if (traceLevel >= traceThreshold)
                     {
@@ -389,14 +390,14 @@ namespace Erlang.NET
             return port;
         }
 
-        private static TcpClient r3_publish(OtpLocalNode node)
+        private static OtpTransport r3_publish(OtpLocalNode node)
         {
-            TcpClient s;
+            OtpTransport s;
 
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                s = new TcpClient(node.Host, EpmdPort.get());
+                s = node.createTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
 
                 obuf.write2BE(node.Alive.Length + 3);
 
@@ -405,7 +406,7 @@ namespace Erlang.NET
                 obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
 
                 // send request
-                obuf.WriteTo(s.GetStream());
+                obuf.WriteTo(s.getOutputStream());
                 if (traceLevel >= traceThreshold)
                 {
                     log.Debug("-> PUBLISH (r3) " + node + " port=" + node.Port);
@@ -413,7 +414,7 @@ namespace Erlang.NET
 
                 byte[] tmpbuf = new byte[100];
 
-                int n = s.GetStream().Read(tmpbuf, 0, tmpbuf.Length);
+                int n = s.getInputStream().Read(tmpbuf, 0, tmpbuf.Length);
 
                 if (n < 0)
                 {
@@ -473,14 +474,14 @@ namespace Erlang.NET
          * we manage to successfully communicate with an r4 epmd, we return either
          * the socket, or null, depending on the result.
          */
-        private static TcpClient r4_publish(OtpLocalNode node)
+        private static OtpTransport r4_publish(OtpLocalNode node)
         {
-            TcpClient s = null;
+            OtpTransport s = null;
 
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                s = new TcpClient(node.Host, EpmdPort.get());
+                s = node.createTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
 
                 obuf.write2BE(node.Alive.Length + 13);
 
@@ -498,7 +499,7 @@ namespace Erlang.NET
                 obuf.write2BE(0); // No extra
 
                 // send request
-                obuf.WriteTo(s.GetStream());
+                obuf.WriteTo(s.getOutputStream());
 
                 if (traceLevel >= traceThreshold)
                 {
@@ -507,14 +508,14 @@ namespace Erlang.NET
 
                 // get reply
                 byte[] tmpbuf = new byte[100];
-                int n = s.GetStream().Read(tmpbuf, 0, tmpbuf.Length);
+                int n = s.getInputStream().Read(tmpbuf, 0, tmpbuf.Length);
 
                 if (n < 0)
                 {
                     // this was an r3 node => not a failure (yet)
                     if (s != null)
                     {
-                        s.Close();
+                        s.close();
                     }
                     throw new IOException("Nameserver not responding on "
                               + node.Host + " when publishing " + node.Alive);
@@ -523,12 +524,12 @@ namespace Erlang.NET
                 OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
 
                 int response = ibuf.read1();
-                if (response == publish4resp)
+                if (response == publish4resp || response == publish4Xresp)
                 {
                     int result = ibuf.read1();
                     if (result == 0)
                     {
-                        node.Creation = ibuf.read2BE();
+                        node.Creation = (response == publish4resp ? ibuf.read2BE() : ibuf.read4BE());
                         if (traceLevel >= traceThreshold)
                         {
                             log.Debug("<- OK");
@@ -551,7 +552,7 @@ namespace Erlang.NET
                 // epmd closed the connection = fail
                 if (s != null)
                 {
-                    s.Close();
+                    s.close();
                 }
                 if (traceLevel >= traceThreshold)
                 {
@@ -564,7 +565,7 @@ namespace Erlang.NET
             {
                 if (s != null)
                 {
-                    s.Close();
+                    s.close();
                 }
                 if (traceLevel >= traceThreshold)
                 {
@@ -576,30 +577,29 @@ namespace Erlang.NET
 
             if (s != null)
             {
-                s.Close();
+                s.close();
             }
             return null;
         }
 
         public static String[] lookupNames()
         {
-
-            return lookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0]);
+            return lookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0], new OtpSocketTransportFactory());
         }
 
-        public static String[] lookupNames(IPAddress address)
+        public static String[] lookupNames(IPAddress address, OtpTransportFactory transportFactory)
         {
 
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
 
-                using (TcpClient s = new TcpClient(address.ToString(), EpmdPort.get()))
+                using (OtpTransport s = transportFactory.createTransport(address.ToString(), EpmdPort.get()))
                 {
                     obuf.write2BE(1);
                     obuf.write1(names4req);
                     // send request
-                    obuf.WriteTo(s.GetStream());
+                    obuf.WriteTo(s.getOutputStream());
 
                     if (traceLevel >= traceThreshold)
                     {
@@ -611,7 +611,7 @@ namespace Erlang.NET
                     MemoryStream ms = new MemoryStream(256);
                     while (true)
                     {
-                        int bytesRead = s.GetStream().Read(buffer, 0, buffer.Length);
+                        int bytesRead = s.getInputStream().Read(buffer, 0, buffer.Length);
                         if (bytesRead == -1)
                         {
                             break;

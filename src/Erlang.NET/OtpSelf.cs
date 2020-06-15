@@ -50,7 +50,7 @@ namespace Erlang.NET
      */
     public class OtpSelf : OtpLocalNode
     {
-        private readonly TcpListener sock;
+        private readonly OtpServerTransport sock;
         private readonly OtpErlangPid pid;
 
         /**
@@ -75,6 +75,11 @@ namespace Erlang.NET
         {
         }
 
+        public OtpSelf(String node, OtpTransportFactory transportFactory)
+            : this(node, defaultCookie, 0, transportFactory)
+        {
+        }
+
         /**
          * Create a self node.
          * 
@@ -90,11 +95,15 @@ namespace Erlang.NET
         {
         }
 
+        public OtpSelf(String node, String cookie, OtpTransportFactory transportFactory)
+            : this(node, cookie, 0, transportFactory)
+        {
+        }
+
         public OtpSelf(String node, String cookie, int port)
             : base(node, cookie)
         {
-            sock = new TcpListener(new IPEndPoint(IPAddress.Any, port));
-            sock.Start();
+            sock = createServerTransport(port);
 
             if (port != 0)
             {
@@ -102,7 +111,23 @@ namespace Erlang.NET
             }
             else
             {
-                this.port = ((IPEndPoint)sock.LocalEndpoint).Port;
+                this.port = sock.getLocalPort();
+            }
+            pid = createPid();
+        }
+
+        public OtpSelf(String node, String cookie, int port, OtpTransportFactory transportFactory)
+            : base(node, cookie, transportFactory)
+        {
+            sock = createServerTransport(port);
+
+            if (port != 0)
+            {
+                this.port = port;
+            }
+            else
+            {
+                this.port = sock.getLocalPort();
             }
             pid = createPid();
         }
@@ -194,14 +219,14 @@ namespace Erlang.NET
          */
         public OtpConnection accept()
         {
-            TcpClient newsock = null;
+            OtpTransport newsock = null;
 
             while (true)
             {
                 try
                 {
-                    newsock = sock.AcceptTcpClient();
-                    return new OtpConnection(this, new BufferedTcpClient(newsock));
+                    newsock = sock.accept();
+                    return new OtpConnection(this, newsock);
                 }
                 catch (SocketException e)
                 {
@@ -209,7 +234,7 @@ namespace Erlang.NET
                     {
                         if (newsock != null)
                         {
-                            newsock.Close();
+                            newsock.close();
                         }
                     }
                     catch (SocketException) /* ignore close errors */

@@ -41,8 +41,8 @@ namespace Erlang.NET
          * common protocol version we both support
          */
 
-        public OtpPeer()
-            : base()
+        public OtpPeer(OtpTransportFactory transportFactory)
+            : base(transportFactory)
         {
         }
 
@@ -54,6 +54,17 @@ namespace Erlang.NET
          */
         public OtpPeer(String node)
             : base(node)
+        {
+        }
+
+        /**
+         * Create a peer node.
+         * 
+         * @param node
+         *                the name of the node.
+         */
+        public OtpPeer(String node, OtpTransportFactory transportFactory)
+            : base(node, transportFactory)
         {
         }
 

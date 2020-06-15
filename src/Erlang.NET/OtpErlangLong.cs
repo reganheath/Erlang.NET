@@ -110,13 +110,8 @@ namespace Erlang.NET
         public BigInteger bigIntegerValue()
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 return bigVal;
-            }
-            else
-            {
-                return new BigInteger(val);
-            }
+            return new BigInteger(val);
         }
 
         /**
@@ -129,13 +124,8 @@ namespace Erlang.NET
         public long longValue()
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 return bigVal.LongValue();
-            }
-            else
-            {
-                return val;
-            }
+            return val;
         }
 
         /**
@@ -149,9 +139,7 @@ namespace Erlang.NET
             // there just might have be a mean bignum that arrived on
             // a stream, and was a long disguised as more than 8 byte integer.
             if (!BigIntegerIsNull(bigVal))
-            {
                 return bigVal.bitCount() < 64;
-            }
             return true;
         }
 
@@ -168,9 +156,7 @@ namespace Erlang.NET
             // Here we have the same problem as for isLong(), plus
             // the whole range 1<<63 .. (1<<64-1) is allowed.
             if (!BigIntegerIsNull(bigVal))
-            {
                 return bigVal >= ((BigInteger)0) && bigVal.bitCount() <= 64;
-            }
             return val >= 0;
         }
 
@@ -184,61 +170,57 @@ namespace Erlang.NET
         public int bitLength()
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 return bigVal.bitCount();
-            }
+
             if (val == 0 || val == -1)
-            {
                 return 0;
+
+            // Binary search for bit length
+            int i = 32; // mask length
+            long m = (1L << i) - 1; // AND mask with ones in little end
+            if (val < 0)
+            {
+                m = ~m; // OR mask with ones in big end
+                for (int j = i >> 1; j > 0; j >>= 1) // mask delta
+                {
+                    if ((val | m) == val) // mask >= enough
+                    {
+                        i -= j;
+                        m >>= j; // try less bits
+                    }
+                    else
+                    {
+                        i += j;
+                        m <<= j; // try more bits
+                    }
+                }
+                if ((val | m) != val)
+                {
+                    i++; // mask < enough
+                }
             }
             else
             {
-                // Binary search for bit length
-                int i = 32; // mask length
-                long m = (1L << i) - 1; // AND mask with ones in little end
-                if (val < 0)
+                for (int j = i >> 1; j > 0; j >>= 1) // mask delta
                 {
-                    m = ~m; // OR mask with ones in big end
-                    for (int j = i >> 1; j > 0; j >>= 1) // mask delta
+                    if ((val & m) == val) // mask >= enough
                     {
-                        if ((val | m) == val) // mask >= enough
-                        {
-                            i -= j;
-                            m >>= j; // try less bits
-                        }
-                        else
-                        {
-                            i += j;
-                            m <<= j; // try more bits
-                        }
+                        i -= j;
+                        m >>= j; // try less bits
                     }
-                    if ((val | m) != val)
+                    else
                     {
-                        i++; // mask < enough
+                        i += j;
+                        m = m << j | m; // try more bits
                     }
                 }
-                else
+                if ((val & m) != val)
                 {
-                    for (int j = i >> 1; j > 0; j >>= 1) // mask delta
-                    {
-                        if ((val & m) == val) // mask >= enough
-                        {
-                            i -= j;
-                            m >>= j; // try less bits
-                        }
-                        else
-                        {
-                            i += j;
-                            m = m << j | m; // try more bits
-                        }
-                    }
-                    if ((val & m) != val)
-                    {
-                        i++; // mask < enough
-                    }
+                    i++; // mask < enough
                 }
-                return i;
             }
+
+            return i;
         }
 
         /**
@@ -249,13 +231,8 @@ namespace Erlang.NET
         public int signum()
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 return (bigVal > (BigInteger)0) ? 1 : (bigVal < (BigInteger)0) ? -1 : 0;
-            }
-            else
-            {
-                return val > 0 ? 1 : val < 0 ? -1 : 0;
-            }
+            return val > 0 ? 1 : val < 0 ? -1 : 0;
         }
 
         /**
@@ -272,9 +249,7 @@ namespace Erlang.NET
             int i = (int)l;
 
             if (i != l)
-            {
                 throw new OtpErlangRangeException("Value too large for int: " + val);
-            }
 
             return i;
         }
@@ -294,13 +269,9 @@ namespace Erlang.NET
             int i = (int)l;
 
             if (i != l)
-            {
                 throw new OtpErlangRangeException("Value too large for int: " + val);
-            }
             else if (i < 0)
-            {
                 throw new OtpErlangRangeException("Value not positive: " + val);
-            }
 
             return i;
         }
@@ -320,9 +291,7 @@ namespace Erlang.NET
             short i = (short)l;
 
             if (i != l)
-            {
                 throw new OtpErlangRangeException("Value too large for short: " + val);
-            }
 
             return i;
         }
@@ -342,13 +311,9 @@ namespace Erlang.NET
             short i = (short)l;
 
             if (i != l)
-            {
                 throw new OtpErlangRangeException("Value too large for short: " + val);
-            }
             else if (i < 0)
-            {
                 throw new OtpErlangRangeException("Value not positive: " + val);
-            }
 
             return i;
         }
@@ -367,9 +332,7 @@ namespace Erlang.NET
             char i = (char)l;
 
             if (i != l)
-            {
                 throw new OtpErlangRangeException("Value too large for char: " + val);
-            }
 
             return i;
         }
@@ -388,9 +351,7 @@ namespace Erlang.NET
             byte i = (byte)l;
 
             if (i != l)
-            {
                 throw new OtpErlangRangeException("Value too large for byte: " + val);
-            }
 
             return i;
         }
@@ -403,13 +364,8 @@ namespace Erlang.NET
         public override String ToString()
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 return "" + bigVal;
-            }
-            else
-            {
-                return "" + val;
-            }
+            return "" + val;
         }
 
         /**
@@ -422,13 +378,8 @@ namespace Erlang.NET
         public override void encode(OtpOutputStream buf)
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 buf.write_big_integer(bigVal);
-            }
-            else
-            {
-                buf.write_long(val);
-            }
+            buf.write_long(val);
         }
 
         /**
@@ -443,20 +394,14 @@ namespace Erlang.NET
         public override bool Equals(Object o)
         {
             if (!(o is OtpErlangLong))
-            {
                 return false;
-            }
 
             OtpErlangLong that = (OtpErlangLong)o;
 
             if (!BigIntegerIsNull(bigVal) && !BigIntegerIsNull(that.bigVal))
-            {
                 return bigVal.Equals(that.bigVal);
-            }
             else if (BigIntegerIsNull(bigVal) && BigIntegerIsNull(that.bigVal))
-            {
                 return val == that.val;
-            }
             return false;
         }
 
@@ -468,13 +413,8 @@ namespace Erlang.NET
         protected override int doHashCode()
         {
             if (!BigIntegerIsNull(bigVal))
-            {
                 return bigVal.GetHashCode();
-            }
-            else
-            {
-                return ((BigInteger)val).GetHashCode();
-            }
+            return ((BigInteger)val).GetHashCode();
         }
     }
 }

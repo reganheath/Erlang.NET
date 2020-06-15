@@ -27,6 +27,7 @@ using System.Text;
 using System.Threading;
 using log4net;
 using log4net.Config;
+using System.Security.Cryptography;
 
 namespace Erlang.NET
 {
@@ -95,7 +96,7 @@ namespace Erlang.NET
         private volatile bool done = false;
 
         protected bool connected = false; // connection status
-        protected BufferedTcpClient socket; // communication channel
+        protected OtpTransport socket; // communication channel
         protected OtpPeer peer; // who are we connected to
         protected OtpLocalNode self; // this nodes id
         String name; // local name of this connection
@@ -146,7 +147,7 @@ namespace Erlang.NET
          * Accept an incoming connection from a remote node. Used by {@link
          * OtpSelf#accept() OtpSelf.accept()} to create a connection based on data
          * received when handshaking with the peer node, when the remote node is the
-         * connection intitiator.
+         * connection initiator.
          * 
          * @exception java.io.IOException if it was not possible to connect to the
          * peer.
@@ -154,18 +155,18 @@ namespace Erlang.NET
          * @exception OtpAuthException if handshake resulted in an authentication
          * error
          */
-        protected AbstractConnection(OtpLocalNode self, BufferedTcpClient s)
+        protected AbstractConnection(OtpLocalNode self, OtpTransport s)
             : base("receive", true)
         {
             this.self = self;
-            peer = new OtpPeer();
+            peer = new OtpPeer(self.transportFactory);
             socket = s;
 
             traceLevel = defaultLevel;
 
             if (traceLevel >= handshakeThreshold)
             {
-                log.Debug("<- ACCEPT FROM " + s.Client.RemoteEndPoint);
+                log.Debug("<- ACCEPT FROM " + s);
             }
 
             // get his info
@@ -205,6 +206,8 @@ namespace Erlang.NET
 
             // now get a connection between the two...
             port = OtpEpmd.lookupPort(peer);
+            if (port == 0)
+                throw new IOException("No remote node found - cannot connect");
 
             // now find highest common dist value
             if (peer.Proto != self.Proto || self.DistHigh < peer.DistLow || self.DistLow > peer.DistHigh)
@@ -551,8 +554,8 @@ namespace Erlang.NET
                         {
                             lock (this)
                             {
-                                socket.GetOutputStream().Write(tock, 0, tock.Length);
-                                socket.GetOutputStream().Flush();
+                                socket.getOutputStream().Write(tock, 0, tock.Length);
+                                socket.getOutputStream().Flush();
                             }
                         }
 
@@ -861,7 +864,7 @@ namespace Erlang.NET
                         {
                             log.Debug("-> CLOSE");
                         }
-                        socket.Close();
+                        socket.close();
                     }
                 }
                 catch (SocketException) /* ignore socket close errors */
@@ -917,8 +920,8 @@ namespace Erlang.NET
                         }
                     }
 
-                    header.WriteTo(socket.GetOutputStream());
-                    payload.WriteTo(socket.GetOutputStream());
+                    header.WriteTo(socket.getOutputStream());
+                    payload.WriteTo(socket.getOutputStream());
                 }
                 catch (IOException e)
                 {
@@ -947,7 +950,7 @@ namespace Erlang.NET
                             log.Debug("   " + "can't decode output buffer: " + e);
                         }
                     }
-                    header.WriteTo(socket.GetOutputStream());
+                    header.WriteTo(socket.getOutputStream());
                 }
                 catch (IOException e)
                 {
@@ -1009,7 +1012,7 @@ namespace Erlang.NET
         }
 
         /* this method now throws exception if we don't get full read */
-        protected int readSock(BufferedTcpClient s, byte[] b)
+        protected int readSock(OtpTransport s, byte[] b)
         {
             int got = 0;
             int len = b.Length;
@@ -1022,7 +1025,7 @@ namespace Erlang.NET
                 {
                     throw new IOException("expected " + len + " bytes, socket was closed");
                 }
-                st = s.GetInputStream();
+                st = s.getInputStream();
             }
 
             while (got < len)
@@ -1103,7 +1106,7 @@ namespace Erlang.NET
         {
             try
             {
-                socket = new BufferedTcpClient(new TcpClient(peer.Host, port));
+                socket = peer.createTransport(peer.Host, port);
 
                 if (traceLevel >= handshakeThreshold)
                 {
@@ -1180,7 +1183,6 @@ namespace Erlang.NET
 
         protected byte[] genDigest(int challenge, String cookie)
         {
-            int i;
             long ch2;
 
             if (challenge < 0)
@@ -1192,20 +1194,19 @@ namespace Erlang.NET
             {
                 ch2 = challenge;
             }
-            OtpMD5 context = new OtpMD5();
-            context.update(cookie);
-            context.update("" + ch2);
-
-            int[] tmp = context.final_bytes();
-            byte[] res = new byte[tmp.Length];
-            for (i = 0; i < tmp.Length; ++i)
+            using (MD5 context = MD5.Create())
             {
-                res[i] = (byte)(tmp[i] & 0xFF);
+                byte[] tmp = Encoding.ASCII.GetBytes(cookie);
+                context.TransformBlock(tmp, 0, tmp.Length, tmp, 0);
+
+                tmp = BitConverter.GetBytes(ch2);
+                context.TransformFinalBlock(tmp, 0, tmp.Length);
+
+                return context.Hash;
             }
-            return res;
         }
 
-        protected void sendName(int dist, int flags)
+        protected void sendName(int dist, long flags)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             String str = self.Node;
@@ -1215,7 +1216,7 @@ namespace Erlang.NET
             obuf.write4BE(flags);
             obuf.write(Encoding.GetEncoding("iso-8859-1").GetBytes(str));
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.getOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1224,7 +1225,7 @@ namespace Erlang.NET
             }
         }
 
-        protected void sendChallenge(int dist, int flags, int challenge)
+        protected void sendChallenge(int dist, long flags, int challenge)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             String str = self.Node;
@@ -1235,7 +1236,7 @@ namespace Erlang.NET
             obuf.write4BE(challenge);
             obuf.write(Encoding.GetEncoding("iso-8859-1").GetBytes(str));
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.getOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1328,15 +1329,36 @@ namespace Erlang.NET
             {
                 byte[] buf = read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
+                int namelen;
+
                 peer.Type = ibuf.read1();
-                if (peer.Type != AbstractNode.NTYPE_R6)
+                switch (peer.Type)
                 {
-                    throw new IOException("Unexpected peer type");
+                    case 'n':
+                        if (peer.DistChoose != 5)
+                            throw new IOException("Old challenge wrong version");
+                        peer.DistLow = peer.DistHigh = ibuf.read2BE();
+                        peer.Flags = ibuf.read4BE();
+                        if ((peer.Flags & AbstractNode.dFlagHandshake23) != 0)
+                            throw new IOException("Old challenge unexpected DFLAG_HANDHAKE_23");
+                        challenge = ibuf.read4BE();
+                        namelen = buf.Length - (1+2+4+4);
+                        break;
+
+                    case 'N':
+                        peer.DistLow = peer.DistHigh = peer.DistChoose = 6;
+                        peer.Flags = ibuf.read8BE();
+                        if ((peer.Flags & AbstractNode.dFlagHandshake23) == 0)
+                            throw new IOException("New challenge missing DFLAG_HANDHAKE_23");
+                        challenge = ibuf.read4BE();
+                        peer.Creation = ibuf.read4BE();
+                        namelen = ibuf.read2BE();
+                        break;
+
+                    default:
+                        throw new IOException("Unexpected peer type");
                 }
-                peer.DistLow = peer.DistHigh = ibuf.read2BE();
-                peer.Flags = ibuf.read4BE();
-                challenge = ibuf.read4BE();
-                byte[] tmpname = new byte[buf.Length - 11];
+                byte[] tmpname = new byte[namelen];
                 ibuf.readN(tmpname);
                 String hisname = OtpErlangString.newString(tmpname);
                 if (!hisname.Equals(peer.Node))
@@ -1376,7 +1398,7 @@ namespace Erlang.NET
             obuf.write1(ChallengeReply);
             obuf.write4BE(challenge);
             obuf.write(digest);
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.getOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1444,7 +1466,7 @@ namespace Erlang.NET
             obuf.write1(ChallengeAck);
             obuf.write(digest);
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.getOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1476,8 +1498,9 @@ namespace Erlang.NET
             {
                 throw new IOException("Handshake failed - not enough data");
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                log.Error("Peer authentication error", e);
                 throw new OtpAuthException("Peer authentication error.");
             }
 
@@ -1495,7 +1518,7 @@ namespace Erlang.NET
             obuf.write1(ChallengeStatus);
             obuf.write(Encoding.GetEncoding("iso-8859-1").GetBytes(status));
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.getOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {

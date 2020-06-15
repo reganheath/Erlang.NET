@@ -213,15 +213,14 @@ namespace Erlang.NET
         }
 
         /**
-         * Construct a String from a Latin-1 (ISO-8859-1) encoded byte array,
-         * if Latin-1 is available, otherwise use the default encoding. 
+         * Construct a String from encoded byte array
          *
          */
-        public static String newString(byte[] bytes)
+        public static String newString(byte[] bytes, string encoding = "ISO-8859-1")
         {
             try
             {
-                return Encoding.GetEncoding("iso-8859-1").GetString(bytes);
+                return Encoding.GetEncoding(encoding).GetString(bytes);
             }
             catch (ArgumentException)
             {

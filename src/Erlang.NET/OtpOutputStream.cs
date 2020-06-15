@@ -338,9 +338,34 @@ namespace Erlang.NET
          */
         public void write_atom(String atom)
         {
-            byte[] bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(atom);
-            write1(OtpExternal.atomTag);
-            write2BE(bytes.Length);
+            if (atom.Length > OtpExternal.maxAtomLength)
+            {
+                atom = atom.Substring(0, OtpExternal.maxAtomLength);
+            }
+
+            byte[] bytes;
+
+            try
+            {
+                bytes = Encoding.GetEncoding("ISO-8859-1", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
+                write1(OtpExternal.atomTag);
+                write2BE(bytes.Length);
+            }
+            catch (EncoderFallbackException)
+            {
+                bytes = Encoding.GetEncoding("UTF-8", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
+                if (bytes.Length < 256)
+                {
+                    write1(OtpExternal.smallAtomUtf8Tag);
+                    write1(bytes.Length);
+                }
+                else
+                {
+                    write1(OtpExternal.atomUtf8Tag);
+                    write2BE(bytes.Length);
+                }
+            }
+
             writeN(bytes);
         }
 
@@ -779,7 +804,7 @@ namespace Erlang.NET
                     {
                         try
                         {
-                            byte[] bytebuf = Encoding.GetEncoding("iso-8859-1").GetBytes(s);
+                            byte[] bytebuf = Encoding.GetEncoding("ISO-8859-1").GetBytes(s);
                             write1(OtpExternal.stringTag);
                             write2BE(len);
                             writeN(bytebuf);

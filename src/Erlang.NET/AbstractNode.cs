@@ -63,7 +63,7 @@ namespace Erlang.NET
      * instead.
      * </p>
      */
-    public class AbstractNode
+    public class AbstractNode : OtpTransportFactory
     {
         static readonly String localHost;
         String node;
@@ -71,6 +71,7 @@ namespace Erlang.NET
         String alive;
         String cookie;
         protected static readonly String defaultCookie;
+        internal readonly OtpTransportFactory transportFactory;
 
         // Node types
         public const int NTYPE_R6 = 110; // 'n' post-r5, all nodes
@@ -87,17 +88,26 @@ namespace Erlang.NET
         public const int dFlagHiddenAtomCache = 0x40; // NOT SUPPORTED
         public const int dflagNewFunTags = 0x80;
         public const int dFlagExtendedPidsPorts = 0x100;
-        public const int dFlagExportPtrTag = 0x200; // NOT SUPPORTED
+        public const int dFlagExportPtrTag = 0x200;
         public const int dFlagBitBinaries = 0x400;
         public const int dFlagNewFloats = 0x800;
+        public const int dFlagUnicodeIo = 0x1000;
+        public const int dFlagUtf8Atoms = 0x10000;
+        public const int dFlagMapTag = 0x20000;
+        public const int dFlagBigCreation = 0x40000;
+        public const int dFlagHandshake23 = 0x1000000;
 
         int ntype = NTYPE_R6;
         int proto = 0; // tcp/ip
-        int distHigh = 5; // Cannot talk to nodes before R6
+        int distHigh = 6; // Cannot talk to nodes before R6
         int distLow = 5; // Cannot talk to nodes before R6
         int creation = 0;
-        int flags = dFlagExtendedReferences | dFlagExtendedPidsPorts
-            | dFlagBitBinaries | dFlagNewFloats | dFlagFunTags | dflagNewFunTags;
+        long flags = dFlagExtendedReferences | dFlagExtendedPidsPorts
+            | dFlagBitBinaries | dFlagNewFloats | dFlagFunTags
+            | dflagNewFunTags | dFlagUtf8Atoms | dFlagMapTag
+            | dFlagExportPtrTag
+            | dFlagBigCreation
+            | dFlagHandshake23;
 
         /* initialize hostname and default cookie */
         static AbstractNode()
@@ -149,24 +159,43 @@ namespace Erlang.NET
             }
         }
 
-        protected AbstractNode()
+        protected AbstractNode(OtpTransportFactory transportFactory)
         {
+            this.transportFactory = transportFactory;
         }
 
         /**
-         * Create a node with the given name and the default cookie.
+         * Create a node with the given name and the default cookie and transport factory.
          */
-        protected AbstractNode(String node)
-            : this(node, defaultCookie)
+        protected AbstractNode(String name)
+            : this(name, defaultCookie, new OtpSocketTransportFactory())
         {
         }
 
         /**
-         * Create a node with the given name and cookie.
+         * Create a node with the given name, transport factory and the default cookie.
+         */
+        protected AbstractNode(String name, OtpTransportFactory transportFactory)
+            : this(name, defaultCookie, transportFactory)
+        {
+        }
+
+
+        /**
+         * Create a node with the given name, cookie, and default transport factory.
          */
         protected AbstractNode(String name, String cookie)
+            : this(name, cookie, new OtpSocketTransportFactory())
+        {
+        }
+
+        /**
+         * Create a node with the given name, cookie, and transport factory.
+         */
+        protected AbstractNode(String name, String cookie, OtpTransportFactory transportFactory)
         {
             this.cookie = cookie;
+            this.transportFactory = transportFactory;
 
             int i = name.IndexOf('@', 0);
             if (i < 0)
@@ -188,7 +217,7 @@ namespace Erlang.NET
             node = alive + "@" + host;
         }
 
-        public int Flags
+        public long Flags
         {
             get { return flags; }
             set { flags = value; }
@@ -291,6 +320,21 @@ namespace Erlang.NET
         public override String ToString()
         {
             return node;
+        }
+
+        public OtpTransport createTransport(String addr, int port)
+        {
+            return transportFactory.createTransport(addr, port);
+        }
+
+        public OtpTransport createTransport(IPEndPoint addr)
+        {
+            return transportFactory.createTransport(addr);
+        }
+
+        public OtpServerTransport createServerTransport(int port)
+        {
+            return transportFactory.createServerTransport(port);
         }
     }
 }

@@ -429,10 +429,7 @@ namespace Erlang.NET
                 {
                     return lastTail;
                 }
-                else
-                {
-                    return new SubList(this, n);
-                }
+                return new SubList(this, n);
             }
             return null;
         }

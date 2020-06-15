@@ -66,7 +66,7 @@ namespace Erlang.NET
          * error
          */
         // package scope
-        internal OtpConnection(OtpSelf self, BufferedTcpClient s)
+        internal OtpConnection(OtpSelf self, OtpTransport s)
             : base(self, s)
         {
             this.self = self;

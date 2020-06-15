@@ -82,7 +82,7 @@ namespace Erlang.NET
          * error
          */
         // package scope
-        internal OtpCookedConnection(OtpNode self, BufferedTcpClient s)
+        internal OtpCookedConnection(OtpNode self, OtpTransport s)
             : base(self, s)
         {
             this.self = self;

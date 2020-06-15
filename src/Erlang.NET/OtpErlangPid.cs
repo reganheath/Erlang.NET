@@ -216,20 +216,14 @@ namespace Erlang.NET
                     {
                         return node.CompareTo(pid.node);
                     }
-                    else
-                    {
-                        return id - pid.id;
-                    }
+
+                    return id - pid.id;
                 }
-                else
-                {
-                    return serial - pid.serial;
-                }
+
+                return serial - pid.serial;
             }
-            else
-            {
-                return creation - pid.creation;
-            }
+
+            return creation - pid.creation;
         }
     }
 }

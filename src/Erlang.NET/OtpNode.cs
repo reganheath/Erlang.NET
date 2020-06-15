@@ -77,7 +77,7 @@ namespace Erlang.NET
         OtpNodeStatus handler;
 
         // flags
-        private int flags = 0;
+        private int connFlags = 0;
 
 
         public Dictionary<String, OtpCookedConnection> Connections
@@ -87,7 +87,7 @@ namespace Erlang.NET
 
         public new int Flags
         {
-            get { return flags; }
+            get { return connFlags; }
         }
 
         /**
@@ -111,8 +111,15 @@ namespace Erlang.NET
          * 
          */
         public OtpNode(String node)
-            : this(node, defaultCookie, 0)
+            : base(node)
         {
+            init(0);
+        }
+
+        public OtpNode(String node, OtpTransportFactory transportFactory)
+            : base(node, transportFactory)
+        {
+            init(0);
         }
 
         /**
@@ -130,8 +137,15 @@ namespace Erlang.NET
          * 
          */
         public OtpNode(String node, String cookie)
-            : this(node, cookie, 0)
+            : base(node, cookie)
         {
+            init(0);
+        }
+
+        public OtpNode(String node, String cookie, OtpTransportFactory transportFactory)
+            : base(node, cookie, transportFactory)
+        {
+            init(0);
         }
 
         /**
@@ -152,8 +166,8 @@ namespace Erlang.NET
          *                if communication could not be initialized.
          * 
          */
-        public OtpNode(String node, String cookie, int port)
-            : base(node, cookie)
+        public OtpNode(String node, String cookie, int port, OtpTransportFactory transportFactory)
+            : base(node, cookie, transportFactory)
         {
             init(port);
         }
@@ -575,7 +589,7 @@ namespace Erlang.NET
                         try
                         {
                             conn = new OtpCookedConnection(this, peer);
-                            conn.setFlags(flags);
+                            conn.setFlags(connFlags);
                             addConnection(conn);
                         }
                         catch (Exception e)
@@ -831,8 +845,8 @@ namespace Erlang.NET
         public class Acceptor : ThreadBase
         {
             private readonly OtpNode node;
-            private readonly TcpListener sock;
-            private readonly int port;
+            private readonly OtpServerTransport sock;
+            private readonly int acceptorPort;
             private volatile bool done = false;
 
             public Acceptor(OtpNode node, int port)
@@ -840,10 +854,9 @@ namespace Erlang.NET
             {
                 this.node = node;
 
-                sock = new TcpListener(new IPEndPoint(IPAddress.Any, port));
-                sock.Start();
-                this.port = ((IPEndPoint)sock.LocalEndpoint).Port;
-                node.port = this.port;
+                sock = node.createServerTransport(port);
+                this.acceptorPort = sock.getLocalPort();
+                node.port = this.acceptorPort;
                 publishPort();
                 base.start();
             }
@@ -876,13 +889,13 @@ namespace Erlang.NET
                 node.localStatus(node.Node, false, null);
             }
 
-            private void closeSock(TcpClient s)
+            private void closeSock(OtpTransport s)
             {
                 try
                 {
                     if (s != null)
                     {
-                        s.Close();
+                        s.close();
                     }
                 }
                 catch (Exception)
@@ -890,13 +903,13 @@ namespace Erlang.NET
                 }
             }
 
-            private void closeSock(TcpListener s)
+            private void closeSock(OtpServerTransport s)
             {
                 try
                 {
                     if (s != null)
                     {
-                        s.Stop();
+                        s.close();
                     }
                 }
                 catch (Exception)
@@ -906,12 +919,12 @@ namespace Erlang.NET
 
             public int Port
             {
-                get { return port; }
+                get { return acceptorPort; }
             }
 
             public override void run()
             {
-                TcpClient newsock = null;
+                OtpTransport newsock = null;
                 OtpCookedConnection conn = null;
 
                 node.localStatus(node.Node, true, null);
@@ -922,7 +935,7 @@ namespace Erlang.NET
 
                     try
                     {
-                        newsock = sock.AcceptTcpClient();
+                        newsock = sock.accept();
                     }
                     catch (Exception e)
                     {
@@ -942,7 +955,7 @@ namespace Erlang.NET
                     {
                         lock (node.Connections)
                         {
-                            conn = new OtpCookedConnection(node, new BufferedTcpClient(newsock));
+                            conn = new OtpCookedConnection(node, newsock);
                             conn.setFlags(node.Flags);
                             node.addConnection(conn);
                         }
@@ -987,7 +1000,7 @@ namespace Erlang.NET
 
         public void setFlags(int flags)
         {
-            this.flags = flags;
+            this.connFlags = flags;
         }
     }
 }

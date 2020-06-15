@@ -35,13 +35,7 @@ namespace Erlang.NET
         private int[] refId;
 
         protected int port;
-        protected TcpClient epmd;
-
-        protected OtpLocalNode()
-            : base()
-        {
-            init();
-        }
+        protected OtpTransport epmd;
 
         /**
          * Create a node with the given name and the default cookie.
@@ -53,10 +47,28 @@ namespace Erlang.NET
         }
 
         /**
+         * Create a node with the given name, transport factory and the default cookie.
+         */
+        protected OtpLocalNode(String node, OtpTransportFactory transportFactory)
+            : base(node, transportFactory)
+        {
+            init();
+        }
+
+        /**
          * Create a node with the given name and cookie.
          */
         protected OtpLocalNode(String node, String cookie)
             : base(node, cookie)
+        {
+            init();
+        }
+
+        /**
+         * Create a node with the given name, cookie and transport factory.
+         */
+        protected OtpLocalNode(String node, String cookie, OtpTransportFactory transportFactory)
+            : base(node, cookie, transportFactory)
         {
             init();
         }
@@ -88,7 +100,7 @@ namespace Erlang.NET
          * @param s
          *                The socket connecting this node to Epmd.
          */
-        public void setEpmd(TcpClient s)
+        public void setEpmd(OtpTransport s)
         {
             epmd = s;
         }
@@ -98,7 +110,7 @@ namespace Erlang.NET
          * 
          * @return The socket connecting this node to Epmd.
          */
-        public TcpClient getEpmd()
+        public OtpTransport getEpmd()
         {
             return epmd;
         }
@@ -115,9 +127,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    NetworkStream ns = epmd.GetStream();
-                    ns.Close();
-                    epmd.Close();
+                    epmd.close();
                 }
                 catch (Exception e)
                 {

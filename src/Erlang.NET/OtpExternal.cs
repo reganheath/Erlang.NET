@@ -92,6 +92,12 @@ namespace Erlang.NET
         /** The tag used for old Funs */
         public const int funTag = 117;
 
+        /** The tag used for unicode atoms */
+        public const int atomUtf8Tag = 118;
+
+        /** The tag used for small unicode atoms */
+        public const int smallAtomUtf8Tag = 119;
+
         /** The tag used for compressed terms */
         public const int compressedTag = 80;
 

@@ -1,0 +1,5 @@
+WORK UP..
+https://github.com/erlang/otp/commits/master/lib/jinterface/java_src/com/ericsson/otp/erlang/AbstractNode.java
+DONE fd76d49 "jinterface: transport factory implementation"
+
+NEXT e4b8b9b "erts: Add DFLAG_BIG_CREATION"
