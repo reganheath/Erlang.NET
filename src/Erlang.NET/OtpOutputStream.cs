@@ -38,9 +38,6 @@ namespace Erlang.NET
         /** The default initial size of the stream. * */
         public const int defaultInitialSize = 2048;
 
-        /** The default increment used when growing the stream. * */
-        public const int defaultIncrement = 2048;
-
         /**
          * Create a stream with the default initial size (2048 bytes).
          */
@@ -94,6 +91,16 @@ namespace Erlang.NET
         }
 
         /**
+         * Trims the capacity of this <tt>OtpOutputStream</tt> instance to be the
+         * buffer's current size.  An application can use this operation to minimize
+         * the storage of an <tt>OtpOutputStream</tt> instance.
+         */
+        public void trimToSize()
+        {
+            base.Capacity = (int)base.Length;
+        }
+
+        /**
          * Write one byte to the stream.
          * 
          * @param b
@@ -103,6 +110,11 @@ namespace Erlang.NET
         public void write(byte b)
         {
             base.WriteByte(b);
+        }
+
+        public void write(int b)
+        {
+            base.WriteByte((byte)b);
         }
 
         /**
@@ -115,6 +127,13 @@ namespace Erlang.NET
         public void write(byte[] buf)
         {
             base.Write(buf, 0, (int)buf.Length);
+        }
+
+        public void write(byte[] buf, int off, int len)
+        {
+            if (off < 0 || off > buf.Length || len < 0 || (off + len) - buf.Length > 0)
+                throw new ArgumentOutOfRangeException();
+            base.Write(buf, off, len);
         }
 
         public override void WriteTo(Stream stream)
@@ -170,16 +189,7 @@ namespace Erlang.NET
          * Get the number of bytes in the stream.
          * 
          * @return the number of bytes in the stream.
-         * 
-         * @deprecated As of Jinterface 1.4, replaced by super.size().
-         * @see #size()
          */
-        [Obsolete]
-        public int count()
-        {
-            return (int)base.Length;
-        }
-
         public int size()
         {
             return (int)base.Length;
@@ -849,18 +859,34 @@ namespace Erlang.NET
          */
         public void write_compressed(OtpErlangObject o)
         {
-            OtpOutputStream oos = new OtpOutputStream(o);
-            write1(OtpExternal.compressedTag);
-            write4BE(oos.Length);
-            DeflateStream dos = new DeflateStream(this, CompressionMode.Compress, true);
+            write_compressed(o, CompressionLevel.Optimal);
+        }
+
+        public void write_compressed(OtpErlangObject o, CompressionLevel level)
+        {
             try
             {
-                oos.WriteTo(dos);
-                dos.Close();
+                OtpOutputStream oos = new OtpOutputStream(o);
+                if (oos.size() < 5)
+                {
+                    oos.WriteTo(this);
+                }
+                else
+                {
+                    write1(OtpExternal.compressedTag);
+                    write4BE(oos.Length);
+                    DeflateStream dos = new DeflateStream(this, level, true);
+                    oos.WriteTo(dos);
+                    dos.Close();
+                }
             }
             catch (ObjectDisposedException)
             {
-                throw new ArgumentException("Intremediate stream failed for Erlang object " + o);
+                throw new ArgumentException("Intermediate stream failed for Erlang object " + o);
+            }
+            catch (IOException)
+            {
+                throw new ArgumentException("Intermediate stream failed for Erlang object " + o);
             }
         }
 
@@ -920,6 +946,12 @@ namespace Erlang.NET
             write_atom(module);
             write_atom(function);
             write_long(arity);
+        }
+
+        public void write_map_head(int arity)
+        {
+            write1(OtpExternal.mapTag);
+            write4BE(arity);
         }
     }
 }

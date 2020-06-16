@@ -112,23 +112,23 @@ namespace Erlang.NET
              */
 
             private readonly static uint[] HASH_CONST = {
-		0, // not used
-		0x9e3779b9, // the golden ratio; an arbitrary value
-		0x3c6ef372, // (hashHConst[1] * 2) % (1<<32)
-		0xdaa66d2b, //             1    3
-		0x78dde6e4, //             1    4
-		0x1715609d, //             1    5
-		0xb54cda56, //             1    6
-		0x5384540f, //             1    7
-		0xf1bbcdc8, //             1    8
-		0x8ff34781, //             1    9
-		0x2e2ac13a, //             1    10
-		0xcc623af3, //             1    11
-		0x6a99b4ac, //             1    12
-		0x08d12e65, //             1    13
-		0xa708a81e, //             1    14
-		0x454021d7, //             1    15
-	    };
+		        0, // not used
+		        0x9e3779b9, // the golden ratio; an arbitrary value
+		        0x3c6ef372, // (hashHConst[1] * 2) % (1<<32)
+		        0xdaa66d2b, //             1    3
+		        0x78dde6e4, //             1    4
+		        0x1715609d, //             1    5
+		        0xb54cda56, //             1    6
+		        0x5384540f, //             1    7
+		        0xf1bbcdc8, //             1    8
+		        0x8ff34781, //             1    9
+		        0x2e2ac13a, //             1    10
+		        0xcc623af3, //             1    11
+		        0x6a99b4ac, //             1    12
+		        0x08d12e65, //             1    13
+		        0xa708a81e, //             1    14
+		        0x454021d7, //             1    15
+	        };
 
             public Hash(int i)
             {

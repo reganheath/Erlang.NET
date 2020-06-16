@@ -183,19 +183,17 @@ namespace Erlang.NET
             if (Char.IsHighSurrogate(s[index]))
             {
                 char high = s[index], low = s[index + 1];
-
                 if (Char.IsLowSurrogate(low))
-                {
                     return (char)((high - 0xD800) * 0x400 + (low - 0xDC00) + 0x10000);
-                }
             }
+
             return s[index];
         }
 
         /**
          * Validate a code point according to Erlang definition; Unicode 3.0.
          * That is; valid in the range U+0..U+10FFFF, but not in the range
-         * U+D800..U+DFFF (surrogat pairs), nor U+FFFE..U+FFFF (non-characters).
+         * U+D800..U+DFFF (surrogat pairs)
          *
          * @param  cp
          *             the code point value to validate
@@ -208,8 +206,7 @@ namespace Erlang.NET
             // Erlang definition of valid Unicode code points; 
             // Unicode 3.0, XML, et.al.
             return (((uint)cp) >> 16) <= 0x10 // in 0..10FFFF; Unicode range
-            && (cp & ~0x7FF) != 0xD800 // not in D800..DFFF; surrogate range
-            && (cp & ~1) != 0xFFFE; // not in FFFE..FFFF; non-characters
+                && (cp & ~0x7FF) != 0xD800;   // not in D800..DFFF; surrogate range
         }
 
         /**

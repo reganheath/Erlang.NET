@@ -99,7 +99,7 @@ namespace Erlang.NET
 
         int ntype = NTYPE_R6;
         int proto = 0; // tcp/ip
-        int distHigh = 6; // Cannot talk to nodes before R6
+        int distHigh = 6;
         int distLow = 5; // Cannot talk to nodes before R6
         int creation = 0;
         long flags = dFlagExtendedReferences | dFlagExtendedPidsPorts

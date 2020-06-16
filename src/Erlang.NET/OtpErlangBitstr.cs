@@ -72,14 +72,10 @@ namespace Erlang.NET
         private void check_bitstr(byte[] bin, int pad_bits)
         {
             if (pad_bits < 0 || 7 < pad_bits)
-            {
                 throw new ArgumentException("Padding must be in range 0..7");
-            }
 
             if (pad_bits != 0 && bin.Length == 0)
-            {
                 throw new ArgumentException("Padding on zero length bitstr");
-            }
 
             if (bin.Length != 0)
             {
@@ -120,18 +116,16 @@ namespace Erlang.NET
                 bin = toByteArray(o);
                 pad_bits = 0;
             }
-            catch (SerializationException)
+            catch (SerializationException e)
             {
-                throw new ArgumentException("Object must implement Serializable");
+                throw new ArgumentException("Object must implement Serializable", e);
             }
         }
 
         private static byte[] toByteArray(Object o)
         {
             if (o == null)
-            {
                 return null;
-            }
 
             BinaryFormatter bf = new BinaryFormatter();
             MemoryStream ms = new MemoryStream();
@@ -153,9 +147,7 @@ namespace Erlang.NET
         private static Object fromByteArray(byte[] buf)
         {
             if (buf == null)
-            {
                 return null;
-            }
 
             BinaryFormatter bf = new BinaryFormatter();
             MemoryStream ms = new MemoryStream(buf);
@@ -191,13 +183,9 @@ namespace Erlang.NET
         public int size()
         {
             if (pad_bits == 0)
-            {
                 return bin.Length;
-            }
             if (bin.Length == 0)
-            {
                 throw new SystemException("Impossible length");
-            }
             return bin.Length - 1;
         }
 
@@ -239,13 +227,9 @@ namespace Erlang.NET
         public override String ToString()
         {
             if (pad_bits == 0)
-            {
                 return "#Bin<" + bin.Length + ">";
-            }
             if (bin.Length == 0)
-            {
                 throw new SystemException("Impossible length");
-            }
             return "#Bin<" + bin.Length + "-" + pad_bits + ">";
         }
 

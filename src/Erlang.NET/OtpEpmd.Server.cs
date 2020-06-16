@@ -166,29 +166,22 @@ namespace Erlang.NET
                     try
                     {
                         i = st.Read(b, got, len - got);
+                        if (i < 0)
+                            throw new IOException("expected " + len + " bytes, got EOF after " + got + " bytes");
+                        if (i == 0 && len != 0)
+                            throw new IOException("Remote connection closed");
+                        got += i;
                     }
                     catch (IOException e)
                     {
-                        throw new IOException(e.Message);
+                        throw new IOException("Read failed", e);
                     }
                     catch (ObjectDisposedException e)
                     {
-                        throw new IOException(e.Message);
-                    }
-
-                    if (i < 0)
-                    {
-                        throw new IOException("expected " + len + " bytes, got EOF after " + got + " bytes");
-                    }
-                    else if (i == 0 && len != 0)
-                    {
-                        throw new IOException("Remote connection closed");
-                    }
-                    else
-                    {
-                        got += i;
+                        throw new IOException("Read failed", e);
                     }
                 }
+
                 return got;
             }
 
@@ -239,7 +232,7 @@ namespace Erlang.NET
                     }
 
                     OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.write1(publish4resp);
+                    obuf.write1(ALIVE2_RESP);
                     obuf.write1(0);
                     obuf.write2BE(epmd.Creation);
                     obuf.WriteTo(s.GetStream());
@@ -250,13 +243,11 @@ namespace Erlang.NET
                     }
                     publishedPort.Add(name);
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("<- (no response)");
-                    }
-                    throw new IOException("Request not responding");
+                    throw new IOException("Request not responding", e);
                 }
                 return;
             }
@@ -305,13 +296,11 @@ namespace Erlang.NET
                     }
                     obuf.WriteTo(s.GetStream());
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("<- (no response)");
-                    }
-                    throw new IOException("Request not responding");
+                    throw new IOException("Request not responding", e);
                 }
                 return;
             }
@@ -339,13 +328,11 @@ namespace Erlang.NET
                     }
                     obuf.WriteTo(s.GetStream());
                 }
-                catch (IOException)
+                catch (IOException e)
                 {
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("<- (no response)");
-                    }
-                    throw new IOException("Request not responding");
+                    throw new IOException("Request not responding", e);
                 }
                 return;
             }
@@ -370,7 +357,7 @@ namespace Erlang.NET
                         int request = ibuf.read1();
                         switch (request)
                         {
-                            case publish4req:
+                            case ALIVE2_REQ:
                                 r4_publish(sock, ibuf);
                                 break;
 

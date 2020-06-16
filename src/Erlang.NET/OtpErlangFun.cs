@@ -18,6 +18,7 @@
  * %CopyrightEnd% 
  */
 using System;
+using System.Linq;
 
 namespace Erlang.NET
 {
@@ -86,37 +87,30 @@ namespace Erlang.NET
         public override bool Equals(Object o)
         {
             if (!(o is OtpErlangFun))
-            {
                 return false;
-            }
+            
             OtpErlangFun f = (OtpErlangFun)o;
             if (!pid.Equals(f.pid) || !module.Equals(f.module) || arity != f.arity)
-            {
                 return false;
-            }
+            
             if (md5 == null)
             {
                 if (f.md5 != null)
-                {
                     return false;
-                }
             }
             else
             {
-                if (!md5.Equals(f.md5))
-                {
+                if (!md5.SequenceEqual(f.md5))
                     return false;
-                }
             }
+
             if (index != f.index || uniq != f.uniq)
-            {
                 return false;
-            }
+
             if (freeVars == null)
-            {
                 return f.freeVars == null;
-            }
-            return freeVars.Equals(f.freeVars);
+
+            return freeVars.SequenceEqual(f.freeVars);
         }
 
         public override int GetHashCode()
@@ -135,9 +129,7 @@ namespace Erlang.NET
             if (freeVars != null)
             {
                 foreach (OtpErlangObject o in freeVars)
-                {
                     hash.combine(o.GetHashCode(), 1);
-                }
             }
             return hash.valueOf();
         }

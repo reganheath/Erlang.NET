@@ -89,6 +89,9 @@ namespace Erlang.NET
         /** The tag used for new style references */
         public const int newRefTag = 114;
 
+        /** The tag used for maps */
+        public const int mapTag = 116;
+
         /** The tag used for old Funs */
         public const int funTag = 117;
 

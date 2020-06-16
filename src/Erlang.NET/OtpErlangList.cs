@@ -110,9 +110,7 @@ namespace Erlang.NET
             : this(elems, 0, elems.Length)
         {
             if (elems.Length == 0 && lastTail != null)
-            {
                 throw new OtpErlangException("Bad list, empty head, non-empty tail");
-            }
             this.lastTail = lastTail;
         }
 
@@ -456,17 +454,13 @@ namespace Erlang.NET
         public String stringValue()
         {
             if (!isProper())
-            {
                 throw new OtpErlangException("Non-proper list: " + this);
-            }
             char[] values = new char[arity()];
             for (int i = 0; i < values.Length; ++i)
             {
                 OtpErlangObject o = elementAt(i);
                 if (!(o is OtpErlangLong))
-                {
                     throw new OtpErlangException("Non-integer term: " + o);
-                }
                 OtpErlangLong l = (OtpErlangLong)o;
                 values[i] = (char)l.intValue();
             }

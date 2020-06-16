@@ -59,17 +59,11 @@ namespace Erlang.NET
         public OtpErlangLong(BigInteger v)
         {
             if (v == null)
-            {
                 throw new NullReferenceException();
-            }
             if (v.bitCount() < 64)
-            {
                 val = v.LongValue();
-            }
             else
-            {
                 bigVal = v;
-            }
         }
 
         /**

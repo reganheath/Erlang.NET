@@ -41,5 +41,10 @@ namespace Erlang.NET
             : base(msg)
         {
         }
+
+        public OtpException(string msg, Exception inner)
+            : base(msg, inner)
+        {
+        }
     }
 }

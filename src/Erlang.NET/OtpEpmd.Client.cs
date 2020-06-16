@@ -91,15 +91,11 @@ namespace Erlang.NET
         private const byte stopReq = (byte)115;
 
         // version specific value
-        private const byte port3req = (byte)112;
-        private const byte publish3req = (byte)97;
-        private const byte publish3ok = (byte)89;
-
         private const byte port4req = (byte)122;
         private const byte port4resp = (byte)119;
-        private const byte publish4req = (byte)120;
-        private const byte publish4resp = (byte)121;
-        private const byte publish4Xresp = (byte)118;
+        private const byte ALIVE2_REQ = (byte)120;
+        private const byte ALIVE2_RESP = (byte)121;
+        private const byte ALIVE2_X_RESP = (byte)118;
         private const byte names4req = (byte)110;
 
         private static int traceLevel = 0;
@@ -144,14 +140,7 @@ namespace Erlang.NET
          */
         public static int lookupPort(AbstractNode node)
         {
-            try
-            {
-                return r4_lookupPort(node);
-            }
-            catch (IOException)
-            {
-                return r3_lookupPort(node);
-            }
+            return r4_lookupPort(node);
         }
 
         /**
@@ -169,19 +158,8 @@ namespace Erlang.NET
          */
         public static bool publishPort(OtpLocalNode node)
         {
-            OtpTransport s = null;
-
-            try
-            {
-                s = r4_publish(node);
-            }
-            catch (IOException)
-            {
-                s = r3_publish(node);
-            }
-
+            OtpTransport s = r4_publish(node);
             node.setEpmd(s);
-
             return s != null;
         }
 
@@ -219,79 +197,6 @@ namespace Erlang.NET
             }
         }
 
-        private static int r3_lookupPort(AbstractNode node)
-        {
-            int port = 0;
-
-            try
-            {
-                OtpOutputStream obuf = new OtpOutputStream();
-                using (TcpClient s = new TcpClient(node.Host, EpmdPort.get()))
-                {
-                    // build and send epmd request
-                    // length[2], tag[1], alivename[n] (length = n+1)
-                    obuf.write2BE(node.Alive.Length + 1);
-                    obuf.write1(port3req);
-                    obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
-
-                    // send request
-                    obuf.WriteTo(s.GetStream());
-
-                    if (traceLevel >= traceThreshold)
-                    {
-                        log.Debug("-> LOOKUP (r3) " + node);
-                    }
-
-                    // receive and decode reply
-                    byte[] tmpbuf = new byte[100];
-
-                    s.GetStream().Read(tmpbuf, 0, tmpbuf.Length);
-                    OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
-
-                    port = ibuf.read2BE();
-                }
-            }
-            catch (SocketException)
-            {
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host);
-            }
-            catch (IOException)
-            {
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when looking up " + node.Alive);
-            }
-            catch (OtpErlangDecodeException)
-            {
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (invalid response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when looking up " + node.Alive);
-            }
-
-            if (traceLevel >= traceThreshold)
-            {
-                if (port == 0)
-                {
-                    log.Debug("<- NOT FOUND");
-                }
-                else
-                {
-                    log.Debug("<- PORT " + port);
-                }
-            }
-            return port;
-        }
-
         private static int r4_lookupPort(AbstractNode node)
         {
             int port = 0;
@@ -311,9 +216,7 @@ namespace Erlang.NET
                     obuf.WriteTo(s.GetStream());
 
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("-> LOOKUP (r4) " + node);
-                    }
 
                     // receive and decode reply
                     // resptag[1], result[1], port[2], ntype[1], proto[1],
@@ -325,9 +228,8 @@ namespace Erlang.NET
 
                     if (n < 0)
                     {
-                        // this was an r3 node => not a failure (yet)
-                        throw new IOException("Nameserver not responding on "
-                                      + node.Host + " when looking up " + node.Alive);
+                        s.Close();
+                        throw new IOException("Nameserver not responding on " + node.Host + " when looking up " + node.Alive);
                     }
 
                     OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
@@ -349,130 +251,43 @@ namespace Erlang.NET
                     }
                 }
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host);
+                throw new IOException("Nameserver not responding on " + node.Host, e);
             }
-            catch (IOException)
+            catch (IOException e)
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when looking up " + node.Alive);
+                throw new IOException("Nameserver not responding on " + node.Host + " when looking up " + node.Alive, e);
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpErlangDecodeException e)
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (invalid response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when looking up " + node.Alive);
+                throw new IOException("Nameserver invalid response on " + node.Host + " when looking up " + node.Alive, e);
             }
 
             if (traceLevel >= traceThreshold)
             {
                 if (port == 0)
-                {
                     log.Debug("<- NOT FOUND");
-                }
                 else
-                {
                     log.Debug("<- PORT " + port);
-                }
             }
+
             return port;
         }
 
-        private static OtpTransport r3_publish(OtpLocalNode node)
-        {
-            OtpTransport s;
-
-            try
-            {
-                OtpOutputStream obuf = new OtpOutputStream();
-                s = node.createTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
-
-                obuf.write2BE(node.Alive.Length + 3);
-
-                obuf.write1(publish3req);
-                obuf.write2BE(node.Port);
-                obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
-
-                // send request
-                obuf.WriteTo(s.getOutputStream());
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("-> PUBLISH (r3) " + node + " port=" + node.Port);
-                }
-
-                byte[] tmpbuf = new byte[100];
-
-                int n = s.getInputStream().Read(tmpbuf, 0, tmpbuf.Length);
-
-                if (n < 0)
-                {
-                    if (traceLevel >= traceThreshold)
-                    {
-                        log.Debug("<- (no response)");
-                    }
-                    return null;
-                }
-
-                OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
-
-                if (ibuf.read1() == publish3ok)
-                {
-                    node.Creation = ibuf.read2BE();
-                    if (traceLevel >= traceThreshold)
-                    {
-                        log.Debug("<- OK");
-                    }
-                    return s; // success - don't close socket
-                }
-            }
-            catch (SocketException)
-            {
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host);
-            }
-            catch (IOException)
-            {
-                // epmd closed the connection = fail
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when publishing " + node.Alive);
-            }
-            catch (OtpErlangDecodeException)
-            {
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (invalid response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when publishing " + node.Alive);
-            }
-            return null; // failure
-        }
-
         /*
-         * this function will get an exception if it tries to talk to an r3 epmd, or
-         * if something else happens that it cannot forsee. In both cases we return
-         * an exception (and the caller should try again, using the r3 protocol). If
-         * we manage to successfully communicate with an r4 epmd, we return either
-         * the socket, or null, depending on the result.
+         * this function will get an exception if it tries to talk to a
+         * very old epmd, or if something else happens that it cannot
+         * forsee. In both cases we return an exception. We no longer
+         * support r3, so the exception is fatal. If we manage to
+         * successfully communicate with an r4 epmd, we return either the
+         * socket, or null, depending on the result.
          */
         private static OtpTransport r4_publish(OtpLocalNode node)
         {
@@ -485,7 +300,7 @@ namespace Erlang.NET
 
                 obuf.write2BE(node.Alive.Length + 13);
 
-                obuf.write1(publish4req);
+                obuf.write1(ALIVE2_REQ);
                 obuf.write2BE(node.Port);
 
                 obuf.write1(node.Type);
@@ -502,9 +317,7 @@ namespace Erlang.NET
                 obuf.WriteTo(s.getOutputStream());
 
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("-> PUBLISH (r4) " + node + " port=" + node.Port);
-                }
 
                 // get reply
                 byte[] tmpbuf = new byte[100];
@@ -512,73 +325,50 @@ namespace Erlang.NET
 
                 if (n < 0)
                 {
-                    // this was an r3 node => not a failure (yet)
-                    if (s != null)
-                    {
-                        s.close();
-                    }
-                    throw new IOException("Nameserver not responding on "
-                              + node.Host + " when publishing " + node.Alive);
+                    s.close();
+                    throw new IOException("Nameserver not responding on " + node.Host + " when publishing " + node.Alive);
                 }
 
                 OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
 
                 int response = ibuf.read1();
-                if (response == publish4resp || response == publish4Xresp)
+                if (response == ALIVE2_RESP || response == ALIVE2_X_RESP)
                 {
                     int result = ibuf.read1();
                     if (result == 0)
                     {
-                        node.Creation = (response == publish4resp ? ibuf.read2BE() : ibuf.read4BE());
+                        node.Creation = (response == ALIVE2_RESP ? ibuf.read2BE() : ibuf.read4BE());
                         if (traceLevel >= traceThreshold)
-                        {
                             log.Debug("<- OK");
-                        }
                         return s; // success
                     }
                 }
 
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host);
+                throw new IOException("Nameserver not responding on " + node.Host, e);
             }
-            catch (IOException)
+            catch (IOException e)
             {
                 // epmd closed the connection = fail
                 if (s != null)
-                {
                     s.close();
-                }
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when publishing " + node.Alive);
+                throw new IOException("Nameserver not responding on " + node.Host + " when publishing " + node.Alive, e);
             }
-            catch (OtpErlangDecodeException)
-            {
-                if (s != null)
-                {
-                    s.close();
-                }
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug("<- (invalid response)");
-                }
-                throw new IOException("Nameserver not responding on " + node.Host
-                              + " when publishing " + node.Alive);
-            }
-
-            if (s != null)
+            catch (OtpErlangDecodeException e)
             {
                 s.close();
+                if (traceLevel >= traceThreshold)
+                    log.Debug("<- (invalid response)");
+                throw new IOException("Nameserver invalid response on " + node.Host + " when publishing " + node.Alive, e);
             }
+
+            s.close();
             return null;
         }
 
@@ -602,9 +392,7 @@ namespace Erlang.NET
                     obuf.WriteTo(s.getOutputStream());
 
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("-> NAMES (r4) ");
-                    }
 
                     // get reply
                     byte[] buffer = new byte[256];
@@ -631,29 +419,23 @@ namespace Erlang.NET
                     return all.Split(new char[] { '\n' });
                 }
             }
-            catch (SocketException)
+            catch (SocketException e) 
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding on " + address);
+                throw new IOException("Nameserver not responding on " + address, e);
             }
-            catch (IOException)
+            catch (IOException e)
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (no response)");
-                }
-                throw new IOException("Nameserver not responding when requesting names");
+                throw new IOException("Nameserver not responding when requesting names", e);
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpErlangDecodeException e)
             {
                 if (traceLevel >= traceThreshold)
-                {
                     log.Debug("<- (invalid response)");
-                }
-                throw new IOException("Nameserver not responding when requesting names");
+                throw new IOException("Nameserver invalid response when requesting names", e);
             }
         }
     }

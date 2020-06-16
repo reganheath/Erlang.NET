@@ -222,7 +222,7 @@ namespace Erlang.NET
          * Create an unnamed {@link OtpMbox mailbox} that can be used to send and
          * receive messages with other, similar mailboxes and with Erlang processes.
          * Messages can be sent to this mailbox by using its associated
-         * {@link OtpMbox#self pid}.
+         * {@link OtpMbox#self() pid}.
          * 
          * @return a mailbox.
          */
@@ -572,33 +572,26 @@ namespace Erlang.NET
                 // first just try looking up the name as-is
 
                 if (connections.ContainsKey(node))
-                {
-                    conn = connections[node];
-                }
-                else
-                {
-                    // in case node had no '@' add localhost info and try again
-                    peer = new OtpPeer(node);
+                    return connections[node];
 
-                    if (connections.ContainsKey(peer.Node))
-                    {
-                        conn = connections[peer.Node];
-                    }
-                    else
-                    {
-                        try
-                        {
-                            conn = new OtpCookedConnection(this, peer);
-                            conn.setFlags(connFlags);
-                            addConnection(conn);
-                        }
-                        catch (Exception e)
-                        {
-                            /* false = outgoing */
-                            connAttempt(peer.Node, false, e);
-                        }
-                    }
+                // in case node had no '@' add localhost info and try again
+                peer = new OtpPeer(node);
+
+                if (connections.ContainsKey(peer.Node))
+                    return connections[peer.Node];
+
+                try
+                {
+                    conn = new OtpCookedConnection(this, peer);
+                    conn.setFlags(connFlags);
+                    addConnection(conn);
                 }
+                catch (Exception e)
+                {
+                    /* false = outgoing */
+                    connAttempt(peer.Node, false, e);
+                }
+
                 return conn;
             }
         }
@@ -615,9 +608,7 @@ namespace Erlang.NET
         private void removeConnection(OtpCookedConnection conn)
         {
             if (conn != null && conn.Name != null)
-            {
                 connections.Remove(conn.Name);
-            }
         }
 
         /* use these wrappers to call handler functions */
@@ -626,16 +617,10 @@ namespace Erlang.NET
             lock (this)
             {
                 if (handler == null)
-                {
                     return;
-                }
-                try
-                {
-                    handler.remoteStatus(node, up, info);
-                }
-                catch (Exception)
-                {
-                }
+
+                try { handler.remoteStatus(node, up, info); }
+                catch (Exception) { }
             }
         }
 
@@ -644,16 +629,10 @@ namespace Erlang.NET
             lock (this)
             {
                 if (handler == null)
-                {
                     return;
-                }
-                try
-                {
-                    handler.localStatus(node, up, info);
-                }
-                catch (Exception)
-                {
-                }
+
+                try { handler.localStatus(node, up, info); }
+                catch (Exception) { }
             }
         }
 
@@ -662,16 +641,10 @@ namespace Erlang.NET
             lock (this)
             {
                 if (handler == null)
-                {
                     return;
-                }
-                try
-                {
-                    handler.connAttempt(node, incoming, info);
-                }
-                catch (Exception)
-                {
-                }
+
+                try { handler.connAttempt(node, incoming, info); }
+                catch (Exception) { }
             }
         }
 

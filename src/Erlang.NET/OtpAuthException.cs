@@ -39,5 +39,9 @@ namespace Erlang.NET
             : base(s)
         {
         }
+        public OtpAuthException(String s, Exception inner)
+            : base(s, inner)
+        {
+        }
     }
 }

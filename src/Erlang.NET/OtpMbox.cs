@@ -35,7 +35,7 @@ namespace Erlang.NET
      * the recipient of the message. When sending messages to other mailboxes, the
      * recipient can only respond if the sender includes the pid as part of the
      * message contents. The sender can determine his own pid by calling
-     * {@link #self self()}.
+     * {@link #self() self()}.
      * </p>
      * 
      * <p>
@@ -158,7 +158,7 @@ namespace Erlang.NET
          * Get the registered name of this mailbox.
          * 
          * @return the registered name of this mailbox, or null if the mailbox had
-         *         no registerd name.
+         *         no registered name.
          */
         public String Name
         {
@@ -337,9 +337,7 @@ namespace Erlang.NET
             OtpMsg m = (OtpMsg)queue.get(timeout);
 
             if (m == null)
-            {
                 return null;
-            }
 
             switch (m.type())
             {
@@ -380,19 +378,18 @@ namespace Erlang.NET
                 if (node.Equals(home.Node))
                 {
                     home.deliver(new OtpMsg(to, (OtpErlangObject)msg.Clone()));
+                    return;
                 }
-                else
-                {
-                    OtpCookedConnection conn = home.getConnection(node);
-                    if (conn == null)
-                    {
-                        return;
-                    }
-                    conn.send(self, to, msg);
-                }
+
+                OtpCookedConnection conn = home.getConnection(node);
+                if (conn == null)
+                    return;
+
+                conn.send(self, to, msg);
             }
             catch (Exception)
             {
+                // TODO: WTF?!
             }
         }
 
@@ -777,7 +774,7 @@ namespace Erlang.NET
 
         public override int GetHashCode()
         {
-            return base.GetHashCode();
+            return self.GetHashCode();
         }
 
         /*

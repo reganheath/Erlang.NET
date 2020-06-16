@@ -78,7 +78,6 @@ namespace Erlang.NET
         protected const int sendTag = 2;
         protected const int exitTag = 3;
         protected const int unlinkTag = 4;
-        protected const int nodeLinkTag = 5;
         protected const int regSendTag = 6;
         protected const int groupLeaderTag = 7;
         protected const int exit2Tag = 8;
@@ -761,7 +760,6 @@ namespace Erlang.NET
                         // absolutely no idea what to do with these, so we ignore
                         // them...
                         case groupLeaderTag: // { GROUPLEADER, FromPid, ToPid}
-                        case nodeLinkTag: // { NODELINK }
                             // (just show trace)
                             if (traceLevel >= ctrlThreshold)
                             {
@@ -923,10 +921,10 @@ namespace Erlang.NET
                     header.WriteTo(socket.getOutputStream());
                     payload.WriteTo(socket.getOutputStream());
                 }
-                catch (IOException e)
+                catch (IOException)
                 {
                     close();
-                    throw e;
+                    throw;
                 }
             }
         }
@@ -952,10 +950,10 @@ namespace Erlang.NET
                     }
                     header.WriteTo(socket.getOutputStream());
                 }
-                catch (IOException e)
+                catch (IOException)
                 {
                     close();
-                    throw e;
+                    throw;
                 }
             }
         }
@@ -982,9 +980,6 @@ namespace Erlang.NET
 
                 case unlinkTag:
                     return "UNLINK";
-
-                case nodeLinkTag:
-                    return "NODELINK";
 
                 case regSendTag:
                     return "REG_SEND";
@@ -1022,9 +1017,7 @@ namespace Erlang.NET
             lock (this)
             {
                 if (s == null)
-                {
                     throw new IOException("expected " + len + " bytes, socket was closed");
-                }
                 st = s.getInputStream();
             }
 
@@ -1033,35 +1026,32 @@ namespace Erlang.NET
                 try
                 {
                     i = st.Read(b, got, len - got);
+                    if (i < 0)
+                        throw new IOException("expected " + len + " bytes, got EOF after " + got + " bytes");
+
+                    if (i == 0 && len != 0)
+                    {
+                        /*
+                         * This is a corner case. According to
+                         * http://java.sun.com/j2se/1.4.2/docs/api/ class InputStream
+                         * is.read(,,l) can only return 0 if l==0. In other words it
+                         * should not happen, but apparently did.
+                         */
+                        throw new IOException("Remote connection closed");
+                    }
+
+                    got += i;
                 }
-                catch (IOException e)
+                catch (IOException)
                 {
-                    throw new IOException(e.Message);
+                    throw;
                 }
                 catch (ObjectDisposedException e)
                 {
-                    throw new IOException(e.Message);
-                }
-
-                if (i < 0)
-                {
-                    throw new IOException("expected " + len + " bytes, got EOF after " + got + " bytes");
-                }
-                else if (i == 0 && len != 0)
-                {
-                    /*
-                     * This is a corner case. According to
-                     * http://java.sun.com/j2se/1.4.2/docs/api/ class InputStream
-                     * is.read(,,l) can only return 0 if l==0. In other words it
-                     * should not happen, but apparently did.
-                     */
-                    throw new IOException("Remote connection closed");
-                }
-                else
-                {
-                    got += i;
+                    throw new IOException("Failed to read from socket", e);
                 }
             }
+
             return got;
         }
 
@@ -1079,21 +1069,21 @@ namespace Erlang.NET
                 cookieOk = true;
                 sendCookie = false;
             }
-            catch (IOException ie)
+            catch (IOException)
             {
                 close();
-                throw ie;
+                throw;
             }
-            catch (OtpAuthException ae)
+            catch (OtpAuthException)
             {
                 close();
-                throw ae;
+                throw;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 String nn = peer.Node;
                 close();
-                throw new IOException("Error accepting connection from " + nn);
+                throw new IOException("Error accepting connection from " + nn, e);
             }
 
             if (traceLevel >= handshakeThreshold)
@@ -1122,19 +1112,19 @@ namespace Erlang.NET
                 cookieOk = true;
                 sendCookie = false;
             }
-            catch (IOException e)
+            catch (IOException)
             {
-                throw e;
+                throw;
             }
-            catch (OtpAuthException e)
+            catch (OtpAuthException)
             {
                 close();
-                throw e;
+                throw;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 close();
-                throw new IOException("Cannot connect to peer node");
+                throw new IOException("Cannot connect to peer node", e);
             }
         }
 
@@ -1270,15 +1260,14 @@ namespace Erlang.NET
                 byte[] tmpname;
                 int len = tmpbuf.Length;
                 peer.Type = ibuf.read1();
+                
                 if (peer.Type != AbstractNode.NTYPE_R6)
-                {
                     throw new IOException("Unknown remote node type");
-                }
+
                 peer.DistLow = peer.DistHigh = ibuf.read2BE();
                 if (peer.DistLow < 5)
-                {
                     throw new IOException("Unknown remote node type");
-                }
+
                 peer.Flags = ibuf.read4BE();
                 tmpname = new byte[len - 7];
                 ibuf.readN(tmpname);
@@ -1286,23 +1275,15 @@ namespace Erlang.NET
                 // Set the old nodetype parameter to indicate hidden/normal status
                 // When the old handshake is removed, the ntype should also be.
                 if ((peer.Flags & AbstractNode.dFlagPublished) != 0)
-                {
                     peer.Type = AbstractNode.NTYPE_R4_ERLANG;
-                }
                 else
-                {
                     peer.Type = AbstractNode.NTYPE_R4_HIDDEN;
-                }
 
                 if ((peer.Flags & AbstractNode.dFlagExtendedReferences) == 0)
-                {
                     throw new IOException("Handshake failed - peer cannot handle extended references");
-                }
 
                 if ((peer.Flags & AbstractNode.dFlagExtendedPidsPorts) == 0)
-                {
                     throw new IOException("Handshake failed - peer cannot handle extended pids and ports");
-                }
             }
             catch (OtpErlangDecodeException)
             {
@@ -1362,24 +1343,18 @@ namespace Erlang.NET
                 ibuf.readN(tmpname);
                 String hisname = OtpErlangString.newString(tmpname);
                 if (!hisname.Equals(peer.Node))
-                {
                     throw new IOException("Handshake failed - peer has wrong name: " + hisname);
-                }
 
                 if ((peer.Flags & AbstractNode.dFlagExtendedReferences) == 0)
-                {
                     throw new IOException("Handshake failed - peer cannot handle extended references");
-                }
 
                 if ((peer.Flags & AbstractNode.dFlagExtendedPidsPorts) == 0)
-                {
                     throw new IOException("Handshake failed - peer cannot handle extended pids and ports");
-                }
 
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpErlangDecodeException e)
             {
-                throw new IOException("Handshake failed - not enough data");
+                throw new IOException("Handshake failed - not enough data", e);
             }
 
             if (traceLevel >= handshakeThreshold)
@@ -1433,20 +1408,16 @@ namespace Erlang.NET
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int tag = ibuf.read1();
                 if (tag != ChallengeReply)
-                {
                     throw new IOException("Handshake protocol error");
-                }
                 challenge = ibuf.read4BE();
                 ibuf.readN(her_digest);
                 byte[] our_digest = genDigest(our_challenge, self.Cookie);
                 if (!digests_equals(her_digest, our_digest))
-                {
                     throw new OtpAuthException("Peer authentication error.");
-                }
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpErlangDecodeException e)
             {
-                throw new IOException("Handshake failed - not enough data");
+                throw new IOException("Handshake failed - not enough data", e);
             }
 
             if (traceLevel >= handshakeThreshold)
@@ -1484,24 +1455,20 @@ namespace Erlang.NET
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int tag = ibuf.read1();
                 if (tag != ChallengeAck)
-                {
                     throw new IOException("Handshake protocol error");
-                }
                 ibuf.readN(her_digest);
                 byte[] our_digest = genDigest(our_challenge, self.Cookie);
                 if (!digests_equals(her_digest, our_digest))
-                {
                     throw new OtpAuthException("Peer authentication error.");
-                }
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpErlangDecodeException e)
             {
-                throw new IOException("Handshake failed - not enough data");
+                throw new IOException("Handshake failed - not enough data", e);
             }
             catch (Exception e)
             {
                 log.Error("Peer authentication error", e);
-                throw new OtpAuthException("Peer authentication error.");
+                throw new OtpAuthException("Peer authentication error.", e);
             }
 
             if (traceLevel >= handshakeThreshold)
@@ -1535,21 +1502,17 @@ namespace Erlang.NET
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int tag = ibuf.read1();
                 if (tag != ChallengeStatus)
-                {
                     throw new IOException("Handshake protocol error");
-                }
                 byte[] tmpbuf = new byte[buf.Length - 1];
                 ibuf.readN(tmpbuf);
                 String status = OtpErlangString.newString(tmpbuf);
 
                 if (status.CompareTo("ok") != 0)
-                {
                     throw new IOException("Peer replied with status '" + status + "' instead of 'ok'");
-                }
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpErlangDecodeException e)
             {
-                throw new IOException("Handshake failed - not enough data");
+                throw new IOException("Handshake failed - not enough data", e);
             }
             if (traceLevel >= handshakeThreshold)
             {

@@ -155,9 +155,7 @@ namespace Erlang.NET
             try
             {
                 if (status == closed)
-                {
                     return null;
-                }
 
                 long currentTime = currentTimeMillis();
                 long stopTime = currentTime + timeout;
@@ -166,15 +164,11 @@ namespace Erlang.NET
                 while (true)
                 {
                     if ((o = tryGet()) != null)
-                    {
                         return o;
-                    }
 
                     currentTime = currentTimeMillis();
                     if (stopTime <= currentTime)
-                    {
                         throw new ThreadInterruptedException("Get operation timed out");
-                    }
 
                     try
                     {

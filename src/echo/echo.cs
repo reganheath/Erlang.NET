@@ -61,16 +61,18 @@ namespace Erlang.NET.Test
 
         public static void Main(string[] args)
         {
-            OtpNode a = new OtpNode("a");
             OtpNode b = new OtpNode("b");
             OtpActorMbox echo = (OtpActorMbox)b.createMbox("echo", false);
             b.react(new OtpEchoActor(echo));
+
+            OtpNode a = new OtpNode("a");
             OtpMbox echoback = a.createMbox("echoback", true);
             OtpErlangObject[] v = { echoback.Self, new OtpErlangString("Hello, World!") };
             echoback.send(echo.Self, new OtpErlangTuple(v));
             log.Debug("<- ECHO (back) " + echoback.receive());
-            b.close();
+
             a.close();
+            b.close();
         }
     }
 }

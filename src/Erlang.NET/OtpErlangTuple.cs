@@ -53,13 +53,8 @@ namespace Erlang.NET
         public OtpErlangTuple(OtpErlangObject elem)
         {
             if (elem == null)
-            {
                 throw new ArgumentException("Tuple element cannot be null");
-            }
-            else
-            {
-                elems = new OtpErlangObject[] { elem };
-            }
+            elems = new OtpErlangObject[] { elem };
         }
 
         /**
@@ -94,26 +89,17 @@ namespace Erlang.NET
         public OtpErlangTuple(OtpErlangObject[] elems, int start, int count)
         {
             if (elems == null)
-            {
                 throw new ArgumentException("Tuple content can't be null");
-            }
-            else if (count < 1)
-            {
-                elems = NO_ELEMENTS;
-            }
-            else
+
+            if (count >= 1)
             {
                 this.elems = new OtpErlangObject[count];
                 for (int i = 0; i < count; i++)
                 {
-                    if (elems[start + i] != null)
-                    {
-                        this.elems[i] = elems[start + i];
-                    }
-                    else
-                    {
+                    if (elems[start + i] == null)
                         throw new ArgumentException("Tuple element cannot be null (element" + (start + i) + ")");
-                    }
+
+                    this.elems[i] = elems[start + i];
                 }
             }
         }
@@ -136,15 +122,8 @@ namespace Erlang.NET
             if (arity > 0)
             {
                 elems = new OtpErlangObject[arity];
-
                 for (int i = 0; i < arity; i++)
-                {
                     elems[i] = buf.read_any();
-                }
-            }
-            else
-            {
-                elems = NO_ELEMENTS;
             }
         }
 
@@ -170,9 +149,7 @@ namespace Erlang.NET
         public OtpErlangObject elementAt(int i)
         {
             if (i >= arity() || i < 0)
-            {
                 return null;
-            }
             return elems[i];
         }
 
@@ -204,9 +181,7 @@ namespace Erlang.NET
             for (i = 0; i < arity; i++)
             {
                 if (i > 0)
-                {
                     s.Append(",");
-                }
                 s.Append(elems[i].ToString());
             }
 
@@ -229,9 +204,7 @@ namespace Erlang.NET
             buf.write_tuple_head(arity);
 
             for (int i = 0; i < arity; i++)
-            {
                 buf.write_any(elems[i]);
-            }
         }
 
         /**
@@ -247,9 +220,7 @@ namespace Erlang.NET
         public override bool Equals(Object o)
         {
             if (!(o is OtpErlangTuple))
-            {
                 return false;
-            }
 
             OtpErlangTuple t = (OtpErlangTuple)o;
             int a = arity();

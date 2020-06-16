@@ -162,7 +162,7 @@ namespace Erlang.NET
             catch (OtpErlangDecodeException e)
             {
                 close();
-                throw new IOException(e.Message);
+                throw new IOException("Receive failed", e);
             }
         }
 
@@ -206,7 +206,7 @@ namespace Erlang.NET
             catch (OtpErlangDecodeException e)
             {
                 close();
-                throw new IOException(e.Message);
+                throw new IOException("Receive failed", e);
             }
         }
 

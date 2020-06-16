@@ -82,9 +82,7 @@ namespace Erlang.NET
             float f = (float)d;
 
             if (f != d)
-            {
                 throw new OtpErlangRangeException("Value too large for float: " + d);
-            }
 
             return f;
         }

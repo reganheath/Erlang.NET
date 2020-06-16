@@ -51,14 +51,9 @@ namespace Erlang.NET
         public OtpErlangAtom(String atom)
         {
             if (atom == null)
-            {
                 throw new ArgumentException("null string value");
-            }
-
             if (atom.Length > maxAtomLength)
-            {
-                throw new ArgumentException("Atom may not exceed " + maxAtomLength + " characters");
-            }
+                throw new ArgumentException("Atom may not exceed " + maxAtomLength + " characters: " + atom);
             this.atom = atom;
         }
 
@@ -125,13 +120,8 @@ namespace Erlang.NET
         public override String ToString()
         {
             if (atomNeedsQuoting(atom))
-            {
                 return "'" + escapeSpecialChars(atom) + "'";
-            }
-            else
-            {
-                return atom;
-            }
+            return atom;
         }
 
         /**
@@ -198,28 +188,18 @@ namespace Erlang.NET
         // true if the atom should be displayed with quotation marks
         private bool atomNeedsQuoting(String s)
         {
-            char c;
-
             if (s.Length == 0)
-            {
                 return true;
-            }
 
             if (!isErlangLower(s[0]))
-            {
                 return true;
-            }
 
-            int len = s.Length;
-            for (int i = 1; i < len; i++)
+            foreach (var c in s)
             {
-                c = s[i];
-
                 if (!isErlangLetter(c) && !isErlangDigit(c) && c != '@')
-                {
                     return true;
-                }
             }
+
             return false;
         }
 
@@ -311,6 +291,7 @@ namespace Erlang.NET
                         break;
                 }
             }
+
             return so.ToString();
         }
     }

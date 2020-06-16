@@ -60,7 +60,6 @@ namespace Erlang.NET
         public const int sendTag = 2;
         public const int exitTag = 3;
         public const int unlinkTag = 4;
-        /* public const int nodeLinkTag = 5; */
         public const int regSendTag = 6;
         /* public const int groupLeaderTag = 7; */
         public const int exit2Tag = 8;

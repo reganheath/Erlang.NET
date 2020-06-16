@@ -37,6 +37,12 @@ namespace Erlang.NET
 
         private readonly int flags;
 
+        public OtpInputStream(int capacity, int flags)
+            : base(capacity)
+        {
+            this.flags = flags;
+        }
+
         /**
          * @param buf
          */
@@ -765,9 +771,7 @@ namespace Erlang.NET
                 case OtpExternal.intTag:
                     nb = new byte[4];
                     if (this.readN(nb) != 4) // Big endian
-                    {
                         throw new OtpErlangDecodeException("Cannot read from intput stream");
-                    }
                     break;
 
                 case OtpExternal.smallBigTag:
@@ -784,18 +788,13 @@ namespace Erlang.NET
                         arity = read4BE();
                         sign = read1();
                         if (arity + 1 < 0)
-                        {
-                            throw new OtpErlangDecodeException("Value of largeBig does not fit in BigInteger, arity "
-                                               + arity + " sign " + sign);
-                        }
+                            throw new OtpErlangDecodeException("Value of largeBig does not fit in BigInteger, arity " + arity + " sign " + sign);
                     }
                     nb = new byte[arity + 1];
                     // Value is read as little endian. The big end is augumented
                     // with one zero byte to make the value 2's complement positive.
                     if (this.readN(nb, 0, arity) != arity)
-                    {
                         throw new OtpErlangDecodeException("Cannot read from intput stream");
-                    }
                     // Reverse the array to make it big endian.
                     for (int i = 0, j = nb.Length; i < j--; i++)
                     {
@@ -836,18 +835,14 @@ namespace Erlang.NET
                     v = ((b[0] & 0xFF) << 8) + (b[1] & 0xFF);
                     v = (short)v; // Sign extend
                     if (v < 0 && unsigned)
-                    {
                         throw new OtpErlangDecodeException("Value not unsigned: " + v);
-                    }
                     break;
                 case 4:
                     v = ((b[0] & 0xFF) << 24) + ((b[1] & 0xFF) << 16)
                         + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
                     v = (int)v; // Sign extend
                     if (v < 0 && unsigned)
-                    {
                         throw new OtpErlangDecodeException("Value not unsigned: " + v);
-                    }
                     break;
                 default:
                     int i = 0;
@@ -856,13 +851,9 @@ namespace Erlang.NET
                     if (unsigned)
                     {
                         if (c < 0)
-                        {
                             throw new OtpErlangDecodeException("Value not unsigned: " + b);
-                        }
                         while (b[i] == 0)
-                        {
                             i++; // Skip leading zero sign bytes
-                        }
                     }
                     else
                     {
@@ -871,9 +862,7 @@ namespace Erlang.NET
                             i = 1;
                             // Skip all leading sign bytes
                             while (i < b.Length && b[i] == c)
-                            {
                                 i++;
-                            }
                             if (i < b.Length)
                             {
                                 // Check first non-sign byte to see if its sign
@@ -961,6 +950,33 @@ namespace Erlang.NET
 
                 default:
                     throw new OtpErlangDecodeException("Not valid tuple tag: " + tag);
+            }
+
+            return arity;
+        }
+
+        /**
+         * Read a map header from the stream.
+         * 
+         * @return the arity of the map.
+         * 
+         * @exception OtpErlangDecodeException
+         *                if the next term in the stream is not a map.
+         */
+        public int read_map_head()
+        {
+            int arity = 0;
+            int tag = read1skip_version();
+
+            // decode the map header and get arity
+            switch (tag)
+            {
+                case OtpExternal.mapTag:
+                    arity = read4BE();
+                    break;
+
+                default:
+                    throw new OtpErlangDecodeException("Not valid map tag: " + tag);
             }
 
             return arity;
@@ -1231,9 +1247,7 @@ namespace Erlang.NET
             {
                 int dsize = dos.Read(buf, 0, size);
                 if (dsize != size)
-                {
                     throw new OtpErlangDecodeException("Decompression gave " + dsize + " bytes, not " + size);
-                }
             }
             catch (OtpErlangDecodeException)
             {
@@ -1282,6 +1296,9 @@ namespace Erlang.NET
                 case OtpExternal.refTag:
                 case OtpExternal.newRefTag:
                     return new OtpErlangRef(this);
+
+                case OtpExternal.mapTag:
+                    return new OtpErlangMap(this);
 
                 case OtpExternal.portTag:
                     return new OtpErlangPort(this);
