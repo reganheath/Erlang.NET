@@ -1108,16 +1108,28 @@ namespace Erlang.NET
             {
                 ch2 = challenge;
             }
-            using (MD5 context = MD5.Create())
+            OtpMD5 context = new OtpMD5();
+            context.update(cookie);
+            context.update("" + ch2);
+
+            int[] tmp = context.final_bytes();
+            byte[] res = new byte[tmp.Length];
+            for (int i = 0; i < tmp.Length; ++i)
             {
-                byte[] tmp = Encoding.ASCII.GetBytes(cookie);
-                context.TransformBlock(tmp, 0, tmp.Length, tmp, 0);
-
-                tmp = BitConverter.GetBytes(ch2);
-                context.TransformFinalBlock(tmp, 0, tmp.Length);
-
-                return context.Hash;
+                res[i] = (byte)(tmp[i] & 0xFF);
             }
+            return res;
+
+            //using (MD5 context = MD5.Create())
+            //{
+            //    byte[] tmp = Encoding.ASCII.GetBytes(cookie);
+            //    context.TransformBlock(tmp, 0, tmp.Length, tmp, 0);
+
+            //    tmp = BitConverter.GetBytes(ch2);
+            //    context.TransformFinalBlock(tmp, 0, tmp.Length);
+
+            //    return context.Hash;
+            //}
         }
 
         protected int sendName(int dist, long aflags, int creation)

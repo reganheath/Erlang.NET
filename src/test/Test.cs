@@ -26,7 +26,7 @@ namespace Erlang.NET.Test
                 mbox.Self,
                 new OtpErlangAtom("hello, world")
             });
-            mbox.send("echo", "edsrv@GAMING", tuple);
+            mbox.send("player_srv", "edsrv@GAMING", tuple);
         }
     }
 }
