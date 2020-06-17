@@ -28,9 +28,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangBoolean : OtpErlangAtom
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 1087178844844988393L;
-
         /**
          * Create a boolean from the given value
          * 

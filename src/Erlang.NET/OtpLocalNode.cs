@@ -40,7 +40,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name and the default cookie.
          */
-        protected OtpLocalNode(String node)
+        protected OtpLocalNode(string node)
             : base(node)
         {
             init();
@@ -49,7 +49,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name, transport factory and the default cookie.
          */
-        protected OtpLocalNode(String node, OtpTransportFactory transportFactory)
+        protected OtpLocalNode(string node, OtpTransportFactory transportFactory)
             : base(node, transportFactory)
         {
             init();
@@ -58,7 +58,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name and cookie.
          */
-        protected OtpLocalNode(String node, String cookie)
+        protected OtpLocalNode(string node, string cookie)
             : base(node, cookie)
         {
             init();
@@ -67,7 +67,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name, cookie and transport factory.
          */
-        protected OtpLocalNode(String node, String cookie, OtpTransportFactory transportFactory)
+        protected OtpLocalNode(string node, string cookie, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
             init();

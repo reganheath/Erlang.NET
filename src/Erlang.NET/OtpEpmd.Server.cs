@@ -43,13 +43,13 @@ namespace Erlang.NET
                 set { port = value; }
             }
 
-            public OtpPublishedNode(String node)
-                : base(node, String.Empty)
+            public OtpPublishedNode(string node)
+                : base(node, string.Empty)
             {
             }
         }
 
-        private readonly TcpListener sock;
+        private readonly OtpServerTransport sock;
         private readonly Dictionary<string, OtpPublishedNode> portmap = new Dictionary<string, OtpPublishedNode>();
         private int creation = 0;
         private volatile bool done = false;
@@ -75,23 +75,21 @@ namespace Erlang.NET
         public OtpEpmd()
             : base("OtpEpmd", true)
         {
-            sock = new TcpListener(new IPEndPoint(IPAddress.Any, EpmdPort.get()));
+            sock = new OtpServerSocketTransport(EpmdPort.get(), false);
         }
 
         public override void start()
         {
-            sock.Start();
+            sock.start();
             base.start();
         }
 
-        private void closeSock(TcpListener s)
+        private void closeSock(OtpServerTransport s)
         {
             try
             {
                 if (s != null)
-                {
-                    s.Stop();
-                }
+                    s.close();
             }
             catch (Exception)
             {
@@ -112,7 +110,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    TcpClient newsock = sock.AcceptTcpClient();
+                    OtpTransport newsock = sock.accept();
                     OtpEpmdConnection conn = new OtpEpmdConnection(this, newsock);
                     conn.start();
                 }
@@ -128,10 +126,10 @@ namespace Erlang.NET
             private readonly OtpEpmd epmd;
             private readonly Dictionary<string, OtpPublishedNode> portmap;
             private readonly List<string> publishedPort = new List<string>();
-            private readonly TcpClient sock;
+            private readonly OtpTransport sock;
             private volatile bool done = false;
 
-            public OtpEpmdConnection(OtpEpmd epmd, TcpClient sock)
+            public OtpEpmdConnection(OtpEpmd epmd, OtpTransport sock)
                 : base("OtpEpmd.OtpEpmdConnection", true)
             {
                 this.epmd = epmd;
@@ -139,27 +137,24 @@ namespace Erlang.NET
                 this.sock = sock;
             }
 
-            private void closeSock(TcpClient s)
+            private void closeSock(OtpTransport s)
             {
                 try
                 {
                     if (s != null)
-                    {
-                        s.GetStream().Close();
-                        s.Close();
-                    }
+                        s.close();
                 }
                 catch (Exception)
                 {
                 }
             }
 
-            private int readSock(TcpClient s, byte[] b)
+            private int readSock(OtpTransport s, byte[] b)
             {
                 int got = 0;
                 int len = b.Length;
                 int i;
-                Stream st = s.GetStream();
+                Stream st = s.getInputStream();
 
                 while (got < len)
                 {
@@ -188,22 +183,20 @@ namespace Erlang.NET
             private void quit()
             {
                 done = true;
-                closeSock(sock);
 
+                closeSock(sock);
                 foreach (string name in publishedPort)
                 {
                     lock (portmap)
                     {
                         if (portmap.ContainsKey(name))
-                        {
                             portmap.Remove(name);
-                        }
                     }
                 }
                 publishedPort.Clear();
             }
 
-            private void r4_publish(TcpClient s, OtpInputStream ibuf)
+            private void r4_publish(OtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -218,7 +211,7 @@ namespace Erlang.NET
                     int elen = ibuf.read2BE();
                     byte[] extra = new byte[elen];
                     ibuf.readN(extra);
-                    String name = OtpErlangString.newString(alive);
+                    string name = OtpErlangString.newString(alive);
                     OtpPublishedNode node = new OtpPublishedNode(name);
                     node.Type = type;
                     node.DistHigh = distHigh;
@@ -235,7 +228,7 @@ namespace Erlang.NET
                     obuf.write1(ALIVE2_RESP);
                     obuf.write1(0);
                     obuf.write2BE(epmd.Creation);
-                    obuf.WriteTo(s.GetStream());
+                    obuf.WriteTo(s.getOutputStream());
 
                     lock (portmap)
                     {
@@ -252,14 +245,14 @@ namespace Erlang.NET
                 return;
             }
 
-            private void r4_port(TcpClient s, OtpInputStream ibuf)
+            private void r4_port(OtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
                     int len = (int)(ibuf.Length - 1);
                     byte[] alive = new byte[len];
                     ibuf.readN(alive);
-                    String name = OtpErlangString.newString(alive);
+                    string name = OtpErlangString.newString(alive);
                     OtpPublishedNode node = null;
 
                     if (traceLevel >= traceThreshold)
@@ -294,7 +287,7 @@ namespace Erlang.NET
                         obuf.write1(port4resp);
                         obuf.write1(1);
                     }
-                    obuf.WriteTo(s.GetStream());
+                    obuf.WriteTo(s.getOutputStream());
                 }
                 catch (IOException e)
                 {
@@ -305,7 +298,7 @@ namespace Erlang.NET
                 return;
             }
 
-            private void r4_names(TcpClient s, OtpInputStream ibuf)
+            private void r4_names(OtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -321,12 +314,12 @@ namespace Erlang.NET
                         foreach (KeyValuePair<string, OtpPublishedNode> pair in portmap)
                         {
                             OtpPublishedNode node = pair.Value;
-                            string info = String.Format("name {0} at port {1}\n", node.Alive, node.Port);
+                            string info = string.Format("name {0} at port {1}\n", node.Alive, node.Port);
                             byte[] bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(info);
                             obuf.writeN(bytes);
                         }
                     }
-                    obuf.WriteTo(s.GetStream());
+                    obuf.WriteTo(s.getOutputStream());
                 }
                 catch (IOException e)
                 {
@@ -375,8 +368,7 @@ namespace Erlang.NET
                                 break;
 
                             default:
-                                log.InfoFormat("[OtpEpmd] Unknown request (request={0}, length={1}) from {2}",
-                                           request, len, sock.Client.RemoteEndPoint);
+                                log.InfoFormat("[OtpEpmd] Unknown request (request={0}, length={1}) from {2}", request, len, sock);
                                 break;
                         }
                     }

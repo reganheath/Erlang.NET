@@ -18,6 +18,8 @@
  * %CopyrightEnd%
  */
 
+using System;
+
 namespace Erlang.NET
 {
     /**
@@ -34,6 +36,11 @@ namespace Erlang.NET
          */
         public OtpErlangDecodeException(string msg)
             : base(msg)
+        {
+        }
+
+        public OtpErlangDecodeException(string msg, Exception inner)
+            : base(msg, inner)
         {
         }
     }

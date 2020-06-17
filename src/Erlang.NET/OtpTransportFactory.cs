@@ -9,7 +9,7 @@ namespace Erlang.NET
 {
     public interface OtpTransportFactory
     {
-        OtpTransport createTransport(String addr, int port);
+        OtpTransport createTransport(string addr, int port);
         OtpTransport createTransport(IPEndPoint addr);
         OtpServerTransport createServerTransport(int port);
     }

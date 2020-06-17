@@ -50,7 +50,7 @@ namespace Erlang.NET
      */
     public class OtpConnection : AbstractConnection
     {
-        protected new OtpSelf self;
+        protected OtpSelf self;
         protected GenericQueue queue; // messages get delivered here
 
         /*
@@ -400,7 +400,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void send(String dest, OtpErlangObject msg)
+        public void send(string dest, OtpErlangObject msg)
         {
             // encode and send the message
             base.sendBuf(self.Pid, dest, new OtpOutputStream(msg));
@@ -418,7 +418,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendBuf(String dest, OtpOutputStream payload)
+        public void sendBuf(string dest, OtpOutputStream payload)
         {
             base.sendBuf(self.Pid, dest, payload);
         }
@@ -466,7 +466,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendRPC(String mod, String fun, OtpErlangObject[] args)
+        public void sendRPC(string mod, string fun, OtpErlangObject[] args)
         {
             sendRPC(mod, fun, new OtpErlangList(args));
         }
@@ -497,7 +497,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendRPC(String mod, String fun, OtpErlangList args)
+        public void sendRPC(string mod, string fun, OtpErlangList args)
         {
             OtpErlangObject[] rpc = new OtpErlangObject[2];
             OtpErlangObject[] call = new OtpErlangObject[5];

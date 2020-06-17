@@ -27,9 +27,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangUShort : OtpErlangLong
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 300370950578307246L;
-
         /**
          * Create an Erlang integer from the given value.
          * 

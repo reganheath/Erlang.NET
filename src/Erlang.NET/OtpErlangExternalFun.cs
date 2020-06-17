@@ -24,14 +24,11 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangExternalFun : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 6443965570641913886L;
-
-        private String module;
-        private String function;
+        private string module;
+        private string function;
         private int arity;
 
-        public OtpErlangExternalFun(String module, String function, int arity)
+        public OtpErlangExternalFun(string module, string function, int arity)
             : base()
         {
             this.module = module;
@@ -75,7 +72,7 @@ namespace Erlang.NET
             return hash.valueOf();
         }
 
-        public override String ToString()
+        public override string ToString()
         {
             return "#Fun<" + module + "." + function + "." + arity + ">";
         }

@@ -38,7 +38,7 @@ namespace Erlang.NET
      * The header information that is available is as follows: <lu>
      * <li> a tag indicating the type of message
      * <li> the intended recipient of the message, either as a
-     * {@link OtpErlangPid pid} or as a String, but never both.
+     * {@link OtpErlangPid pid} or as a string, but never both.
      * <li> (sometimes) the sender of the message. Due to some eccentric
      * characteristics of the Erlang distribution protocol, not all messages have
      * information about the sending process. In particular, only messages whose tag
@@ -70,7 +70,7 @@ namespace Erlang.NET
 
         protected OtpErlangPid from;
         protected OtpErlangPid to;
-        protected String toName;
+        protected string toName;
 
         // send has receiver pid but no sender information
         internal OtpMsg(OtpErlangPid to, OtpInputStream paybuf)
@@ -95,7 +95,7 @@ namespace Erlang.NET
         }
 
         // send_reg has sender pid and receiver name
-        internal OtpMsg(OtpErlangPid from, String toName, OtpInputStream paybuf)
+        internal OtpMsg(OtpErlangPid from, string toName, OtpInputStream paybuf)
         {
             tag = regSendTag;
             this.from = from;
@@ -106,7 +106,7 @@ namespace Erlang.NET
         }
 
         // send_reg has sender pid and receiver name
-        internal OtpMsg(OtpErlangPid from, String toName, OtpErlangObject payload)
+        internal OtpMsg(OtpErlangPid from, string toName, OtpErlangObject payload)
         {
             tag = regSendTag;
             this.from = from;
@@ -127,7 +127,7 @@ namespace Erlang.NET
         }
 
         // special case when reason is an atom (i.e. most of the time)
-        internal OtpMsg(int tag, OtpErlangPid from, OtpErlangPid to, String reason)
+        internal OtpMsg(int tag, OtpErlangPid from, OtpErlangPid to, string reason)
         {
             this.tag = tag;
             this.from = from;
@@ -181,7 +181,7 @@ namespace Erlang.NET
          * The message body can be retrieved with {@link #getMsg getMsg()}. </li>
          * 
          * <li> regSendTag also identifies a "normal" message. The recipient here is
-         * a String and it is available through {@link #getRecipientName
+         * a string and it is available through {@link #getRecipientName
          * getRecipientName()}. Sender information is available through
          * #getSenderPid getSenderPid()}. The message body can be retrieved with
          * {@link #getMsg getMsg()}. </li>
@@ -241,7 +241,7 @@ namespace Erlang.NET
          * @return the name of the recipient, or null if the recipient was in fact a
          *         Pid.
          */
-        public String getRecipientName()
+        public string getRecipientName()
         {
             return toName;
         }

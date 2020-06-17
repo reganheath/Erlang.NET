@@ -20,23 +20,21 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangMap : OtpErlangObject, IDictionary<OtpErlangObject, OtpErlangObject>
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -6410770117696198497L;
+        private Dictionary<OtpErlangObject, OtpErlangObject> map = new Dictionary<OtpErlangObject, OtpErlangObject>();
 
-        private Dictionary<OtpErlangObject, OtpErlangObject> dict = new Dictionary<OtpErlangObject, OtpErlangObject>();
-
-        public int arity() => dict.Count;
-
-        public OtpErlangObject[] keys() => dict.Keys.ToArray();
-
-        public OtpErlangObject[] values() => dict.Values.ToArray();
-
+        public int arity() => map.Count;
+        public OtpErlangObject[] keys() => map.Keys.ToArray();
+        public OtpErlangObject[] values() => map.Values.ToArray();
 
         public OtpErlangMap(OtpErlangObject[] keys, OtpErlangObject[] values)
         {
+            if (keys == null)
+                throw new ArgumentNullException("keys");
+            if (values == null)
+                throw new ArgumentNullException("values");
             if (keys.Length != values.Length)
                 throw new ArgumentException("keys and values must be the same length");
-            keys.Zip(values, (k, v) => { dict.Add(k, v); return false; });
+            keys.Zip(values, (k, v) => { map.Add(k, v); return false; });
         }
 
         public OtpErlangMap(OtpErlangObject[] keys, int kstart, int kcount, OtpErlangObject[] values, int vstart, int vcount)
@@ -58,7 +56,7 @@ namespace Erlang.NET
                     throw new ArgumentException("Map key cannot be null (element" + i + ")");
                 if (o.v == null)
                     throw new ArgumentException("Map value cannot be null (element" + i + ")");
-                dict.Add(o.k, o.v);
+                map.Add(o.k, o.v);
                 return false;
             });
         }
@@ -72,9 +70,27 @@ namespace Erlang.NET
                 {
                     OtpErlangObject key = buf.read_any();
                     OtpErlangObject value = buf.read_any();
-                    dict.Add(key, value);
+                    map.Add(key, value);
                 }
             }
+        }
+
+        public OtpErlangObject put(OtpErlangObject key, OtpErlangObject value)
+        {
+            OtpErlangObject oldValue;
+            if (!map.TryGetValue(key, out oldValue))
+                oldValue = null;
+            map.Add(key, value);
+            return oldValue;
+        }
+
+        public OtpErlangObject remove(OtpErlangObject key)
+        {
+            OtpErlangObject oldValue;
+            if (!map.TryGetValue(key, out oldValue))
+                oldValue = null;
+            map.Remove(key);
+            return oldValue;
         }
 
         public OtpErlangObject get(OtpErlangObject key)
@@ -83,7 +99,7 @@ namespace Erlang.NET
                 return null;
 
             OtpErlangObject value;
-            if (dict.TryGetValue(key, out value))
+            if (map.TryGetValue(key, out value))
                 return value;
 
             return null;
@@ -91,13 +107,13 @@ namespace Erlang.NET
 
         public override string ToString()
         {
-            return "#{" + String.Join(",", dict.Select((p) => p.Key + " => " + p.Value)) + "}";
+            return "#{" + string.Join(",", map.Select((p) => p.Key + " => " + p.Value)) + "}";
         }
 
         public override void encode(OtpOutputStream buf)
         {
             buf.write_map_head(arity());
-            foreach(var p in dict)
+            foreach(var p in map)
             {
                 buf.write_any(p.Key);
                 buf.write_any(p.Value);
@@ -119,9 +135,13 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, map))
                 return true;
+            if (arity() != map.arity())
+                return false;
+            if (arity() == 0)
+                return true;
             //if (GetHashCode() != map.GetHashCode())
             //    return false;
-            return dict.OrderBy(kvp => kvp.Key).SequenceEqual(map.dict.OrderBy(kvp => kvp.Key));
+            return map.OrderBy(kvp => kvp.Key).SequenceEqual(map.map.OrderBy(kvp => kvp.Key));
         }
 
         public override int GetHashCode() => base.GetHashCode();
@@ -130,9 +150,9 @@ namespace Erlang.NET
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(9);
             hash.combine(arity());
-            foreach (var key in dict.Keys)
+            foreach (var key in map.Keys)
                 hash.combine(key.GetHashCode());
-            foreach (var value in dict.Values)
+            foreach (var value in map.Values)
                 hash.combine(value.GetHashCode());
             return hash.valueOf();
         }
@@ -140,35 +160,35 @@ namespace Erlang.NET
         public override object Clone()
         {
             OtpErlangMap newMap = (OtpErlangMap)base.Clone();
-            newMap.dict = new Dictionary<OtpErlangObject, OtpErlangObject>(this.dict);
+            newMap.map = new Dictionary<OtpErlangObject, OtpErlangObject>(this.map);
             return newMap;
         }
 
         #region IDictionary
-        public ICollection<OtpErlangObject> Keys => dict.Keys;
-        public ICollection<OtpErlangObject> Values => dict.Values;
-        public int Count => dict.Count;
+        public ICollection<OtpErlangObject> Keys => map.Keys;
+        public ICollection<OtpErlangObject> Values => map.Values;
+        public int Count => map.Count;
         public bool IsReadOnly => false;
-        public OtpErlangObject this[OtpErlangObject key] { get => dict[key]; set => dict[key] = value; }
-        public bool ContainsKey(OtpErlangObject key) => dict.ContainsKey(key);
-        public void Add(OtpErlangObject key, OtpErlangObject value) => dict.Add(key, value);
-        public bool Remove(OtpErlangObject key) => dict.Remove(key);
-        public bool TryGetValue(OtpErlangObject key, out OtpErlangObject value) => dict.TryGetValue(key, out value);
-        public void Add(KeyValuePair<OtpErlangObject, OtpErlangObject> item) => dict.Add(item.Key, item.Value);
-        public void Clear() => dict.Clear();
-        public bool Contains(KeyValuePair<OtpErlangObject, OtpErlangObject> item) => dict.Contains(item);
+        public OtpErlangObject this[OtpErlangObject key] { get => map[key]; set => map[key] = value; }
+        public bool ContainsKey(OtpErlangObject key) => map.ContainsKey(key);
+        public void Add(OtpErlangObject key, OtpErlangObject value) => map.Add(key, value);
+        public bool Remove(OtpErlangObject key) => map.Remove(key);
+        public bool TryGetValue(OtpErlangObject key, out OtpErlangObject value) => map.TryGetValue(key, out value);
+        public void Add(KeyValuePair<OtpErlangObject, OtpErlangObject> item) => map.Add(item.Key, item.Value);
+        public void Clear() => map.Clear();
+        public bool Contains(KeyValuePair<OtpErlangObject, OtpErlangObject> item) => map.Contains(item);
         public void CopyTo(KeyValuePair<OtpErlangObject, OtpErlangObject>[] array, int arrayIndex)
         {
-            ((ICollection<KeyValuePair<OtpErlangObject, OtpErlangObject>>)dict).CopyTo(array, arrayIndex);
+            ((ICollection<KeyValuePair<OtpErlangObject, OtpErlangObject>>)map).CopyTo(array, arrayIndex);
         }
         public bool Remove(KeyValuePair<OtpErlangObject, OtpErlangObject> item)
         {
-            if (dict.TryGetValue(item.Key, out OtpErlangObject hasValue) && object.Equals(hasValue, item.Value))
-                return dict.Remove(item.Key);
+            if (map.TryGetValue(item.Key, out OtpErlangObject hasValue) && object.Equals(hasValue, item.Value))
+                return map.Remove(item.Key);
             return false;
         }
-        public IEnumerator<KeyValuePair<OtpErlangObject, OtpErlangObject>> GetEnumerator() => dict.GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => dict.GetEnumerator();
+        public IEnumerator<KeyValuePair<OtpErlangObject, OtpErlangObject>> GetEnumerator() => map.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => map.GetEnumerator();
         #endregion
     }
 }

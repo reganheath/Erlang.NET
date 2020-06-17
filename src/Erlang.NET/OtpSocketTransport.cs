@@ -15,7 +15,7 @@ namespace Erlang.NET
         private readonly Stream inputStream;
         private readonly Stream outputStream;
 
-        public OtpSocketTransport(String addr, int port)
+        public OtpSocketTransport(string addr, int port)
         {
             this.client = new TcpClient()
             {

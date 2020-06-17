@@ -28,15 +28,12 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangString : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -7053595217604929233L;
-
-        private readonly String str;
+        private readonly string str;
 
         /**
          * Create an Erlang string from the given string.
          */
-        public OtpErlangString(String str)
+        public OtpErlangString(string str)
         {
             this.str = str;
         }
@@ -54,7 +51,7 @@ namespace Erlang.NET
          */
         public OtpErlangString(OtpErlangList list)
         {
-            String s = list.stringValue();
+            string s = list.stringValue();
 
             int[] offset = System.Globalization.StringInfo.ParseCombiningCharacters(s);
             int n = offset.Length;
@@ -93,7 +90,7 @@ namespace Erlang.NET
          * 
          * @see #toString
          */
-        public String stringValue()
+        public string stringValue()
         {
             return str;
         }
@@ -105,7 +102,7 @@ namespace Erlang.NET
          * 
          * @see #stringValue
          */
-        public override String ToString()
+        public override string ToString()
         {
             return "\"" + str + "\"";
         }
@@ -128,16 +125,16 @@ namespace Erlang.NET
          * OtpErlangStrings with each other and with Strings.
          * 
          * @param o
-         *            the OtpErlangString or String to compare to.
+         *            the OtpErlangString or string to compare to.
          * 
          * @return true if the strings consist of the same sequence of characters,
          *         false otherwise.
          */
         public override bool Equals(Object o)
         {
-            if (o is String)
+            if (o is string)
             {
-                return str.CompareTo((String)o) == 0;
+                return str.CompareTo((string)o) == 0;
             }
             else if (o is OtpErlangString)
             {
@@ -158,15 +155,15 @@ namespace Erlang.NET
         }
 
         /**
-         * Create Unicode code points from a String.
+         * Create Unicode code points from a string.
          * 
          * @param  s
-         *             a String to convert to an Unicode code point array
+         *             a string to convert to an Unicode code point array
          *
          * @return the corresponding array of integers representing
          *         Unicode code points
          */
-        public static int[] stringToCodePoints(String s)
+        public static int[] stringToCodePoints(string s)
         {
             int[] offset = System.Globalization.StringInfo.ParseCombiningCharacters(s);
             int m = offset.Length;
@@ -178,7 +175,7 @@ namespace Erlang.NET
             return codePoints;
         }
 
-        public static char codePointAt(String s, int index)
+        public static char codePointAt(string s, int index)
         {
             if (Char.IsHighSurrogate(s[index]))
             {
@@ -210,10 +207,10 @@ namespace Erlang.NET
         }
 
         /**
-         * Construct a String from encoded byte array
+         * Construct a string from encoded byte array
          *
          */
-        public static String newString(byte[] bytes, string encoding = "ISO-8859-1")
+        public static string newString(byte[] bytes, string encoding = "ISO-8859-1")
         {
             try
             {

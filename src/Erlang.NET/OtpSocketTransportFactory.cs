@@ -9,7 +9,7 @@ namespace Erlang.NET
 {
     public class OtpSocketTransportFactory : OtpTransportFactory
     {
-        public OtpTransport createTransport(String addr, int port)
+        public OtpTransport createTransport(string addr, int port)
         {
             return new OtpSocketTransport(addr, port);
         }

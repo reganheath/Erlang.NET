@@ -68,7 +68,7 @@ namespace Erlang.NET
         private OtpActorSched sched = null;
 
         // keep track of all connections
-        Dictionary<String, OtpCookedConnection> connections = null;
+        Dictionary<string, OtpCookedConnection> connections = null;
 
         // keep track of all mailboxes
         Mailboxes mboxes = null;
@@ -80,7 +80,7 @@ namespace Erlang.NET
         private int connFlags = 0;
 
 
-        public Dictionary<String, OtpCookedConnection> Connections
+        public Dictionary<string, OtpCookedConnection> Connections
         {
             get { return connections; }
         }
@@ -110,13 +110,13 @@ namespace Erlang.NET
          *                if communication could not be initialized.
          * 
          */
-        public OtpNode(String node)
+        public OtpNode(string node)
             : base(node)
         {
             init(0);
         }
 
-        public OtpNode(String node, OtpTransportFactory transportFactory)
+        public OtpNode(string node, OtpTransportFactory transportFactory)
             : base(node, transportFactory)
         {
             init(0);
@@ -136,13 +136,13 @@ namespace Erlang.NET
          *                if communication could not be initialized.
          * 
          */
-        public OtpNode(String node, String cookie)
+        public OtpNode(string node, string cookie)
             : base(node, cookie)
         {
             init(0);
         }
 
-        public OtpNode(String node, String cookie, OtpTransportFactory transportFactory)
+        public OtpNode(string node, string cookie, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
             init(0);
@@ -166,7 +166,7 @@ namespace Erlang.NET
          *                if communication could not be initialized.
          * 
          */
-        public OtpNode(String node, String cookie, int port, OtpTransportFactory transportFactory)
+        public OtpNode(string node, string cookie, int port, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
             init(port);
@@ -178,7 +178,7 @@ namespace Erlang.NET
             {
                 if (!initDone)
                 {
-                    connections = new Dictionary<String, OtpCookedConnection>();
+                    connections = new Dictionary<string, OtpCookedConnection>();
 
                     sched = new OtpActorSched();
                     mboxes = new Mailboxes(this, sched);
@@ -301,7 +301,7 @@ namespace Erlang.NET
          * @return a mailbox, or null if the name was already in use.
          * 
          */
-        public OtpMbox createMbox(String name, bool sync)
+        public OtpMbox createMbox(string name, bool sync)
         {
             return mboxes.create(name, sync);
         }
@@ -324,7 +324,7 @@ namespace Erlang.NET
          * 
          * @return true if the name was available, or false otherwise.
          */
-        public bool registerName(String name, OtpMbox mbox)
+        public bool registerName(string name, OtpMbox mbox)
         {
             return mboxes.register(name, mbox);
         }
@@ -335,7 +335,7 @@ namespace Erlang.NET
          * @return an array of Strings, containins all known registered names on
          *         this node.
          */
-        public String[] getNames()
+        public string[] getNames()
         {
             return mboxes.names();
         }
@@ -347,7 +347,7 @@ namespace Erlang.NET
          * @return the {@link OtpErlangPid pid} corresponding to the registered
          *         name, or null if the name is not known on this node.
          */
-        public OtpErlangPid whereis(String name)
+        public OtpErlangPid whereis(string name)
         {
             OtpMbox m = mboxes.get(name);
             if (m != null)
@@ -414,7 +414,7 @@ namespace Erlang.NET
          * 
          * the reply: <- SEND {2,'',#Pid<bingo@aule.1.0>} {#Ref<bingo@aule.2>,yes}
          */
-        public bool ping(String node, long timeout)
+        public bool ping(string node, long timeout)
         {
             if (node.Equals(this.Node))
             {
@@ -514,7 +514,7 @@ namespace Erlang.NET
 
                 if (t == OtpMsg.regSendTag)
                 {
-                    String name = m.getRecipientName();
+                    string name = m.getRecipientName();
                     /* special case for netKernel requests */
                     if (name.Equals("net_kernel"))
                     {
@@ -562,7 +562,7 @@ namespace Erlang.NET
         /*
          * find or create a connection to the given node
          */
-        public OtpCookedConnection getConnection(String node)
+        public OtpCookedConnection getConnection(string node)
         {
             OtpPeer peer = null;
             OtpCookedConnection conn = null;
@@ -612,7 +612,7 @@ namespace Erlang.NET
         }
 
         /* use these wrappers to call handler functions */
-        private void remoteStatus(String node, bool up, Object info)
+        private void remoteStatus(string node, bool up, Object info)
         {
             lock (this)
             {
@@ -624,7 +624,7 @@ namespace Erlang.NET
             }
         }
 
-        internal void localStatus(String node, bool up, Object info)
+        internal void localStatus(string node, bool up, Object info)
         {
             lock (this)
             {
@@ -636,7 +636,7 @@ namespace Erlang.NET
             }
         }
 
-        internal void connAttempt(String node, bool incoming, Object info)
+        internal void connAttempt(string node, bool incoming, Object info)
         {
             lock (this)
             {
@@ -660,17 +660,17 @@ namespace Erlang.NET
             // mbox pids here
             private Dictionary<OtpErlangPid, WeakReference> byPid = null;
             // mbox names here
-            private Dictionary<String, WeakReference> byName = null;
+            private Dictionary<string, WeakReference> byName = null;
 
             public Mailboxes(OtpNode node, OtpActorSched sched)
             {
                 this.node = node;
                 this.sched = sched;
                 byPid = new Dictionary<OtpErlangPid, WeakReference>();
-                byName = new Dictionary<String, WeakReference>();
+                byName = new Dictionary<string, WeakReference>();
             }
 
-            public OtpMbox create(String name, bool sync)
+            public OtpMbox create(string name, bool sync)
             {
                 OtpMbox m = null;
 
@@ -708,14 +708,14 @@ namespace Erlang.NET
                 }
             }
 
-            public String[] names()
+            public string[] names()
             {
-                String[] allnames = null;
+                string[] allnames = null;
 
                 lock (this)
                 {
                     int n = byName.Count;
-                    allnames = new String[n];
+                    allnames = new string[n];
 
                     int i = 0;
                     foreach (string key in byName.Keys)
@@ -726,7 +726,7 @@ namespace Erlang.NET
                 return allnames;
             }
 
-            public bool register(String name, OtpMbox mbox)
+            public bool register(string name, OtpMbox mbox)
             {
                 lock (this)
                 {
@@ -756,7 +756,7 @@ namespace Erlang.NET
              * scope we also remove the reference from the hashtable so we don't
              * find it again.
              */
-            public OtpMbox get(String name)
+            public OtpMbox get(string name)
             {
                 lock (this)
                 {
@@ -837,9 +837,7 @@ namespace Erlang.NET
             private bool publishPort()
             {
                 if (node.getEpmd() != null)
-                {
                     return false; // already published
-                }
                 OtpEpmd.publishPort(node);
                 return true;
             }
@@ -867,9 +865,7 @@ namespace Erlang.NET
                 try
                 {
                     if (s != null)
-                    {
                         s.close();
-                    }
                 }
                 catch (Exception)
                 {
@@ -881,9 +877,7 @@ namespace Erlang.NET
                 try
                 {
                     if (s != null)
-                    {
                         s.close();
-                    }
                 }
                 catch (Exception)
                 {
@@ -902,7 +896,7 @@ namespace Erlang.NET
 
                 node.localStatus(node.Node, true, null);
 
-            accept_loop: while (!done)
+                while (!done)
                 {
                     conn = null;
 
@@ -918,10 +912,9 @@ namespace Erlang.NET
                         // is called. acceptor.quit() will call localStatus(...), so
                         // we have to check if that's where we come from.
                         if (!done)
-                        {
                             node.localStatus(node.Node, false, e);
-                        }
-                        goto accept_loop;
+
+                        continue;
                     }
 
                     try
@@ -936,25 +929,17 @@ namespace Erlang.NET
                     catch (OtpAuthException e)
                     {
                         if (conn != null && conn.Name != null)
-                        {
                             node.connAttempt(conn.Name, true, e);
-                        }
                         else
-                        {
                             node.connAttempt("unknown", true, e);
-                        }
                         closeSock(newsock);
                     }
                     catch (IOException e)
                     {
                         if (conn != null && conn.Name != null)
-                        {
                             node.connAttempt(conn.Name, true, e);
-                        }
                         else
-                        {
                             node.connAttempt("unknown", true, e);
-                        }
                         closeSock(newsock);
                     }
                     catch (Exception e)
@@ -962,9 +947,8 @@ namespace Erlang.NET
                         closeSock(newsock);
                         closeSock(sock);
                         node.localStatus(node.Node, false, e);
-                        goto accept_loop;
                     }
-                } // while
+                }
 
                 // if we have exited loop we must do this too
                 unPublishPort();

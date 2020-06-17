@@ -30,16 +30,14 @@ namespace Erlang.NET
      */
     public class OtpAuthException : OtpException
     {
-        internal static readonly long serialVersionUID = 1L;
-
         /**
          * Provides a detailed message.
          */
-        public OtpAuthException(String s)
+        public OtpAuthException(string s)
             : base(s)
         {
         }
-        public OtpAuthException(String s, Exception inner)
+        public OtpAuthException(string s, Exception inner)
             : base(s, inner)
         {
         }

@@ -18,6 +18,8 @@
  * %CopyrightEnd%
  */
 
+using System;
+
 namespace Erlang.NET
 {
     /**
@@ -25,8 +27,6 @@ namespace Erlang.NET
      */
     public class OtpErlangException : OtpException
     {
-        internal static readonly long serialVersionUID = 1L;
-
         /**
          * Provides no message.
          */
@@ -40,6 +40,11 @@ namespace Erlang.NET
          */
         public OtpErlangException(string msg)
             : base(msg)
+        {
+        }
+
+        public OtpErlangException(string msg, Exception inner)
+            : base(msg, inner)
         {
         }
     }

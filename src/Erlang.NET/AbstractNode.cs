@@ -65,18 +65,16 @@ namespace Erlang.NET
      */
     public class AbstractNode : OtpTransportFactory
     {
-        static readonly String localHost;
-        String node;
-        String host;
-        String alive;
-        String cookie;
-        protected static readonly String defaultCookie;
+        static readonly string localHost;
+        string node;
+        string host;
+        string alive;
+        string cookie;
+        protected static readonly string defaultCookie;
         internal readonly OtpTransportFactory transportFactory;
 
         // Node types
         public const int NTYPE_R6 = 110; // 'n' post-r5, all nodes
-        public const int NTYPE_R4_ERLANG = 109; // 'm' Only for source compatibility
-        public const int NTYPE_R4_HIDDEN = 104; // 'h' Only for source compatibility
 
         // Node capability flags
         public const int dFlagPublished = 1;
@@ -130,7 +128,7 @@ namespace Erlang.NET
                 localHost = "localhost";
             }
 
-            String userHome;
+            string userHome;
             switch (Environment.OSVersion.Platform)
             {
                 case PlatformID.Unix:
@@ -140,14 +138,12 @@ namespace Erlang.NET
                     userHome = Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
                     break;
             }
-            String dotCookieFilename = Path.Combine(userHome, ".erlang.cookie");
+            string dotCookieFilename = Path.Combine(userHome, ".erlang.cookie");
 
             try
             {
                 using (StreamReader sr = new StreamReader(dotCookieFilename))
-                {
-                    defaultCookie = sr.ReadLine().Trim();
-                }
+                    defaultCookie = sr.ReadLine()?.Trim() ?? "";
             }
             catch (DirectoryNotFoundException)
             {
@@ -167,7 +163,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name and the default cookie and transport factory.
          */
-        protected AbstractNode(String name)
+        protected AbstractNode(string name)
             : this(name, defaultCookie, new OtpSocketTransportFactory())
         {
         }
@@ -175,7 +171,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name, transport factory and the default cookie.
          */
-        protected AbstractNode(String name, OtpTransportFactory transportFactory)
+        protected AbstractNode(string name, OtpTransportFactory transportFactory)
             : this(name, defaultCookie, transportFactory)
         {
         }
@@ -184,7 +180,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name, cookie, and default transport factory.
          */
-        protected AbstractNode(String name, String cookie)
+        protected AbstractNode(string name, string cookie)
             : this(name, cookie, new OtpSocketTransportFactory())
         {
         }
@@ -192,7 +188,7 @@ namespace Erlang.NET
         /**
          * Create a node with the given name, cookie, and transport factory.
          */
-        protected AbstractNode(String name, String cookie, OtpTransportFactory transportFactory)
+        protected AbstractNode(string name, string cookie, OtpTransportFactory transportFactory)
         {
             this.cookie = cookie;
             this.transportFactory = transportFactory;
@@ -228,7 +224,7 @@ namespace Erlang.NET
          * 
          * @return the name of the node represented by this object.
          */
-        public String Node
+        public string Node
         {
             get { return node; }
             set { node = value; }
@@ -241,7 +237,7 @@ namespace Erlang.NET
          * 
          * @return the hostname component of the nodename.
          */
-        public String Host
+        public string Host
         {
             get { return host; }
             set { host = value; }
@@ -254,7 +250,7 @@ namespace Erlang.NET
          * 
          * @return the alivename component of the nodename.
          */
-        public String Alive
+        public string Alive
         {
             get { return alive; }
             set { alive = value; }
@@ -265,7 +261,7 @@ namespace Erlang.NET
          * 
          * @return the authorization cookie used by this node.
          */
-        public String Cookie
+        public string Cookie
         {
             get { return cookie; }
         }
@@ -310,19 +306,19 @@ namespace Erlang.NET
          * 
          * @return the previous authorization cookie used by this node.
          */
-        public String setCookie(String cookie)
+        public string setCookie(string cookie)
         {
-            String prev = this.cookie;
+            string prev = this.cookie;
             this.cookie = cookie;
             return prev;
         }
 
-        public override String ToString()
+        public override string ToString()
         {
             return node;
         }
 
-        public OtpTransport createTransport(String addr, int port)
+        public OtpTransport createTransport(string addr, int port)
         {
             return transportFactory.createTransport(addr, port);
         }

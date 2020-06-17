@@ -84,7 +84,7 @@ namespace Erlang.NET
          *                    if a ServerSocket could not be created.
          * 
          */
-        public OtpServer(String node, String cookie)
+        public OtpServer(string node, string cookie)
             : base(node, cookie)
         {
         }
@@ -107,7 +107,7 @@ namespace Erlang.NET
          *                    chosen port number was not available.
          * 
          */
-        public OtpServer(String node, String cookie, int port)
+        public OtpServer(string node, string cookie, int port)
             : base(node, cookie, port)
         {
         }

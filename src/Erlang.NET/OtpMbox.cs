@@ -85,7 +85,7 @@ namespace Erlang.NET
         OtpNode home;
         OtpErlangPid self;
         GenericQueue queue;
-        String name;
+        string name;
         Links links;
 
         protected GenericQueue Queue
@@ -95,7 +95,7 @@ namespace Erlang.NET
 
         // package constructor: called by OtpNode:createMbox(name)
         // to create a named mbox
-        internal OtpMbox(OtpNode home, OtpErlangPid self, String name)
+        internal OtpMbox(OtpNode home, OtpErlangPid self, string name)
         {
             this.self = self;
             this.home = home;
@@ -146,7 +146,7 @@ namespace Erlang.NET
          * 
          * @return true if the name was available, or false otherwise.
          */
-        public bool registerName(String name)
+        public bool registerName(string name)
         {
             lock (this)
             {
@@ -160,7 +160,7 @@ namespace Erlang.NET
          * @return the registered name of this mailbox, or null if the mailbox had
          *         no registered name.
          */
-        public String Name
+        public string Name
         {
             get { return name; }
             set { name = value; }
@@ -374,7 +374,7 @@ namespace Erlang.NET
         {
             try
             {
-                String node = to.Node;
+                string node = to.Node;
                 if (node.Equals(home.Node))
                 {
                     home.deliver(new OtpMsg(to, (OtpErlangObject)msg.Clone()));
@@ -404,7 +404,7 @@ namespace Erlang.NET
          *                the body of the message to send.
          * 
          */
-        public void send(String name, OtpErlangObject msg)
+        public void send(string name, OtpErlangObject msg)
         {
             home.deliver(new OtpMsg(self, name, (OtpErlangObject)msg.Clone()));
         }
@@ -423,11 +423,11 @@ namespace Erlang.NET
          *                the body of the message to send.
          * 
          */
-        public void send(String name, String node, OtpErlangObject msg)
+        public void send(string name, string node, OtpErlangObject msg)
         {
             try
             {
-                String currentNode = home.Node;
+                string currentNode = home.Node;
                 if (node.Equals(currentNode))
                 {
                     send(name, msg);
@@ -481,7 +481,7 @@ namespace Erlang.NET
          * 
          * @see #exit(OtpErlangObject)
          */
-        public void exit(String reason)
+        public void exit(string reason)
         {
             exit(new OtpErlangAtom(reason));
         }
@@ -514,7 +514,7 @@ namespace Erlang.NET
          * 
          * @see #exit(OtpErlangPid, OtpErlangObject)
          */
-        public void exit(OtpErlangPid to, String reason)
+        public void exit(OtpErlangPid to, string reason)
         {
             exit(to, new OtpErlangAtom(reason));
         }
@@ -525,7 +525,7 @@ namespace Erlang.NET
         {
             try
             {
-                String node = to.Node;
+                string node = to.Node;
                 if (node.Equals(home.Node))
                 {
                     home.deliver(new OtpMsg(OtpMsg.exitTag, self, to, reason));
@@ -587,7 +587,7 @@ namespace Erlang.NET
         {
             try
             {
-                String node = to.Node;
+                string node = to.Node;
                 if (node.Equals(home.Node))
                 {
                     if (!home.deliver(new OtpMsg(OtpMsg.linkTag, self, to)))
@@ -638,7 +638,7 @@ namespace Erlang.NET
 
             try
             {
-                String node = to.Node;
+                string node = to.Node;
                 if (node.Equals(home.Node))
                 {
                     home.deliver(new OtpMsg(OtpMsg.unlinkTag, self, to));
@@ -684,7 +684,7 @@ namespace Erlang.NET
          * @param timeout
          *                the time, in milliseconds, before reporting failure.
          */
-        public bool ping(String node, long timeout)
+        public bool ping(string node, long timeout)
         {
             return home.ping(node, timeout);
         }
@@ -703,7 +703,7 @@ namespace Erlang.NET
          * @return an array of Strings containing all registered names on this
          *         {@link OtpNode node}.
          */
-        public String[] getNames()
+        public string[] getNames()
         {
             return home.getNames();
         }
@@ -720,7 +720,7 @@ namespace Erlang.NET
          * @return the {@link OtpErlangPid pid} corresponding to the registered
          *         name, or null if the name is not known on this node.
          */
-        public OtpErlangPid whereis(String name)
+        public OtpErlangPid whereis(string name)
         {
             return home.whereis(name);
         }
@@ -741,7 +741,7 @@ namespace Erlang.NET
          * </p>
          * 
          * <p>
-         * This is equivalent to {@link #exit(String) exit("normal")}.
+         * This is equivalent to {@link #exit(string) exit("normal")}.
          * </p>
          */
         public virtual void close()

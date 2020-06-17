@@ -34,13 +34,8 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangList : OtpErlangObject, IEnumerable<OtpErlangObject>
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 5999112769036676548L;
-
         private static readonly OtpErlangObject[] NO_ELEMENTS = new OtpErlangObject[0];
-
         private readonly OtpErlangObject[] elems;
-
         private OtpErlangObject lastTail = null;
 
         /**
@@ -58,7 +53,7 @@ namespace Erlang.NET
          * @param str
          *            the characters from which to create the list.
          */
-        public OtpErlangList(String str)
+        public OtpErlangList(string str)
         {
             if (str == null || str.Length == 0)
             {
@@ -226,12 +221,12 @@ namespace Erlang.NET
          * 
          * @return the string representation of the list.
          */
-        public override String ToString()
+        public override string ToString()
         {
             return toString(0);
         }
 
-        protected String toString(int start)
+        protected string toString(int start)
         {
             StringBuilder s = new StringBuilder();
             s.Append("[");
@@ -377,7 +372,7 @@ namespace Erlang.NET
             }
             catch (OtpErlangException)
             {
-                return null;
+                throw new Exception("List clone failed");
             }
         }
 
@@ -436,8 +431,8 @@ namespace Erlang.NET
          * Convert a list of integers into a Unicode string,
          * interpreting each integer as a Unicode code point value.
          * 
-         * @return A java.lang.String object created through its
-         *         constructor String(int[], int, int).
+         * @return A java.lang.string object created through its
+         *         constructor string(int[], int, int).
          *
          * @exception OtpErlangException
          *                    for non-proper and non-integer lists.
@@ -448,10 +443,10 @@ namespace Erlang.NET
          * @exception java.security.InvalidParameterException
          *                    if any integer is not within the Unicode range.
          *
-         * @see String#String(int[], int, int)
+         * @see string#string(int[], int, int)
          *
          */
-        public String stringValue()
+        public string stringValue()
         {
             if (!isProper())
                 throw new OtpErlangException("Non-proper list: " + this);
@@ -464,15 +459,12 @@ namespace Erlang.NET
                 OtpErlangLong l = (OtpErlangLong)o;
                 values[i] = (char)l.intValue();
             }
-            return new String(values, 0, values.Length);
+            return new string(values, 0, values.Length);
         }
 
         private class SubList : OtpErlangList
         {
-            internal static readonly new long serialVersionUID = OtpErlangList.serialVersionUID;
-
             private readonly int start;
-
             private readonly OtpErlangList parent;
 
             public SubList(OtpErlangList parent, int start)
@@ -518,7 +510,7 @@ namespace Erlang.NET
                 return parent.getNthTail(n + start);
             }
 
-            public override String ToString()
+            public override string ToString()
             {
                 return parent.toString(start);
             }

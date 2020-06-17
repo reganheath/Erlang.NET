@@ -346,34 +346,21 @@ namespace Erlang.NET
          * @param atom
          *            the string to write.
          */
-        public void write_atom(String atom)
+        public void write_atom(string atom)
         {
             if (atom.Length > OtpExternal.maxAtomLength)
-            {
                 atom = atom.Substring(0, OtpExternal.maxAtomLength);
-            }
 
-            byte[] bytes;
-
-            try
+            byte[] bytes = Encoding.GetEncoding("UTF-8", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
+            if (bytes.Length < 256)
             {
-                bytes = Encoding.GetEncoding("ISO-8859-1", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
-                write1(OtpExternal.atomTag);
+                write1(OtpExternal.smallAtomUtf8Tag);
+                write1(bytes.Length);
+            }
+            else
+            {
+                write1(OtpExternal.atomUtf8Tag);
                 write2BE(bytes.Length);
-            }
-            catch (EncoderFallbackException)
-            {
-                bytes = Encoding.GetEncoding("UTF-8", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
-                if (bytes.Length < 256)
-                {
-                    write1(OtpExternal.smallAtomUtf8Tag);
-                    write1(bytes.Length);
-                }
-                else
-                {
-                    write1(OtpExternal.atomUtf8Tag);
-                    write2BE(bytes.Length);
-                }
             }
 
             writeN(bytes);
@@ -687,13 +674,28 @@ namespace Erlang.NET
          *            be used.
          * 
          */
-        public void write_pid(String node, int id, int serial, int creation)
+        public void write_pid(string node, int id, int serial, int creation)
         {
-            write1(OtpExternal.pidTag);
+            write1(OtpExternal.newPidTag);
             write_atom(node);
             write4BE(id & 0x7fff); // 15 bits
             write4BE(serial & 0x1fff); // 13 bits
             write1(creation & 0x3); // 2 bits
+        }
+
+        /**
+         * Write an Erlang PID to the stream.
+         *
+         * @param pid
+         *            the pid
+         */
+        public void write_pid(OtpErlangPid pid)
+        {
+            write1(OtpExternal.newPidTag);
+            write_atom(pid.Node);
+            write4BE(pid.Id);
+            write4BE(pid.Serial);
+            write4BE(pid.Creation);
         }
 
         /**
@@ -710,12 +712,26 @@ namespace Erlang.NET
          *            used.
          * 
          */
-        public void write_port(String node, int id, int creation)
+        public void write_port(string node, int id, int creation)
         {
-            write1(OtpExternal.portTag);
+            write1(OtpExternal.newPortTag);
             write_atom(node);
             write4BE(id & 0xfffffff); // 28 bits
             write1(creation & 0x3); // 2 bits
+        }
+
+        /**
+         * Write an Erlang port to the stream.
+         *
+         * @param port
+         *            the port.
+         */
+        public void write_port(OtpErlangPort port)
+        {
+            write1(OtpExternal.newPortTag);
+            write_atom(port.Node);
+            write4BE(port.Id);
+            write4BE(port.Creation);
         }
 
         /**
@@ -732,66 +748,69 @@ namespace Erlang.NET
          *            used.
          * 
          */
-        public void write_ref(String node, int id, int creation)
+        public void write_ref(string node, int id, int creation)
         {
-            write1(OtpExternal.refTag);
-            write_atom(node);
-            write4BE(id & 0x3ffff); // 18 bits
-            write1(creation & 0x3); // 2 bits
+            /* Always encode as an extended reference; all
+               participating parties are now expected to be
+               able to decode extended references. */
+            write_ref(node, new int[1] { id }, creation);
         }
 
         /**
-         * Write a new style (R6 and later) Erlang ref to the stream.
+         * Write an Erlang ref to the stream.
          * 
          * @param node
          *            the nodename.
          * 
          * @param ids
          *            an array of arbitrary numbers. Only the low order 18 bits of
-         *            the first number will be used. If the array contains only one
-         *            number, an old style ref will be written instead. At most
-         *            three numbers will be read from the array.
+         *            the first number will be used. At most three numbers
+         *            will be read from the array.
          * 
          * @param creation
-         *            another arbitrary number. Only the low order 2 bits will be
-         *            used.
+         *            another arbitrary number. Only the low order 2 bits will be used.
          * 
          */
-        public void write_ref(String node, int[] ids, int creation)
+        public void write_ref(string node, int[] ids, int creation)
         {
             int arity = ids.Length;
             if (arity > 3)
-            {
                 arity = 3; // max 3 words in ref
-            }
 
-            if (arity == 1)
-            {
-                // use old method
-                this.write_ref(node, ids[0], creation);
-            }
-            else
-            {
-                // r6 ref
-                write1(OtpExternal.newRefTag);
+            // r6 ref
+            write1(OtpExternal.newerRefTag);
 
-                // how many id values
-                write2BE(arity);
+            // how many id values
+            write2BE(arity);
 
-                write_atom(node);
+            write_atom(node);
 
-                // note: creation BEFORE id in r6 ref
-                write1(creation & 0x3); // 2 bits
+            write1(creation & 0x3); // 2 bits
 
-                // first int gets truncated to 18 bits
-                write4BE(ids[0] & 0x3ffff);
+            // first int gets truncated to 18 bits
+            write4BE(ids[0] & 0x3ffff);
 
-                // remaining ones are left as is
-                for (int i = 1; i < arity; i++)
-                {
-                    write4BE(ids[i]);
-                }
-            }
+            // remaining ones are left as is
+            for (int i = 1; i < arity; i++)
+                write4BE(ids[i]);
+        }
+
+        /**
+         * Write an Erlang ref to the stream.
+         *
+         * @param ref
+         *            the reference
+         */
+        public void write_ref(OtpErlangRef r)
+        {
+            int arity = r.Ids.Length;
+
+            write1(OtpExternal.newerRefTag);
+            write2BE(arity);
+            write_atom(r.Node);
+            write4BE(r.Creation);
+            for (int i = 0; i < arity; i++)
+                write4BE(r.Ids[i]);
         }
 
         /**
@@ -800,7 +819,7 @@ namespace Erlang.NET
          * @param s
          *            the string to write.
          */
-        public void write_string(String s)
+        public void write_string(string s)
         {
             int len = s.Length;
 
@@ -838,7 +857,7 @@ namespace Erlang.NET
             }
         }
 
-        private bool is8bitString(String s)
+        private bool is8bitString(string s)
         {
             for (int i = 0; i < s.Length; ++i)
             {
@@ -902,7 +921,7 @@ namespace Erlang.NET
             o.encode(this);
         }
 
-        public void write_fun(OtpErlangPid pid, String module,
+        public void write_fun(OtpErlangPid pid, string module,
                       long old_index, int arity, byte[] md5,
                       long index, long uniq, OtpErlangObject[] freeVars)
         {
@@ -940,7 +959,7 @@ namespace Erlang.NET
             }
         }
 
-        public void write_external_fun(String module, String function, int arity)
+        public void write_external_fun(string module, string function, int arity)
         {
             write1(OtpExternal.externalFunTag);
             write_atom(module);

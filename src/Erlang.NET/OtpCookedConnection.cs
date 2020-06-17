@@ -61,7 +61,7 @@ namespace Erlang.NET
      */
     public class OtpCookedConnection : AbstractConnection
     {
-        protected new OtpNode self;
+        protected OtpNode self;
 
         /*
          * The connection needs to know which local pids have links that pass
@@ -169,7 +169,7 @@ namespace Erlang.NET
          * send to remote name dest is recipient's registered name, the nodename is
          * implied by the choice of connection.
          */
-        public void send(OtpErlangPid from, String dest, OtpErlangObject msg)
+        public void send(OtpErlangPid from, string dest, OtpErlangObject msg)
         {
             // encode and send the message
             sendBuf(from, dest, new OtpOutputStream(msg));

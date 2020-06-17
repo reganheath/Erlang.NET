@@ -34,11 +34,7 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangTuple : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 9163498658004915935L;
-
         private static readonly OtpErlangObject[] NO_ELEMENTS = new OtpErlangObject[0];
-
         private OtpErlangObject[] elems = NO_ELEMENTS;
 
         /**
@@ -170,7 +166,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of the tuple.
          */
-        public override String ToString()
+        public override string ToString()
         {
             int i;
             StringBuilder s = new StringBuilder();

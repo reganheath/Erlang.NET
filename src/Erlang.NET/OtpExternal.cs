@@ -49,9 +49,11 @@ namespace Erlang.NET
 
         /** The tag used for ports */
         public const int portTag = 102;
+        public const int newPortTag = 89;
 
         /** The tag used for PIDs */
         public const int pidTag = 103;
+        public const int newPidTag = 88;
 
         /** The tag used for small tuples */
         public const int smallTupleTag = 104;
@@ -88,6 +90,7 @@ namespace Erlang.NET
 
         /** The tag used for new style references */
         public const int newRefTag = 114;
+        public const int newerRefTag = 90;
 
         /** The tag used for maps */
         public const int mapTag = 116;

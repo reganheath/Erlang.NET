@@ -28,9 +28,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangBinary : OtpErlangBitstr
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -3781009633593609217L;
-
         /**
          * Create a binary from a byte array
          * 

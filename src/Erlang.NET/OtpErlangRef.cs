@@ -29,15 +29,13 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangRef : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -7022666480768586521L;
-
-        private readonly String node;
-        private readonly int creation;
+        public int Tag { get { return OtpExternal.newerRefTag; } }
+        public string Node { get; private set; }
+        public int Creation { get; private set; }
 
         // old style refs have one 18-bit id
         // r6 "new" refs have array of ids, first one is only 18 bits however
-        private int[] ids = null;
+        public int[] Ids { get; private set; }
 
         /**
          * Create a unique Erlang ref belonging to the local node.
@@ -52,9 +50,9 @@ namespace Erlang.NET
         {
             OtpErlangRef r = self.createRef();
 
-            ids = r.Ids;
-            creation = r.Creation;
-            node = r.Node;
+            Ids = r.Ids;
+            Creation = r.Creation;
+            Node = r.Node;
         }
 
         /**
@@ -72,9 +70,9 @@ namespace Erlang.NET
         {
             OtpErlangRef r = buf.read_ref();
 
-            node = r.Node;
-            creation = r.Creation;
-            ids = r.Ids;
+            Node = r.Node;
+            Creation = r.Creation;
+            Ids = r.Ids;
         }
 
         /**
@@ -91,12 +89,9 @@ namespace Erlang.NET
          *                another arbitrary number. Only the low order 2 bits will
          *                be used.
          */
-        public OtpErlangRef(String node, int id, int creation)
+        public OtpErlangRef(string node, int id, int creation)
+            : this(OtpExternal.newRefTag, node, new int[1] { id }, creation)
         {
-            this.node = node;
-            ids = new int[1];
-            ids[0] = id & 0x3ffff; // 18 bits
-            this.creation = creation & 0x03; // 2 bits
         }
 
         /**
@@ -115,24 +110,31 @@ namespace Erlang.NET
          *                another arbitrary number. Only the low order 2 bits will
          *                be used.
          */
-        public OtpErlangRef(String node, int[] ids, int creation)
+        public OtpErlangRef(string node, int[] ids, int creation)
+            : this(OtpExternal.newRefTag, node, ids, creation)
         {
-            this.node = node;
-            this.creation = creation & 0x03; // 2 bits
+        }
 
-            // use at most 82 bits (18 + 32 + 32)
-            int len = ids.Length;
-            this.ids = new int[3];
-            this.ids[0] = 0;
-            this.ids[1] = 0;
-            this.ids[2] = 0;
+        public OtpErlangRef(int tag, string node, int[] ids, int creation)
+        {
+            this.Node = node;
 
-            if (len > 3)
+            // use at most 3 words
+            int len = Math.Min(ids.Length, 3);
+            if (len < 1)
+                throw new Exception("Ref must contain at least 1 id");
+            this.Ids = new int[len];
+
+            Array.Copy(ids, 0, this.Ids, 0, len);
+            if (tag == OtpExternal.newRefTag)
             {
-                len = 3;
+                Creation = creation & 0x3;
+                Ids[0] &= 0x3ffff; // only 18 significant bits in first number
             }
-            Array.Copy(ids, 0, this.ids, 0, len);
-            this.ids[0] &= 0x3ffff; // only 18 significant bits in first number
+            else
+            {
+                Creation = creation;
+            }
         }
 
         /**
@@ -143,19 +145,7 @@ namespace Erlang.NET
          */
         public int Id
         {
-            get { return ids[0]; }
-        }
-
-        /**
-         * Get the array of id numbers from the ref. If this is an old style ref,
-         * the array is of length 1. If this is a new style ref, the array has
-         * length 3.
-         * 
-         * @return the array of id numbers from the ref.
-         */
-        public int[] Ids
-        {
-            get { return ids; }
+            get { return Ids[0]; }
         }
 
         /**
@@ -165,27 +155,7 @@ namespace Erlang.NET
          */
         public bool isNewRef()
         {
-            return ids.Length > 1;
-        }
-
-        /**
-         * Get the creation number from the ref.
-         * 
-         * @return the creation number from the ref.
-         */
-        public int Creation
-        {
-            get { return creation; }
-        }
-
-        /**
-         * Get the node name from the ref.
-         * 
-         * @return the node name from the ref.
-         */
-        public String Node
-        {
-            get { return node; }
+            return Ids.Length > 1;
         }
 
         /**
@@ -194,13 +164,13 @@ namespace Erlang.NET
          * 
          * @return the string representation of the ref.
          */
-        public override String ToString()
+        public override string ToString()
         {
-            String s = "#Ref<" + node;
+            string s = "#Ref<" + Node;
 
-            for (int i = 0; i < ids.Length; i++)
+            for (int i = 0; i < Ids.Length; i++)
             {
-                s += "." + ids[i];
+                s += "." + Ids[i];
             }
 
             s += ">";
@@ -217,7 +187,7 @@ namespace Erlang.NET
          */
         public override void encode(OtpOutputStream buf)
         {
-            buf.write_ref(node, ids, creation);
+            buf.write_ref(this);
         }
 
         /**
@@ -239,16 +209,16 @@ namespace Erlang.NET
 
             OtpErlangRef r = (OtpErlangRef)o;
 
-            if (!(node.Equals(r.Node) && creation == r.Creation))
+            if (!(Node.Equals(r.Node) && Creation == r.Creation))
             {
                 return false;
             }
 
             if (isNewRef() && r.isNewRef())
             {
-                return ids[0] == r.Ids[0] && ids[1] == r.Ids[1] && ids[2] == r.Ids[2];
+                return Ids[0] == r.Ids[0] && Ids[1] == r.Ids[1] && Ids[2] == r.Ids[2];
             }
-            return ids[0] == r.Ids[0];
+            return Ids[0] == r.Ids[0];
         }
 
         public override int GetHashCode()
@@ -265,10 +235,10 @@ namespace Erlang.NET
         protected override int doHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(7);
-            hash.combine(creation, ids[0]);
+            hash.combine(Creation, Ids[0]);
             if (isNewRef())
             {
-                hash.combine(ids[1], ids[2]);
+                hash.combine(Ids[1], Ids[2]);
             }
             return hash.valueOf();
         }
@@ -276,7 +246,7 @@ namespace Erlang.NET
         public override Object Clone()
         {
             OtpErlangRef newRef = (OtpErlangRef)base.Clone();
-            newRef.ids = (int[])ids.Clone();
+            newRef.Ids = (int[])Ids.Clone();
             return newRef;
         }
     }

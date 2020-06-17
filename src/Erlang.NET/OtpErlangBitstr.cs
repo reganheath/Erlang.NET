@@ -33,9 +33,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangBitstr : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -3781009633593609217L;
-
         protected byte[] bin;
         protected int pad_bits;
 
@@ -224,7 +221,7 @@ namespace Erlang.NET
          * 
          * @return the Erlang string representation of this bitstr.
          */
-        public override String ToString()
+        public override string ToString()
         {
             if (pad_bits == 0)
                 return "#Bin<" + bin.Length + ">";

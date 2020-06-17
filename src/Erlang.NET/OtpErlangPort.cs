@@ -27,29 +27,10 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangPort : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 4037115468007644704L;
-
-        private readonly String node;
-        private readonly int id;
-        private readonly int creation;
-
-        /*
-         * Create a unique Erlang port belonging to the local node. Since it isn't
-         * meaninful to do so, this constructor is private...
-         * 
-         * @param self the local node.
-         * 
-         * @deprecated use OtpLocalNode:createPort() instead
-         */
-        private OtpErlangPort(OtpSelf self)
-        {
-            OtpErlangPort p = self.createPort();
-
-            id = p.id;
-            creation = p.creation;
-            node = p.node;
-        }
+        public int Tag { get { return OtpExternal.newPortTag; } }
+        public string Node { get; private set; }
+        public int Id { get; private set; }
+        public int Creation { get; private set; }
 
         /**
          * Create an Erlang port from a stream containing a port encoded in Erlang
@@ -66,9 +47,9 @@ namespace Erlang.NET
         {
             OtpErlangPort p = buf.read_port();
 
-            node = p.Node;
-            id = p.Id;
-            creation = p.Creation;
+            Node = p.Node;
+            Id = p.Id;
+            Creation = p.Creation;
         }
 
         /**
@@ -85,41 +66,41 @@ namespace Erlang.NET
          *                another arbitrary number. Only the low order 2 bits will
          *                be used.
          */
-        public OtpErlangPort(String node, int id, int creation)
+        public OtpErlangPort(string node, int id, int creation)
+            : this(OtpExternal.portTag, node, id, creation)
         {
-            this.node = node;
-            this.id = id & 0xfffffff; // 28 bits
-            this.creation = creation & 0x03; // 2 bits
         }
 
         /**
-         * Get the id number from the port.
-         * 
-         * @return the id number from the port.
+         * Create an Erlang port from its components.
+         *
+         * @param tag
+         *            the external format to be compliant with.
+         *            OtpExternal.portTag where only a subset of the bits are used (see other constructor)
+         *            OtpExternal.newPortTag where all 32 bits of id and creation are significant.
+         *            newPortTag can only be decoded by OTP-19 and newer.
+         * @param node
+         *            the nodename.
+         *
+         * @param id
+         *            an arbitrary number. Only the low order 28 bits will be used.
+         *
+         * @param creation
+         *            another arbitrary number.
          */
-        public int Id
+        public OtpErlangPort(int tag, String node, int id, int creation)
         {
-            get { return id; }
-        }
-
-        /**
-         * Get the creation number from the port.
-         * 
-         * @return the creation number from the port.
-         */
-        public int Creation
-        {
-            get { return creation; }
-        }
-
-        /**
-         * Get the node name from the port.
-         * 
-         * @return the node name from the port.
-         */
-        public String Node
-        {
-            get { return node; }
+            Node = node;
+            if (tag == OtpExternal.portTag)
+            {
+                Id = id & 0xfffffff; // 28 bits
+                Creation = creation & 0x3; // 2 bits
+            }
+            else
+            {
+                Id = id;
+                Creation = creation;
+            }
         }
 
         /**
@@ -128,9 +109,9 @@ namespace Erlang.NET
          * 
          * @return the string representation of the port.
          */
-        public override String ToString()
+        public override string ToString()
         {
-            return "#Port<" + node + "." + id + ">";
+            return "#Port<" + Node + "." + Id + ">";
         }
 
         /**
@@ -142,7 +123,7 @@ namespace Erlang.NET
          */
         public override void encode(OtpOutputStream buf)
         {
-            buf.write_port(node, id, creation);
+            buf.write_port(this);
         }
 
         /**
@@ -163,8 +144,8 @@ namespace Erlang.NET
 
             OtpErlangPort port = (OtpErlangPort)o;
 
-            return creation == port.creation && id == port.id
-            && node.CompareTo(port.node) == 0;
+            return Creation == port.Creation && Id == port.Id
+            && Node.CompareTo(port.Node) == 0;
         }
 
         public override int GetHashCode()
@@ -176,7 +157,7 @@ namespace Erlang.NET
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(6);
             hash.combine(Creation);
-            hash.combine(id, node.GetHashCode());
+            hash.combine(Id, Node.GetHashCode());
             return hash.valueOf();
         }
     }

@@ -35,8 +35,6 @@ namespace Erlang.NET
      */
     public class OtpErlangExit : OtpErlangException
     {
-        internal static readonly new long serialVersionUID = 1L;
-
         OtpErlangObject reason = null;
         OtpErlangPid pid = null;
 
@@ -63,7 +61,7 @@ namespace Erlang.NET
          * 
          * @see #OtpErlangExit(OtpErlangObject)
          */
-        public OtpErlangExit(String reason)
+        public OtpErlangExit(string reason)
             : this(new OtpErlangAtom(reason))
         {
         }
@@ -98,7 +96,7 @@ namespace Erlang.NET
          * 
          * @see #OtpErlangExit(OtpErlangObject, OtpErlangPid)
          */
-        public OtpErlangExit(String reason, OtpErlangPid pid)
+        public OtpErlangExit(string reason, OtpErlangPid pid)
             : this(new OtpErlangAtom(reason), pid)
         {
         }

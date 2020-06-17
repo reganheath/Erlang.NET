@@ -30,9 +30,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangDouble : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = 132947104811974021L;
-
         private readonly double d;
 
         /**
@@ -92,7 +89,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of this double.
          */
-        public override String ToString()
+        public override string ToString()
         {
             return "" + d;
         }

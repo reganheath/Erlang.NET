@@ -30,15 +30,12 @@ namespace Erlang.NET
     {
         protected int hashCodeValue = 0;
 
-        // don't change this!
-        internal static readonly long serialVersionUID = -8435938572339430044L;
-
         /**
          * @return the printable representation of the object. This is usually
          *         similar to the representation used by Erlang for the same type of
          *         object.
          */
-        public abstract override String ToString();
+        public abstract override string ToString();
 
         /**
          * Convert the object according to the rules of the Erlang external format.

@@ -31,7 +31,7 @@ namespace Erlang.NET
             set { task = value; }
         }
 
-        internal OtpActorMbox(OtpActorSched sched, OtpNode home, OtpErlangPid self, String name)
+        internal OtpActorMbox(OtpActorSched sched, OtpNode home, OtpErlangPid self, string name)
             : base(home, self, name)
         {
             this.sched = sched;

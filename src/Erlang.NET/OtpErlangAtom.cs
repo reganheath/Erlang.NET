@@ -30,13 +30,9 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangAtom : OtpErlangObject
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -3204386396807876641L;
-
         /** The maximun allowed length of an atom, in characters */
         public static readonly int maxAtomLength = 0xff; // one byte length
-
-        private readonly String atom;
+        private readonly string atom;
 
         /**
          * Create an atom from the given string.
@@ -48,7 +44,7 @@ namespace Erlang.NET
          *                    if the string is null or contains more than
          *                    {@link #maxAtomLength maxAtomLength} characters.
          */
-        public OtpErlangAtom(String atom)
+        public OtpErlangAtom(string atom)
         {
             if (atom == null)
                 throw new ArgumentException("null string value");
@@ -89,7 +85,7 @@ namespace Erlang.NET
          * 
          * @see #toString
          */
-        public String atomValue()
+        public string atomValue()
         {
             return atom;
         }
@@ -117,7 +113,7 @@ namespace Erlang.NET
          * 
          * @see #atomValue
          */
-        public override String ToString()
+        public override string ToString()
         {
             if (atomNeedsQuoting(atom))
                 return "'" + escapeSpecialChars(atom) + "'";
@@ -186,7 +182,7 @@ namespace Erlang.NET
         }
 
         // true if the atom should be displayed with quotation marks
-        private bool atomNeedsQuoting(String s)
+        private bool atomNeedsQuoting(string s)
         {
             if (s.Length == 0)
                 return true;
@@ -208,7 +204,7 @@ namespace Erlang.NET
          * function currently does not consider any characters above 127 to be
          * printable.
          */
-        private String escapeSpecialChars(String s)
+        private string escapeSpecialChars(string s)
         {
             char c;
             StringBuilder so = new StringBuilder();

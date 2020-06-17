@@ -27,9 +27,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangFloat : OtpErlangDouble
     {
-        // don't change this!
-        internal static readonly new long serialVersionUID = -2231546377289456934L;
-
         /**
          * Create an Erlang float from the given float value.
          */

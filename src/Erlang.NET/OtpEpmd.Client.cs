@@ -64,7 +64,7 @@ namespace Erlang.NET
             {
                 if (epmdPort == 0)
                 {
-                    String env = null;
+                    string env = null;
                     try
                     {
                         env = System.Environment.GetEnvironmentVariable("ERL_EPMD_PORT");
@@ -104,7 +104,7 @@ namespace Erlang.NET
         static OtpEpmd()
         {
             // debug this connection?
-            String trace = ConfigurationManager.AppSettings["OtpConnection.trace"];
+            string trace = ConfigurationManager.AppSettings["OtpConnection.trace"];
 
             try
             {
@@ -204,7 +204,7 @@ namespace Erlang.NET
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                using (TcpClient s = new TcpClient(node.Host, EpmdPort.get()))
+                using (var s = node.createTransport(node.Host, EpmdPort.get()))
                 {
                     // build and send epmd request
                     // length[2], tag[1], alivename[n] (length = n+1)
@@ -213,7 +213,7 @@ namespace Erlang.NET
                     obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
 
                     // send request
-                    obuf.WriteTo(s.GetStream());
+                    obuf.WriteTo(s.getOutputStream());
 
                     if (traceLevel >= traceThreshold)
                         log.Debug("-> LOOKUP (r4) " + node);
@@ -224,11 +224,11 @@ namespace Erlang.NET
                     // elen[2], edata[m]
                     byte[] tmpbuf = new byte[100];
 
-                    int n = s.GetStream().Read(tmpbuf, 0, tmpbuf.Length);
+                    int n = s.getInputStream().Read(tmpbuf, 0, tmpbuf.Length);
 
                     if (n < 0)
                     {
-                        s.Close();
+                        s.close();
                         throw new IOException("Nameserver not responding on " + node.Host + " when looking up " + node.Alive);
                     }
 
@@ -372,12 +372,12 @@ namespace Erlang.NET
             return null;
         }
 
-        public static String[] lookupNames()
+        public static string[] lookupNames()
         {
             return lookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0], new OtpSocketTransportFactory());
         }
 
-        public static String[] lookupNames(IPAddress address, OtpTransportFactory transportFactory)
+        public static string[] lookupNames(IPAddress address, OtpTransportFactory transportFactory)
         {
 
             try
@@ -415,7 +415,7 @@ namespace Erlang.NET
                     int n = tmpbuf.Length;
                     byte[] buf = new byte[n - 4];
                     Array.Copy(tmpbuf, 4, buf, 0, n - 4);
-                    String all = OtpErlangString.newString(buf);
+                    string all = OtpErlangString.newString(buf);
                     return all.Split(new char[] { '\n' });
                 }
             }

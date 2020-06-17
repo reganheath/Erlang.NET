@@ -70,12 +70,12 @@ namespace Erlang.NET
          *                the name of this node.
          * 
          */
-        public OtpSelf(String node)
+        public OtpSelf(string node)
             : this(node, defaultCookie, 0)
         {
         }
 
-        public OtpSelf(String node, OtpTransportFactory transportFactory)
+        public OtpSelf(string node, OtpTransportFactory transportFactory)
             : this(node, defaultCookie, 0, transportFactory)
         {
         }
@@ -90,17 +90,17 @@ namespace Erlang.NET
          *                the authorization cookie that will be used by this node
          *                when it communicates with other nodes.
          */
-        public OtpSelf(String node, String cookie)
+        public OtpSelf(string node, string cookie)
             : this(node, cookie, 0)
         {
         }
 
-        public OtpSelf(String node, String cookie, OtpTransportFactory transportFactory)
+        public OtpSelf(string node, string cookie, OtpTransportFactory transportFactory)
             : this(node, cookie, 0, transportFactory)
         {
         }
 
-        public OtpSelf(String node, String cookie, int port)
+        public OtpSelf(string node, string cookie, int port)
             : base(node, cookie)
         {
             sock = createServerTransport(port);
@@ -116,7 +116,7 @@ namespace Erlang.NET
             pid = createPid();
         }
 
-        public OtpSelf(String node, String cookie, int port, OtpTransportFactory transportFactory)
+        public OtpSelf(string node, string cookie, int port, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
             sock = createServerTransport(port);

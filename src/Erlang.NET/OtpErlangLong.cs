@@ -33,11 +33,8 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangLong : OtpErlangObject
     {
-        // don't change this!
-        static internal readonly new long serialVersionUID = 1610466859236755096L;
-
-        private long val;
-        private BigInteger bigVal = null;
+        private readonly long val;
+        private readonly BigInteger bigVal = null;
 
         /**
          * Create an Erlang integer from the given value.
@@ -355,7 +352,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of this number.
          */
-        public override String ToString()
+        public override string ToString()
         {
             if (!BigIntegerIsNull(bigVal))
                 return "" + bigVal;

@@ -52,7 +52,7 @@ namespace Erlang.NET
          * @param node
          *                the name of the node.
          */
-        public OtpPeer(String node)
+        public OtpPeer(string node)
             : base(node)
         {
         }
@@ -63,7 +63,7 @@ namespace Erlang.NET
          * @param node
          *                the name of the node.
          */
-        public OtpPeer(String node, OtpTransportFactory transportFactory)
+        public OtpPeer(string node, OtpTransportFactory transportFactory)
             : base(node, transportFactory)
         {
         }

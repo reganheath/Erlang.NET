@@ -12,9 +12,15 @@ namespace Erlang.NET
     {
         private TcpListener socket;
 
-        public OtpServerSocketTransport(int port)
+        public OtpServerSocketTransport(int port, bool start = true)
         {
             socket = new TcpListener(IPAddress.Any, port);
+            if (start)
+                socket.Start();
+        }
+
+        public void start()
+        {
             socket.Start();
         }
 

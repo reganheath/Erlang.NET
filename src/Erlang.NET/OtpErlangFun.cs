@@ -25,11 +25,8 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangFun : OtpErlangObject
     {
-        // don't change this!
-        internal static new long serialVersionUID = -3423031125356706472L;
-
         private readonly OtpErlangPid pid;
-        private readonly String module;
+        private readonly string module;
         private readonly long index;
         private readonly long old_index;
         private readonly long uniq;
@@ -50,7 +47,7 @@ namespace Erlang.NET
             freeVars = f.freeVars;
         }
 
-        public OtpErlangFun(OtpErlangPid pid, String module,
+        public OtpErlangFun(OtpErlangPid pid, string module,
                     long index, long uniq, OtpErlangObject[] freeVars)
         {
             this.pid = pid;
@@ -63,7 +60,7 @@ namespace Erlang.NET
             this.freeVars = freeVars;
         }
 
-        public OtpErlangFun(OtpErlangPid pid, String module,
+        public OtpErlangFun(OtpErlangPid pid, string module,
                     int arity, byte[] md5, int index,
                     long old_index, long uniq,
                     OtpErlangObject[] freeVars)
@@ -134,7 +131,7 @@ namespace Erlang.NET
             return hash.valueOf();
         }
 
-        public override String ToString()
+        public override string ToString()
         {
             return "#Fun<" + module + "." + old_index + "." + uniq + ">";
         }
