@@ -22,37 +22,28 @@ using System;
 namespace Erlang.NET
 {
     // package scope
-    public class Link
+    public class Link : IEquatable<Link>, IComparable<Link>
     {
-        private OtpErlangPid local;
-        private OtpErlangPid remote;
+        public OtpErlangPid Local { get; private set; }
+        public OtpErlangPid Remote { get; private set; }
+
         private int hashCodeValue = 0;
 
         public Link(OtpErlangPid local, OtpErlangPid remote)
         {
-            this.local = local;
-            this.remote = remote;
-        }
-
-        public OtpErlangPid Local
-        {
-            get { return local; }
-        }
-
-        public OtpErlangPid Remote
-        {
-            get { return remote; }
+            Local = local;
+            Remote = remote;
         }
 
         public bool contains(OtpErlangPid pid)
         {
-            return local.Equals(pid) || remote.Equals(pid);
+            return Local.Equals(pid) || Remote.Equals(pid);
         }
 
         public bool equals(OtpErlangPid local, OtpErlangPid remote)
         {
-            return this.local.Equals(local) && this.remote.Equals(remote)
-            || this.local.Equals(remote) && this.remote.Equals(local);
+            return Local.Equals(local) && Remote.Equals(remote)
+                || Local.Equals(remote) && Remote.Equals(local);
         }
 
         public override int GetHashCode()
@@ -60,10 +51,20 @@ namespace Erlang.NET
             if (hashCodeValue == 0)
             {
                 OtpErlangObject.Hash hash = new OtpErlangObject.Hash(5);
-                hash.combine(local.GetHashCode() + remote.GetHashCode());
+                hash.combine(Local.GetHashCode() + Remote.GetHashCode());
                 hashCodeValue = hash.valueOf();
             }
             return hashCodeValue;
+        }
+
+        public bool Equals(Link other)
+        {
+            return Local.Equals(other.Local) && Remote.Equals(other.Remote);
+        }
+
+        public int CompareTo(Link other)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,3 +1,0 @@
-WORK UP..
-https://github.com/erlang/otp/commits/master?before=01aca1224145c71cff9a88ed2ad3fb59cf13c8d4+70&path%5B%5D=lib&path%5B%5D=jinterface&path%5B%5D=java_src&path%5B%5D=com&path%5B%5D=ericsson&path%5B%5D=otp&path%5B%5D=erlang
-NEXT 2b4582d "jinterface: implement support for maps"

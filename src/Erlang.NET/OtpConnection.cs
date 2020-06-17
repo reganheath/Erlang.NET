@@ -126,10 +126,7 @@ namespace Erlang.NET
          * Return the number of messages currently waiting in the receive queue for
          * this connection.
          */
-        public int msgCount()
-        {
-            return queue.getCount();
-        }
+        public int msgCount() => queue.getCount();
 
         /**
          * Receive a message from a remote process. This method blocks until a valid

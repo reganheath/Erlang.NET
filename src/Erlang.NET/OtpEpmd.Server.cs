@@ -52,6 +52,7 @@ namespace Erlang.NET
         private readonly OtpServerTransport sock;
         private readonly Dictionary<string, OtpPublishedNode> portmap = new Dictionary<string, OtpPublishedNode>();
         private int creation = 0;
+        private readonly object lockObj = new object();
         private volatile bool done = false;
 
         public Dictionary<string, OtpPublishedNode> Portmap
@@ -63,7 +64,7 @@ namespace Erlang.NET
         {
             get
             {
-                lock (this)
+                lock (lockObj)
                 {
                     int next = (creation % 3) + 1;
                     creation++;

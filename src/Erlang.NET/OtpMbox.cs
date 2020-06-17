@@ -82,25 +82,20 @@ namespace Erlang.NET
      */
     public class OtpMbox : IDisposable
     {
-        OtpNode home;
-        OtpErlangPid self;
-        GenericQueue queue;
-        string name;
-        Links links;
+        private readonly object lockObj = new object();
+        private readonly OtpNode home;
+        private readonly Links links;
 
-        protected GenericQueue Queue
-        {
-            get { return queue; }
-        }
+        protected GenericQueue Queue { get; private set; }
 
         // package constructor: called by OtpNode:createMbox(name)
         // to create a named mbox
         internal OtpMbox(OtpNode home, OtpErlangPid self, string name)
         {
-            this.self = self;
+            Name = name;
+            Self = self;
             this.home = home;
-            this.name = name;
-            queue = new GenericQueue();
+            Queue = new GenericQueue();
             links = new Links(10);
         }
 
@@ -126,10 +121,7 @@ namespace Erlang.NET
          * 
          * @return the self pid for this mailbox.
          */
-        public OtpErlangPid Self
-        {
-            get { return self; }
-        }
+        public OtpErlangPid Self { get; private set; }
 
         /**
          * <p>
@@ -148,10 +140,8 @@ namespace Erlang.NET
          */
         public bool registerName(string name)
         {
-            lock (this)
-            {
+            lock (lockObj)
                 return home.registerName(name, this);
-            }
         }
 
         /**
@@ -160,11 +150,7 @@ namespace Erlang.NET
          * @return the registered name of this mailbox, or null if the mailbox had
          *         no registered name.
          */
-        public string Name
-        {
-            get { return name; }
-            set { name = value; }
-        }
+        public string Name { get; set; }
 
         /**
          * Block until a message arrives for this mailbox.
@@ -218,9 +204,7 @@ namespace Erlang.NET
             {
                 OtpMsg m = receiveMsg(timeout);
                 if (m != null)
-                {
                     return m.getMsg();
-                }
             }
             catch (OtpErlangExit e)
             {
@@ -274,9 +258,7 @@ namespace Erlang.NET
         {
             OtpMsg m = receiveMsg(timeout);
             if (m != null)
-            {
                 return m.getMsgBuf();
-            }
 
             return null;
         }
@@ -294,7 +276,7 @@ namespace Erlang.NET
          */
         public virtual OtpMsg receiveMsg()
         {
-            OtpMsg m = (OtpMsg)queue.get();
+            OtpMsg m = (OtpMsg)Queue.get();
 
             switch (m.type())
             {
@@ -334,7 +316,7 @@ namespace Erlang.NET
          */
         public virtual OtpMsg receiveMsg(long timeout)
         {
-            OtpMsg m = (OtpMsg)queue.get(timeout);
+            OtpMsg m = (OtpMsg)Queue.get(timeout);
 
             if (m == null)
                 return null;
@@ -385,7 +367,7 @@ namespace Erlang.NET
                 if (conn == null)
                     return;
 
-                conn.send(self, to, msg);
+                conn.send(Self, to, msg);
             }
             catch (Exception)
             {
@@ -406,7 +388,7 @@ namespace Erlang.NET
          */
         public void send(string name, OtpErlangObject msg)
         {
-            home.deliver(new OtpMsg(self, name, (OtpErlangObject)msg.Clone()));
+            home.deliver(new OtpMsg(Self, name, (OtpErlangObject)msg.Clone()));
         }
 
         /**
@@ -429,22 +411,16 @@ namespace Erlang.NET
             {
                 string currentNode = home.Node;
                 if (node.Equals(currentNode))
-                {
                     send(name, msg);
-                }
                 else if (node.IndexOf('@', 0) < 0 && node.Equals(currentNode.Substring(0, currentNode.IndexOf('@', 0))))
-                {
                     send(name, msg);
-                }
                 else
                 {
                     // other node
                     OtpCookedConnection conn = home.getConnection(node);
                     if (conn == null)
-                    {
                         return;
-                    }
-                    conn.send(self, name, msg);
+                    conn.send(Self, name, msg);
                 }
             }
             catch (Exception)
@@ -528,7 +504,7 @@ namespace Erlang.NET
                 string node = to.Node;
                 if (node.Equals(home.Node))
                 {
-                    home.deliver(new OtpMsg(OtpMsg.exitTag, self, to, reason));
+                    home.deliver(new OtpMsg(OtpMsg.exitTag, Self, to, reason));
                 }
                 else
                 {
@@ -540,11 +516,11 @@ namespace Erlang.NET
                     switch (arity)
                     {
                         case 1:
-                            conn.exit(self, to, reason);
+                            conn.exit(Self, to, reason);
                             break;
 
                         case 2:
-                            conn.exit2(self, to, reason);
+                            conn.exit2(Self, to, reason);
                             break;
                     }
                 }
@@ -590,33 +566,27 @@ namespace Erlang.NET
                 string node = to.Node;
                 if (node.Equals(home.Node))
                 {
-                    if (!home.deliver(new OtpMsg(OtpMsg.linkTag, self, to)))
-                    {
+                    if (!home.deliver(new OtpMsg(OtpMsg.linkTag, Self, to)))
                         throw new OtpErlangExit("noproc", to);
-                    }
                 }
                 else
                 {
                     OtpCookedConnection conn = home.getConnection(node);
                     if (conn != null)
-                    {
-                        conn.link(self, to);
-                    }
+                        conn.link(Self, to);
                     else
-                    {
                         throw new OtpErlangExit("noproc", to);
-                    }
                 }
             }
-            catch (OtpErlangExit e)
+            catch (OtpErlangExit)
             {
-                throw e;
+                throw;
             }
             catch (Exception)
             {
             }
 
-            links.addLink(self, to);
+            links.AddLink(Self, to);
         }
 
         /**
@@ -634,22 +604,20 @@ namespace Erlang.NET
          */
         public void unlink(OtpErlangPid to)
         {
-            links.removeLink(self, to);
+            links.RemoveLink(Self, to);
 
             try
             {
                 string node = to.Node;
                 if (node.Equals(home.Node))
                 {
-                    home.deliver(new OtpMsg(OtpMsg.unlinkTag, self, to));
+                    home.deliver(new OtpMsg(OtpMsg.unlinkTag, Self, to));
                 }
                 else
                 {
                     OtpCookedConnection conn = home.getConnection(node);
                     if (conn != null)
-                    {
-                        conn.unlink(self, to);
-                    }
+                        conn.unlink(Self, to);
                 }
             }
             catch (Exception)
@@ -752,7 +720,7 @@ namespace Erlang.NET
         public void Dispose()
         {
             close();
-            queue.flush();
+            Queue.flush();
         }
 
         /**
@@ -769,12 +737,12 @@ namespace Erlang.NET
             }
 
             OtpMbox m = (OtpMbox)o;
-            return m.self.Equals(self);
+            return m.Self.Equals(Self);
         }
 
         public override int GetHashCode()
         {
-            return self.GetHashCode();
+            return Self.GetHashCode();
         }
 
         /*
@@ -789,21 +757,21 @@ namespace Erlang.NET
             switch (m.type())
             {
                 case OtpMsg.linkTag:
-                    links.addLink(self, m.getSenderPid());
+                    links.AddLink(Self, m.getSenderPid());
                     break;
 
                 case OtpMsg.unlinkTag:
-                    links.removeLink(self, m.getSenderPid());
+                    links.RemoveLink(Self, m.getSenderPid());
                     break;
 
                 case OtpMsg.exitTag:
-                    links.removeLink(self, m.getSenderPid());
-                    queue.put(m);
+                    links.RemoveLink(Self, m.getSenderPid());
+                    Queue.put(m);
                     break;
 
                 case OtpMsg.exit2Tag:
                 default:
-                    queue.put(m);
+                    Queue.put(m);
                     break;
             }
         }
@@ -811,7 +779,7 @@ namespace Erlang.NET
         // used to break all known links to this mbox
         public void breakLinks(OtpErlangObject reason)
         {
-            Link[] l = links.clearLinks();
+            Link[] l = links.ClearLinks();
 
             if (l != null)
             {

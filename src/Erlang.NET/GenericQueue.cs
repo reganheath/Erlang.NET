@@ -18,6 +18,8 @@
  * %CopyrightEnd%
  */
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 
 namespace Erlang.NET
@@ -29,45 +31,28 @@ namespace Erlang.NET
 
     public class GenericQueue
     {
-        private const int open = 0;
-        private const int closing = 1;
-        private const int closed = 2;
+        private enum QueueState {  Open, Closing, Closed };
 
-        private int status;
-        private Bucket head;
-        private Bucket tail;
-        private int count;
-
-        private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        private static long currentTimeMillis()
-        {
-            return (long)(DateTime.UtcNow - Epoch).TotalMilliseconds;
-        }
-
-        private void init()
-        {
-            head = null;
-            tail = null;
-            count = 0;
-        }
+        private QueueState status;
+        private readonly object lockObj = new object();
+        private LinkedList<object> queue = new LinkedList<object>();
 
         /** Create an empty queue */
         public GenericQueue()
         {
-            init();
-            status = open;
+            status = QueueState.Open;
         }
 
         /** Clear a queue */
         public void flush()
         {
-            init();
+            lock(lockObj)
+                queue = new LinkedList<object>();
         }
 
         public void close()
         {
-            status = closing;
+            status = QueueState.Closing;
         }
 
         /**
@@ -76,31 +61,12 @@ namespace Erlang.NET
          * @param o
          *                Object to insert in the queue
          */
-        public void put(Object o)
+        public void put(object o)
         {
-            Monitor.Enter(this);
-            try
+            lock (lockObj)
             {
-                Bucket b = new Bucket(o);
-
-                if (tail != null)
-                {
-                    tail.setNext(b);
-                    tail = b;
-                }
-                else
-                {
-                    // queue was empty but has one element now
-                    head = tail = b;
-                }
-                count++;
-
-                // notify any waiting tasks
-                Monitor.Pulse(this);
-            }
-            finally
-            {
-                Monitor.Exit(this);
+                queue.AddLast(o);
+                Monitor.Pulse(lockObj);
             }
         }
 
@@ -110,28 +76,24 @@ namespace Erlang.NET
          * 
          * @return The object at the head of the queue.
          */
-        public Object get()
+        public object get()
         {
-            Monitor.Enter(this);
-            try
+            lock (lockObj)
             {
-                Object o = null;
+                object o = null;
 
                 while ((o = tryGet()) == null)
                 {
                     try
                     {
-                        Monitor.Wait(this);
+                        Monitor.Wait(lockObj);
                     }
                     catch (ThreadInterruptedException)
                     {
                     }
                 }
+
                 return o;
-            }
-            finally
-            {
-                Monitor.Exit(this);
             }
         }
 
@@ -149,30 +111,30 @@ namespace Erlang.NET
          * @return The object at the head of the queue, or null if none arrived in
          *         time.
          */
-        public Object get(long timeout)
+        public object get(long timeout)
         {
-            Monitor.Enter(this);
-            try
+            if (status == QueueState.Closed)
+                return null;
+
+            var stopwatch = new Stopwatch();
+
+            lock (lockObj)
             {
-                if (status == closed)
-                    return null;
+                object o = null;
 
-                long currentTime = currentTimeMillis();
-                long stopTime = currentTime + timeout;
-                Object o = null;
-
+                stopwatch.Start();
                 while (true)
                 {
                     if ((o = tryGet()) != null)
                         return o;
 
-                    currentTime = currentTimeMillis();
-                    if (stopTime <= currentTime)
+                    long elapsed = stopwatch.ElapsedMilliseconds;
+                    if (elapsed > timeout)
                         throw new ThreadInterruptedException("Get operation timed out");
 
                     try
                     {
-                        Monitor.Wait(this, (int)(stopTime - currentTime));
+                        Monitor.Wait(lockObj, (int)(timeout - elapsed));
                     }
                     catch (ThreadInterruptedException)
                     {
@@ -180,83 +142,20 @@ namespace Erlang.NET
                     }
                 }
             }
-            finally
-            {
-                Monitor.Exit(this);
-            }
         }
 
         // attempt to retrieve message from queue head
-        public Object tryGet()
+        public object tryGet()
         {
-            Object o = null;
-
-            Monitor.Enter(this);
-            try
+            lock (lockObj)
             {
-                if (head != null)
-                {
-                    o = head.getContents();
-                    head = head.getNext();
-                    count--;
-
-                    if (head == null)
-                    {
-                        tail = null;
-                        count = 0;
-                    }
-                }
-            }
-            finally
-            {
-                Monitor.Exit(this);
-            }
-
-            return o;
-        }
-
-        public int getCount()
-        {
-            Monitor.Enter(this);
-            try
-            {
-                return count;
-            }
-            finally
-            {
-                Monitor.Exit(this);
+                var o = queue.First;
+                if (o != null)
+                    queue.RemoveFirst();
+                return o?.Value ?? null;
             }
         }
 
-        /*
-         * The Bucket class. The queue is implemented as a linked list of Buckets.
-         * The container holds the queued object and a reference to the next Bucket.
-         */
-        class Bucket
-        {
-            private Bucket next;
-            private Object contents;
-
-            public Bucket(Object o)
-            {
-                next = null;
-                contents = o;
-            }
-
-            public void setNext(Bucket newNext)
-            {
-                next = newNext;
-            }
-
-            public Bucket getNext()
-            {
-                return next;
-            }
-
-            public Object getContents()
-            {
-                return contents;
-            }
-        }
+        public int getCount() => queue.Count;
     }
 }

@@ -18,157 +18,99 @@
  * %CopyrightEnd%
  */
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Erlang.NET
 {
     // package scope
     public class Links
     {
-        private Link[] links;
-        private int count;
+        private readonly object lockObj = new object();
+        private readonly List<Link> links;
 
         public Links()
-            : this(10)
         {
+            links = new List<Link>(10);
         }
 
         public Links(int initialSize)
         {
-            links = new Link[initialSize];
-            count = 0;
+            links = new List<Link>(initialSize);
         }
 
-        public void addLink(OtpErlangPid local, OtpErlangPid remote)
-        {
-            lock (this)
-            {
-                if (find(local, remote) == -1)
-                {
-                    if (count >= links.Length)
-                    {
-                        Link[] tmp = new Link[count * 2];
-                        Array.Copy(links, 0, tmp, 0, count);
-                        links = tmp;
-                    }
-                    links[count++] = new Link(local, remote);
-                }
-            }
-        }
-
-        public void removeLink(OtpErlangPid local, OtpErlangPid remote)
-        {
-            lock (this)
-            {
-                int i;
-
-                if ((i = find(local, remote)) != -1)
-                {
-                    count--;
-                    links[i] = links[count];
-                    links[count] = null;
-                }
-            }
-        }
-
-        public bool exists(OtpErlangPid local, OtpErlangPid remote)
-        {
-            lock (this)
-            {
-                return find(local, remote) != -1;
-            }
-        }
-
-        public int find(OtpErlangPid local, OtpErlangPid remote)
-        {
-            lock (this)
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    if (links[i].equals(local, remote))
-                    {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-        }
-
-        public int Count
-        {
-            get { return count; }
-        }
+        public int Count => links.Count;
 
         /* all local pids get notified about broken connection */
-        public OtpErlangPid[] localPids()
+        public OtpErlangPid[] LocalPids
         {
-            lock (this)
+            get
             {
-                OtpErlangPid[] ret = null;
-                if (count != 0)
-                {
-                    ret = new OtpErlangPid[count];
-                    for (int i = 0; i < count; i++)
-                    {
-                        ret[i] = links[i].Local;
-                    }
-                }
-                return ret;
+                lock (lockObj)
+                    return links.Select((l) => l.Local).ToArray();
             }
         }
 
         /* all remote pids get notified about failed pid */
-        public OtpErlangPid[] remotePids()
+        public OtpErlangPid[] RemotePids
         {
-            lock (this)
+            get
             {
-                OtpErlangPid[] ret = null;
-                if (count != 0)
-                {
-                    ret = new OtpErlangPid[count];
-                    for (int i = 0; i < count; i++)
-                    {
-                        ret[i] = links[i].Remote;
-                    }
-                }
-                return ret;
-            }
-        }
-
-        /* clears the link table, returns a copy */
-        public Link[] clearLinks()
-        {
-            lock (this)
-            {
-                Link[] ret = null;
-                if (count != 0)
-                {
-                    ret = new Link[count];
-                    for (int i = 0; i < count; i++)
-                    {
-                        ret[i] = links[i];
-                        links[i] = null;
-                    }
-                    count = 0;
-                }
-                return ret;
+                lock (lockObj)
+                    return links.Select((l) => l.Remote).ToArray();
             }
         }
 
         /* returns a copy of the link table */
-        public Link[] GetLinks
+        public Link[] All
         {
             get
             {
-                lock (this)
-                {
-                    Link[] ret = null;
-                    if (count != 0)
-                    {
-                        ret = new Link[count];
-                        Array.Copy(links, 0, ret, 0, count);
-                    }
-                    return ret;
-                }
+                lock (lockObj)
+                    return links.ToArray();
+            }
+        }
+
+        public void AddLink(OtpErlangPid local, OtpErlangPid remote)
+        {
+            lock (lockObj)
+            {
+                Link l = Find(local, remote);
+                if (l == null)
+                    links.Add(new Link(local, remote));
+            }
+        }
+
+        public void RemoveLink(OtpErlangPid local, OtpErlangPid remote)
+        {
+            lock (lockObj)
+            {
+                Link l = Find(local, remote);
+                if (l != null)
+                    links.Remove(l);
+            }
+        }
+
+        public bool Exists(OtpErlangPid local, OtpErlangPid remote)
+        {
+            lock (lockObj)
+                return Find(local, remote) != null;
+        }
+
+        public Link Find(OtpErlangPid local, OtpErlangPid remote)
+        {
+            lock (lockObj)
+                return links.FirstOrDefault((l) => l.equals(local, remote));
+        }
+
+        /* clears the link table, returns a copy */
+        public Link[] ClearLinks()
+        {
+            lock (lockObj)
+            {
+                Link[] ret = links.ToArray();
+                links.Clear();
+                return ret;
             }
         }
     }

@@ -61,13 +61,14 @@ namespace Erlang.NET
      */
     public class OtpCookedConnection : AbstractConnection
     {
+        private readonly object lockObj = new object();
         protected OtpNode self;
 
         /*
          * The connection needs to know which local pids have links that pass
          * through here, so that they can be notified in case of connection failure
          */
-        protected Links links = null;
+        protected Links links = new Links(25);
 
         /*
          * Accept an incoming connection from a remote node. Used by {@link
@@ -86,7 +87,6 @@ namespace Erlang.NET
             : base(self, s)
         {
             this.self = self;
-            links = new Links(25);
             start();
         }
 
@@ -104,7 +104,6 @@ namespace Erlang.NET
             : base(self, other)
         {
             this.self = self;
-            links = new Links(25);
             start();
         }
 
@@ -129,7 +128,7 @@ namespace Erlang.NET
                 case OtpMsg.linkTag:
                     if (delivered)
                     {
-                        links.addLink(msg.getRecipientPid(), msg.getSenderPid());
+                        links.AddLink(msg.getRecipientPid(), msg.getSenderPid());
                     }
                     else
                     {
@@ -146,7 +145,7 @@ namespace Erlang.NET
 
                 case OtpMsg.unlinkTag:
                 case OtpMsg.exitTag:
-                    links.removeLink(msg.getRecipientPid(), msg.getSenderPid());
+                    links.RemoveLink(msg.getRecipientPid(), msg.getSenderPid());
                     break;
 
                 case OtpMsg.exit2Tag:
@@ -220,12 +219,12 @@ namespace Erlang.NET
          */
         public void link(OtpErlangPid from, OtpErlangPid to)
         {
-            lock (this)
+            lock (lockObj)
             {
                 try
                 {
                     base.sendLink(from, to);
-                    links.addLink(from, to);
+                    links.AddLink(from, to);
                 }
                 catch (IOException)
                 {
@@ -239,9 +238,9 @@ namespace Erlang.NET
          */
         public void unlink(OtpErlangPid from, OtpErlangPid to)
         {
-            lock (this)
+            lock (lockObj)
             {
-                links.removeLink(from, to);
+                links.RemoveLink(from, to);
                 try
                 {
                     base.sendUnlink(from, to);
@@ -258,22 +257,12 @@ namespace Erlang.NET
          */
         void breakLinks()
         {
-            lock (this)
+            lock (lockObj)
             {
-                if (links != null)
+                foreach(var link in links.ClearLinks())
                 {
-                    Link[] l = links.clearLinks();
-
-                    if (l != null)
-                    {
-                        int len = l.Length;
-
-                        for (int i = 0; i < len; i++)
-                        {
-                            // send exit "from" remote pids to local ones
-                            self.deliver(new OtpMsg(OtpMsg.exitTag, l[i].Remote, l[i].Local, new OtpErlangAtom("noconnection")));
-                        }
-                    }
+                    // send exit "from" remote pids to local ones
+                    self.deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));
                 }
             }
         }

@@ -29,6 +29,7 @@ namespace Erlang.NET
      */
     public class OtpLocalNode : AbstractNode
     {
+        private readonly object lockObj = new object();
         private int serial = 0;
         private int pidCount = 1;
         private int portCount = 1;
@@ -145,7 +146,7 @@ namespace Erlang.NET
          */
         public OtpErlangPid createPid()
         {
-            lock (this)
+            lock (lockObj)
             {
                 OtpErlangPid p = new OtpErlangPid(base.Node, pidCount, serial, base.Creation);
 
@@ -156,9 +157,7 @@ namespace Erlang.NET
 
                     serial++;
                     if (serial > 0x1fff) /* 13 bits */
-                    {
                         serial = 0;
-                    }
                 }
 
                 return p;
@@ -176,15 +175,13 @@ namespace Erlang.NET
          */
         public OtpErlangPort createPort()
         {
-            lock (this)
+            lock (lockObj)
             {
                 OtpErlangPort p = new OtpErlangPort(base.Node, portCount, base.Creation);
 
                 portCount++;
                 if (portCount > 0xfffffff) /* 28 bits */
-                {
                     portCount = 0;
-                }
 
                 return p;
             }
@@ -200,7 +197,7 @@ namespace Erlang.NET
          */
         public OtpErlangRef createRef()
         {
-            lock (this)
+            lock (lockObj)
             {
                 OtpErlangRef r = new OtpErlangRef(base.Node, refId, base.Creation);
 
@@ -212,9 +209,7 @@ namespace Erlang.NET
 
                     refId[1]++;
                     if (refId[1] == 0)
-                    {
                         refId[2]++;
-                    }
                 }
 
                 return r;
