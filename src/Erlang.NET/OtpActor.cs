@@ -34,7 +34,7 @@ namespace Erlang.NET
 
         public OtpActor(OtpActorMbox mbox)
         {
-            this.Mbox = mbox;
+            Mbox = mbox;
         }
 
         public abstract IEnumerator<Continuation> GetEnumerator();

@@ -433,7 +433,7 @@ namespace Erlang.NET
         {
             if (v.bitCount() < 64)
             {
-                this.WriteLong(v.LongValue(), true);
+                WriteLong(v.LongValue(), true);
                 return;
             }
 

@@ -118,15 +118,15 @@ namespace Erlang.NET
 
         public OtpErlangRef(int tag, string node, int[] ids, int creation)
         {
-            this.Node = node;
+            Node = node;
 
             // use at most 3 words
             int len = Math.Min(ids.Length, 3);
             if (len < 1)
                 throw new Exception("Ref must contain at least 1 id");
-            this.Ids = new int[len];
+            Ids = new int[len];
 
-            Array.Copy(ids, 0, this.Ids, 0, len);
+            Array.Copy(ids, 0, Ids, 0, len);
             if (tag == OtpExternal.newRefTag)
             {
                 Creation = creation & 0x3;

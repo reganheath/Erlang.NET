@@ -378,11 +378,11 @@ namespace Erlang.NET
          */
         public bool Ping(string node, long timeout)
         {
-            if (node.Equals(this.Node))
+            if (node.Equals(Node))
             {
                 return true;
             }
-            else if (node.IndexOf('@', 0) < 0 && node.Equals(this.Node.Substring(0, this.Node.IndexOf('@', 0))))
+            else if (node.IndexOf('@', 0) < 0 && node.Equals(Node.Substring(0, Node.IndexOf('@', 0))))
             {
                 return true;
             }

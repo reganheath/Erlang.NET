@@ -124,7 +124,7 @@ namespace Erlang.NET
                 : base("OtpEpmd.OtpEpmdConnection", true)
             {
                 this.epmd = epmd;
-                this.portmap = epmd.Portmap;
+                portmap = epmd.Portmap;
                 this.sock = sock;
             }
 

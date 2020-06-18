@@ -980,7 +980,7 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            if (this.dataLength != o.dataLength)
+            if (dataLength != o.dataLength)
                 return false;
             return data.SequenceEqual(o.data);
         }
@@ -988,7 +988,7 @@ namespace Erlang.NET
 
         public override int GetHashCode()
         {
-            return this.ToString().GetHashCode();
+            return ToString().GetHashCode();
         }
 
 
@@ -1449,7 +1449,7 @@ namespace Erlang.NET
 
         public BigInteger abs()
         {
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)
+            if ((data[maxLength - 1] & 0x80000000) != 0)
                 return (-this);
             else
                 return (new BigInteger(this));
@@ -1566,7 +1566,7 @@ namespace Erlang.NET
             BigInteger tempNum;
             bool thisNegative = false;
 
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)   // negative this
+            if ((data[maxLength - 1] & 0x80000000) != 0)   // negative this
             {
                 tempNum = -this % n;
                 thisNegative = true;
@@ -1836,7 +1836,7 @@ namespace Erlang.NET
         public bool FermatLittleTest(int confidence)
         {
             BigInteger thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            if ((data[maxLength - 1] & 0x80000000) != 0)        // negative
                 thisVal = -this;
             else
                 thisVal = this;
@@ -1926,7 +1926,7 @@ namespace Erlang.NET
         public bool RabinMillerTest(int confidence)
         {
             BigInteger thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            if ((data[maxLength - 1] & 0x80000000) != 0)        // negative
                 thisVal = -this;
             else
                 thisVal = this;
@@ -2051,7 +2051,7 @@ namespace Erlang.NET
         public bool SolovayStrassenTest(int confidence)
         {
             BigInteger thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            if ((data[maxLength - 1] & 0x80000000) != 0)        // negative
                 thisVal = -this;
             else
                 thisVal = this;
@@ -2140,7 +2140,7 @@ namespace Erlang.NET
         public bool LucasStrongTest()
         {
             BigInteger thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            if ((data[maxLength - 1] & 0x80000000) != 0)        // negative
                 thisVal = -this;
             else
                 thisVal = this;
@@ -2301,7 +2301,7 @@ namespace Erlang.NET
         public bool isProbablePrime(int confidence)
         {
             BigInteger thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            if ((data[maxLength - 1] & 0x80000000) != 0)        // negative
                 thisVal = -this;
             else
                 thisVal = this;
@@ -2361,7 +2361,7 @@ namespace Erlang.NET
         public bool isProbablePrime()
         {
             BigInteger thisVal;
-            if ((this.data[maxLength - 1] & 0x80000000) != 0)        // negative
+            if ((data[maxLength - 1] & 0x80000000) != 0)        // negative
                 thisVal = -this;
             else
                 thisVal = this;
@@ -2706,10 +2706,10 @@ namespace Erlang.NET
             byte bitPos = (byte)(bitNum & 0x1F);    // get the lowest 5 bits
 
             uint mask = (uint)1 << bitPos;
-            this.data[bytePos] |= mask;
+            data[bytePos] |= mask;
 
-            if (bytePos >= this.dataLength)
-                this.dataLength = (int)bytePos + 1;
+            if (bytePos >= dataLength)
+                dataLength = (int)bytePos + 1;
         }
 
 
@@ -2722,17 +2722,17 @@ namespace Erlang.NET
         {
             uint bytePos = bitNum >> 5;
 
-            if (bytePos < this.dataLength)
+            if (bytePos < dataLength)
             {
                 byte bitPos = (byte)(bitNum & 0x1F);
 
                 uint mask = (uint)1 << bitPos;
                 uint mask2 = 0xFFFFFFFF ^ mask;
 
-                this.data[bytePos] &= mask2;
+                data[bytePos] &= mask2;
 
-                if (this.dataLength > 1 && this.data[this.dataLength - 1] == 0)
-                    this.dataLength--;
+                if (dataLength > 1 && data[dataLength - 1] == 0)
+                    dataLength--;
             }
         }
 
@@ -2748,7 +2748,7 @@ namespace Erlang.NET
 
         public BigInteger sqrt()
         {
-            uint numBits = (uint)this.bitCount();
+            uint numBits = (uint)bitCount();
 
             if ((numBits & 0x1) != 0)        // odd number of bits
                 numBits = (numBits >> 1) + 1;

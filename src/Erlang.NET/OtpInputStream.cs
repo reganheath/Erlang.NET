@@ -299,7 +299,7 @@ namespace Erlang.NET
                 case OtpExternal.floatTag:
                     // get the string
                     byte[] strbuf = new byte[31];
-                    this.ReadN(strbuf);
+                    ReadN(strbuf);
                     string str = OtpErlangString.FromEncoding(strbuf);
                     if (!double.TryParse(str, out val))
                         throw new OtpErlangDecodeException("Invalid float format: '" + str + "'");
@@ -361,7 +361,7 @@ namespace Erlang.NET
          */
         public ushort ReadUShort()
         {
-            long l = this.ReadLong(true);
+            long l = ReadLong(true);
             if (l > ushort.MaxValue)
                 throw new OtpErlangDecodeException("Value does not fit in ushort: " + l);
             return (ushort)l;
@@ -414,7 +414,7 @@ namespace Erlang.NET
 
                 case OtpExternal.intTag:
                     nb = new byte[4];
-                    if (this.ReadN(nb) != 4) // Big endian
+                    if (ReadN(nb) != 4) // Big endian
                         throw new OtpErlangDecodeException("Cannot read from intput stream");
                     break;
 

@@ -13,33 +13,33 @@ namespace Erlang.NET
 
         public OtpSocketTransport(string addr, int port)
         {
-            this.client = new TcpClient()
+            client = new TcpClient()
             {
                 NoDelay = true
             };
-            this.client.Connect(addr, port);
-            this.inputStream = new BufferedStream(this.client.GetStream());
-            this.outputStream = this.client.GetStream();
+            client.Connect(addr, port);
+            inputStream = new BufferedStream(client.GetStream());
+            outputStream = client.GetStream();
             KeepAlive = true;
         }
 
         public OtpSocketTransport(IPEndPoint addr)
         {
-            this.client = new TcpClient()
+            client = new TcpClient()
             {
                 NoDelay = true
             };
-            this.client.Connect(addr);
-            this.inputStream = new BufferedStream(this.client.GetStream());
-            this.outputStream = this.client.GetStream();
+            client.Connect(addr);
+            inputStream = new BufferedStream(client.GetStream());
+            outputStream = client.GetStream();
             KeepAlive = true;
         }
 
         public OtpSocketTransport(TcpClient s)
         {
-            this.client = s;
-            this.inputStream = new BufferedStream(this.client.GetStream());
-            this.outputStream = this.client.GetStream();
+            client = s;
+            inputStream = new BufferedStream(client.GetStream());
+            outputStream = client.GetStream();
             KeepAlive = true;
         }
 

@@ -169,7 +169,7 @@ namespace Erlang.NET
          */
         protected AbstractNode(string name, string cookie, OtpTransportFactory transportFactory)
         {
-            this.Cookie = cookie;
+            Cookie = cookie;
             this.transportFactory = transportFactory;
 
             string[] parts = name.Split(new char[] { '@' }, 2);

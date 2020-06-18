@@ -150,7 +150,7 @@ namespace Erlang.NET
         public override object Clone()
         {
             OtpErlangMap newMap = (OtpErlangMap)base.Clone();
-            newMap.map = new Dictionary<OtpErlangObject, OtpErlangObject>(this.map);
+            newMap.map = new Dictionary<OtpErlangObject, OtpErlangObject>(map);
             return newMap;
         }
 
