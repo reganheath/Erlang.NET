@@ -9,8 +9,8 @@ namespace Erlang.NET
 {
     public interface OtpTransport : IDisposable
     {
-        Stream getInputStream();
-        Stream getOutputStream();
-        void close();
+        Stream GetInputStream();
+        Stream GetOutputStream();
+        void Close();
     }
 }

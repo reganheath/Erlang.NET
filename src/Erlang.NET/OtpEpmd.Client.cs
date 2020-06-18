@@ -177,13 +177,13 @@ namespace Erlang.NET
         {
             try
             {
-                using (OtpTransport s = node.createTransport(Dns.GetHostName(), EpmdPort.get()))
+                using (OtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort.get()))
                 {
                     OtpOutputStream obuf = new OtpOutputStream();
                     obuf.write2BE(node.Alive.Length + 1);
                     obuf.write1(stopReq);
                     obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
-                    obuf.WriteTo(s.getOutputStream());
+                    obuf.WriteTo(s.GetOutputStream());
                     // don't even wait for a response (is there one?)
                     if (traceLevel >= traceThreshold)
                     {
@@ -204,7 +204,7 @@ namespace Erlang.NET
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                using (var s = node.createTransport(node.Host, EpmdPort.get()))
+                using (var s = node.CreateTransport(node.Host, EpmdPort.get()))
                 {
                     // build and send epmd request
                     // length[2], tag[1], alivename[n] (length = n+1)
@@ -213,7 +213,7 @@ namespace Erlang.NET
                     obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
 
                     // send request
-                    obuf.WriteTo(s.getOutputStream());
+                    obuf.WriteTo(s.GetOutputStream());
 
                     if (traceLevel >= traceThreshold)
                         log.Debug("-> LOOKUP (r4) " + node);
@@ -224,28 +224,28 @@ namespace Erlang.NET
                     // elen[2], edata[m]
                     byte[] tmpbuf = new byte[100];
 
-                    int n = s.getInputStream().Read(tmpbuf, 0, tmpbuf.Length);
+                    int n = s.GetInputStream().Read(tmpbuf, 0, tmpbuf.Length);
 
                     if (n < 0)
                     {
-                        s.close();
+                        s.Close();
                         throw new IOException("Nameserver not responding on " + node.Host + " when looking up " + node.Alive);
                     }
 
                     OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
 
-                    int response = ibuf.read1();
+                    int response = ibuf.Read1();
                     if (response == port4resp)
                     {
-                        int result = ibuf.read1();
+                        int result = ibuf.Read1();
                         if (result == 0)
                         {
-                            port = ibuf.read2BE();
+                            port = ibuf.Read2BE();
 
-                            node.Type = ibuf.read1();
-                            node.Proto = ibuf.read1();
-                            node.DistHigh = ibuf.read2BE();
-                            node.DistLow = ibuf.read2BE();
+                            node.Type = ibuf.Read1();
+                            node.Proto = ibuf.Read1();
+                            node.DistHigh = ibuf.Read2BE();
+                            node.DistLow = ibuf.Read2BE();
                             // ignore rest of fields
                         }
                     }
@@ -296,7 +296,7 @@ namespace Erlang.NET
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                s = node.createTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
+                s = node.CreateTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
 
                 obuf.write2BE(node.Alive.Length + 13);
 
@@ -314,30 +314,30 @@ namespace Erlang.NET
                 obuf.write2BE(0); // No extra
 
                 // send request
-                obuf.WriteTo(s.getOutputStream());
+                obuf.WriteTo(s.GetOutputStream());
 
                 if (traceLevel >= traceThreshold)
                     log.Debug("-> PUBLISH (r4) " + node + " port=" + node.Port);
 
                 // get reply
                 byte[] tmpbuf = new byte[100];
-                int n = s.getInputStream().Read(tmpbuf, 0, tmpbuf.Length);
+                int n = s.GetInputStream().Read(tmpbuf, 0, tmpbuf.Length);
 
                 if (n < 0)
                 {
-                    s.close();
+                    s.Close();
                     throw new IOException("Nameserver not responding on " + node.Host + " when publishing " + node.Alive);
                 }
 
                 OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
 
-                int response = ibuf.read1();
+                int response = ibuf.Read1();
                 if (response == ALIVE2_RESP || response == ALIVE2_X_RESP)
                 {
-                    int result = ibuf.read1();
+                    int result = ibuf.Read1();
                     if (result == 0)
                     {
-                        node.Creation = (response == ALIVE2_RESP ? ibuf.read2BE() : ibuf.read4BE());
+                        node.Creation = (response == ALIVE2_RESP ? ibuf.Read2BE() : ibuf.Read4BE());
                         if (traceLevel >= traceThreshold)
                             log.Debug("<- OK");
                         return s; // success
@@ -355,20 +355,20 @@ namespace Erlang.NET
             {
                 // epmd closed the connection = fail
                 if (s != null)
-                    s.close();
+                    s.Close();
                 if (traceLevel >= traceThreshold)
                     log.Debug("<- (no response)");
                 throw new IOException("Nameserver not responding on " + node.Host + " when publishing " + node.Alive, e);
             }
             catch (OtpErlangDecodeException e)
             {
-                s.close();
+                s.Close();
                 if (traceLevel >= traceThreshold)
                     log.Debug("<- (invalid response)");
                 throw new IOException("Nameserver invalid response on " + node.Host + " when publishing " + node.Alive, e);
             }
 
-            s.close();
+            s.Close();
             return null;
         }
 
@@ -384,12 +384,12 @@ namespace Erlang.NET
             {
                 OtpOutputStream obuf = new OtpOutputStream();
 
-                using (OtpTransport s = transportFactory.createTransport(address.ToString(), EpmdPort.get()))
+                using (OtpTransport s = transportFactory.CreateTransport(address.ToString(), EpmdPort.get()))
                 {
                     obuf.write2BE(1);
                     obuf.write1(names4req);
                     // send request
-                    obuf.WriteTo(s.getOutputStream());
+                    obuf.WriteTo(s.GetOutputStream());
 
                     if (traceLevel >= traceThreshold)
                         log.Debug("-> NAMES (r4) ");
@@ -399,7 +399,7 @@ namespace Erlang.NET
                     MemoryStream ms = new MemoryStream(256);
                     while (true)
                     {
-                        int bytesRead = s.getInputStream().Read(buffer, 0, buffer.Length);
+                        int bytesRead = s.GetInputStream().Read(buffer, 0, buffer.Length);
                         if (bytesRead == -1)
                         {
                             break;
@@ -408,7 +408,7 @@ namespace Erlang.NET
                     }
                     byte[] tmpbuf = ms.GetBuffer();
                     OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
-                    ibuf.read4BE(); // read port int
+                    ibuf.Read4BE(); // read port int
                     // int port = ibuf.read4BE();
                     // check if port = epmdPort
 

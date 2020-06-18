@@ -9,17 +9,17 @@ namespace Erlang.NET
 {
     public class OtpSocketTransportFactory : OtpTransportFactory
     {
-        public OtpTransport createTransport(string addr, int port)
+        public OtpTransport CreateTransport(string addr, int port)
         {
             return new OtpSocketTransport(addr, port);
         }
 
-        public OtpTransport createTransport(IPEndPoint addr)
+        public OtpTransport CreateTransport(IPEndPoint addr)
         {
             return new OtpSocketTransport(addr);
         }
 
-        public OtpServerTransport createServerTransport(int port)
+        public OtpServerTransport CreateServerTransport(int port)
         {
             return new OtpServerSocketTransport(port);
         }

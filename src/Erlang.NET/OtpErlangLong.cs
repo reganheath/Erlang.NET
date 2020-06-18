@@ -76,11 +76,11 @@ namespace Erlang.NET
          */
         public OtpErlangLong(OtpInputStream buf)
         {
-            byte[] b = buf.read_integer_byte_array();
+            byte[] b = buf.ReadIntegerByteArray();
 
             try
             {
-                value = OtpInputStream.byte_array_to_long(b, false);
+                value = OtpInputStream.ByteArrayToLong(b, false);
             }
             catch (OtpErlangDecodeException)
             {

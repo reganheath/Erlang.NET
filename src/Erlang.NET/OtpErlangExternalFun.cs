@@ -38,7 +38,7 @@ namespace Erlang.NET
 
         public OtpErlangExternalFun(OtpInputStream buf)
         {
-            OtpErlangExternalFun f = buf.read_external_fun();
+            OtpErlangExternalFun f = buf.ReadExternalFun();
             module = f.module;
             function = f.function;
             arity = f.arity;

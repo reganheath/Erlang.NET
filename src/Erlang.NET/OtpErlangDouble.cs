@@ -53,7 +53,7 @@ namespace Erlang.NET
          */
         public OtpErlangDouble(OtpInputStream buf)
         {
-            value = buf.read_double();
+            value = buf.ReadDouble();
         }
 
         /**

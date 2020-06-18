@@ -66,7 +66,7 @@ namespace Erlang.NET
          */
         public OtpErlangPid(OtpInputStream buf)
         {
-            OtpErlangPid p = buf.read_pid();
+            OtpErlangPid p = buf.ReadPid();
 
             Node = p.Node;
             Id = p.Id;

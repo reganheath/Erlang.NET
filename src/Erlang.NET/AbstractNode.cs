@@ -182,7 +182,7 @@ namespace Erlang.NET
             Node = Alive + "@" + Host;
         }
 
-        public long Flags { get; set; } = dFlagExtendedReferences | dFlagExtendedPidsPorts
+        public long CapFlags { get; set; } = dFlagExtendedReferences | dFlagExtendedPidsPorts
             | dFlagBitBinaries | dFlagNewFloats | dFlagFunTags
             | dflagNewFunTags | dFlagUtf8Atoms | dFlagMapTag
             | dFlagExportPtrTag
@@ -253,19 +253,19 @@ namespace Erlang.NET
             return Node;
         }
 
-        public OtpTransport createTransport(string addr, int port)
+        public OtpTransport CreateTransport(string addr, int port)
         {
-            return transportFactory.createTransport(addr, port);
+            return transportFactory.CreateTransport(addr, port);
         }
 
-        public OtpTransport createTransport(IPEndPoint addr)
+        public OtpTransport CreateTransport(IPEndPoint addr)
         {
-            return transportFactory.createTransport(addr);
+            return transportFactory.CreateTransport(addr);
         }
 
-        public OtpServerTransport createServerTransport(int port)
+        public OtpServerTransport CreateServerTransport(int port)
         {
-            return transportFactory.createServerTransport(port);
+            return transportFactory.CreateServerTransport(port);
         }
     }
 }

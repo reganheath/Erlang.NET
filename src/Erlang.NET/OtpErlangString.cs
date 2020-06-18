@@ -133,6 +133,9 @@ namespace Erlang.NET
          */
         public static int[] ToCodePoints(string s)
         {
+            if (s == null)
+                return null;
+
             if (!s.IsNormalized())
                 s = s.Normalize();
 

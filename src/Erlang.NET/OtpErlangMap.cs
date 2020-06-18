@@ -63,7 +63,7 @@ namespace Erlang.NET
 
         public OtpErlangMap(OtpInputStream buf)
         {
-            int arity = buf.read_map_head();
+            int arity = buf.ReadMapHead();
             if (arity > 0)
             {
                 for(int i = 0; i < arity; i++)

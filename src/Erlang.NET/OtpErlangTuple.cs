@@ -114,7 +114,7 @@ namespace Erlang.NET
          */
         public OtpErlangTuple(OtpInputStream buf)
         {
-            int arity = buf.read_tuple_head();
+            int arity = buf.ReadTupleHead();
 
             if (arity > 0)
             {

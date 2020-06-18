@@ -22,8 +22,10 @@ namespace Erlang.NET.Test
 
         public static void Main(string[] args)
         {
-            OtpNode self = new OtpNode("vaplug", "edsrv_cookie");
-            self.Flags = OtpInputStream.DECODE_INT_LISTS_AS_STRINGS;
+            OtpNode self = new OtpNode("vaplug", "edsrv_cookie")
+            {
+                Flags = OtpInputStream.StreamFlags.DecodeIntListsAsStrings
+            };
             OtpMbox mbox = self.CreateMbox("test", true);
             OtpErlangTuple tuple = new OtpErlangTuple(new OtpErlangObject[2]
             {

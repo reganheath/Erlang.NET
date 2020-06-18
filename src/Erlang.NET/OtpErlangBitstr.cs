@@ -92,7 +92,7 @@ namespace Erlang.NET
         public OtpErlangBitstr(OtpInputStream buf)
         {
             int pad_bits;
-            Bin = buf.read_bitstr(out pad_bits);
+            Bin = buf.ReadBitstr(out pad_bits);
             PadBits = pad_bits;
             CheckBitstr(Bin, PadBits);
         }

@@ -100,22 +100,22 @@ namespace Erlang.NET
         public OtpSelf(string node, string cookie, int port)
             : base(node, cookie)
         {
-            sock = createServerTransport(port);
+            sock = CreateServerTransport(port);
             if (port != 0)
                 this.port = port;
             else
-                this.port = sock.getLocalPort();
+                this.port = sock.GetLocalPort();
             Pid = createPid();
         }
 
         public OtpSelf(string node, string cookie, int port, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
-            sock = createServerTransport(port);
+            sock = CreateServerTransport(port);
             if (port != 0)
                 this.port = port;
             else
-                this.port = sock.getLocalPort();
+                this.port = sock.GetLocalPort();
             Pid = createPid();
         }
 
@@ -204,7 +204,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    newsock = sock.accept();
+                    newsock = sock.Accept();
                     return new OtpConnection(this, newsock);
                 }
                 catch (SocketException e)
@@ -213,7 +213,7 @@ namespace Erlang.NET
                     {
                         if (newsock != null)
                         {
-                            newsock.close();
+                            newsock.Close();
                         }
                     }
                     catch (SocketException) /* ignore close errors */

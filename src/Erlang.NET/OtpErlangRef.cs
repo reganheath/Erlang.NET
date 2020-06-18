@@ -69,7 +69,7 @@ namespace Erlang.NET
          */
         public OtpErlangRef(OtpInputStream buf)
         {
-            OtpErlangRef r = buf.read_ref();
+            OtpErlangRef r = buf.ReadRef();
 
             Node = r.Node;
             Creation = r.Creation;

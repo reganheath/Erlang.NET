@@ -19,24 +19,24 @@ namespace Erlang.NET
                 socket.Start();
         }
 
-        public void start()
+        public void Start()
         {
             socket.Start();
         }
 
-        public int getLocalPort()
+        public int GetLocalPort()
         {
             return ((IPEndPoint)socket.LocalEndpoint).Port;
         }
 
-        public OtpTransport accept()
+        public OtpTransport Accept()
         {
             TcpClient sock = socket.AcceptTcpClient();
             sock.NoDelay = true;
             return new OtpSocketTransport(sock);
         }
 
-        public void close()
+        public void Close()
         {
             socket.Stop();
         }

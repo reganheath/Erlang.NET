@@ -72,8 +72,6 @@ namespace Erlang.NET
 
         public Dictionary<string, OtpCookedConnection> Connections { get; private set; } = null;
 
-        public new int Flags { get; set; } = 0;
-
         /**
          * <p>
          * Create a node using the default cookie. The default cookie is found by
@@ -173,7 +171,7 @@ namespace Erlang.NET
         {
             lock (lockObj)
             {
-                acceptor.quit();
+                acceptor.Quit();
                 mboxes.clear();
 
                 lock (Connections)
@@ -546,7 +544,6 @@ namespace Erlang.NET
                 try
                 {
                     conn = new OtpCookedConnection(this, peer);
-                    conn.Flags = Flags;
                     AddConnection(conn);
                 }
                 catch (Exception e)
@@ -783,22 +780,23 @@ namespace Erlang.NET
         {
             private readonly OtpNode node;
             private readonly OtpServerTransport sock;
-            private readonly int acceptorPort;
             private volatile bool done = false;
+
+            public int Port { get; }
 
             public Acceptor(OtpNode node, int port)
                 : base("OtpNode.Acceptor", true)
             {
                 this.node = node;
 
-                sock = node.createServerTransport(port);
-                this.acceptorPort = sock.getLocalPort();
-                node.port = this.acceptorPort;
-                publishPort();
+                sock = node.CreateServerTransport(port);
+                Port = sock.GetLocalPort();
+                node.port = Port;
+                PublishPort();
                 base.Start();
             }
 
-            private bool publishPort()
+            private bool PublishPort()
             {
                 if (node.getEpmd() != null)
                     return false; // already published
@@ -806,67 +804,60 @@ namespace Erlang.NET
                 return true;
             }
 
-            private void unPublishPort()
+            private void UnPublishPort()
             {
                 // unregister with epmd
                 OtpEpmd.unPublishPort(node);
 
                 // close the local descriptor (if we have one)
-                closeSock(node.getEpmd());
+                CloseSock(node.getEpmd());
                 node.setEpmd(null);
             }
 
-            public void quit()
+            public void Quit()
             {
-                unPublishPort();
+                UnPublishPort();
                 done = true;
-                closeSock(sock);
+                CloseSock(sock);
                 node.LocalStatus(node.Node, false, null);
             }
 
-            private void closeSock(OtpTransport s)
+            private void CloseSock(OtpTransport s)
             {
                 try
                 {
                     if (s != null)
-                        s.close();
+                        s.Close();
                 }
                 catch (Exception)
                 {
                 }
             }
 
-            private void closeSock(OtpServerTransport s)
+            private void CloseSock(OtpServerTransport s)
             {
                 try
                 {
                     if (s != null)
-                        s.close();
+                        s.Close();
                 }
                 catch (Exception)
                 {
                 }
-            }
-
-            public int Port
-            {
-                get { return acceptorPort; }
             }
 
             public override void Run()
             {
-                OtpTransport newsock = null;
-                OtpCookedConnection conn = null;
-
                 node.LocalStatus(node.Node, true, null);
 
                 while (!done)
                 {
-                    conn = null;
+                    OtpCookedConnection conn = null;
+                    OtpTransport newsock;
 
                     try
                     {
-                        newsock = sock.accept();
+                        newsock = sock.Accept();
                     }
                     catch (Exception e)
                     {
@@ -886,7 +877,6 @@ namespace Erlang.NET
                         lock (node.Connections)
                         {
                             conn = new OtpCookedConnection(node, newsock);
-                            conn.Flags = node.Flags;
                             node.AddConnection(conn);
                         }
                     }
@@ -896,7 +886,7 @@ namespace Erlang.NET
                             node.ConnAttempt(conn.Name, true, e);
                         else
                             node.ConnAttempt("unknown", true, e);
-                        closeSock(newsock);
+                        CloseSock(newsock);
                     }
                     catch (IOException e)
                     {
@@ -904,18 +894,18 @@ namespace Erlang.NET
                             node.ConnAttempt(conn.Name, true, e);
                         else
                             node.ConnAttempt("unknown", true, e);
-                        closeSock(newsock);
+                        CloseSock(newsock);
                     }
                     catch (Exception e)
                     {
-                        closeSock(newsock);
-                        closeSock(sock);
+                        CloseSock(newsock);
+                        CloseSock(sock);
                         node.LocalStatus(node.Node, false, e);
                     }
                 }
 
                 // if we have exited loop we must do this too
-                unPublishPort();
+                UnPublishPort();
             }
         }
     }

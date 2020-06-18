@@ -66,7 +66,7 @@ namespace Erlang.NET
          */
         public OtpErlangAtom(OtpInputStream buf)
         {
-            atom = buf.read_atom();
+            atom = buf.ReadAtom();
         }
 
         /**

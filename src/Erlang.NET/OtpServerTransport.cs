@@ -8,9 +8,9 @@ namespace Erlang.NET
 {
     public interface OtpServerTransport
     {
-        void start();
-        int getLocalPort();
-        OtpTransport accept();
-        void close();
+        void Start();
+        int GetLocalPort();
+        OtpTransport Accept();
+        void Close();
     }
 }

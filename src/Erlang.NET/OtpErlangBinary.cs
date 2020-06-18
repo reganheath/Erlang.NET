@@ -53,7 +53,7 @@ namespace Erlang.NET
         public OtpErlangBinary(OtpInputStream buf)
             : base(new byte[0])
         {
-            Bin = buf.read_binary();
+            Bin = buf.ReadBinary();
             PadBits = 0;
         }
 

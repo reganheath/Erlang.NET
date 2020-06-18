@@ -81,7 +81,7 @@ namespace Erlang.NET
 
         public override void Start()
         {
-            sock.start();
+            sock.Start();
             base.Start();
         }
 
@@ -90,7 +90,7 @@ namespace Erlang.NET
             try
             {
                 if (s != null)
-                    s.close();
+                    s.Close();
             }
             catch (Exception)
             {
@@ -111,7 +111,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    OtpTransport newsock = sock.accept();
+                    OtpTransport newsock = sock.Accept();
                     OtpEpmdConnection conn = new OtpEpmdConnection(this, newsock);
                     conn.Start();
                 }
@@ -143,7 +143,7 @@ namespace Erlang.NET
                 try
                 {
                     if (s != null)
-                        s.close();
+                        s.Close();
                 }
                 catch (Exception)
                 {
@@ -155,7 +155,7 @@ namespace Erlang.NET
                 int got = 0;
                 int len = b.Length;
                 int i;
-                Stream st = s.getInputStream();
+                Stream st = s.GetInputStream();
 
                 while (got < len)
                 {
@@ -201,17 +201,17 @@ namespace Erlang.NET
             {
                 try
                 {
-                    int port = ibuf.read2BE();
-                    int type = ibuf.read1();
-                    int proto = ibuf.read1();
-                    int distHigh = ibuf.read2BE();
-                    int distLow = ibuf.read2BE();
-                    int len = ibuf.read2BE();
+                    int port = ibuf.Read2BE();
+                    int type = ibuf.Read1();
+                    int proto = ibuf.Read1();
+                    int distHigh = ibuf.Read2BE();
+                    int distLow = ibuf.Read2BE();
+                    int len = ibuf.Read2BE();
                     byte[] alive = new byte[len];
-                    ibuf.readN(alive);
-                    int elen = ibuf.read2BE();
+                    ibuf.ReadN(alive);
+                    int elen = ibuf.Read2BE();
                     byte[] extra = new byte[elen];
-                    ibuf.readN(extra);
+                    ibuf.ReadN(extra);
                     string name = OtpErlangString.FromEncoding(alive);
                     OtpPublishedNode node = new OtpPublishedNode(name);
                     node.Type = type;
@@ -229,7 +229,7 @@ namespace Erlang.NET
                     obuf.write1(ALIVE2_RESP);
                     obuf.write1(0);
                     obuf.write2BE(epmd.Creation);
-                    obuf.WriteTo(s.getOutputStream());
+                    obuf.WriteTo(s.GetOutputStream());
 
                     lock (portmap)
                     {
@@ -252,7 +252,7 @@ namespace Erlang.NET
                 {
                     int len = (int)(ibuf.Length - 1);
                     byte[] alive = new byte[len];
-                    ibuf.readN(alive);
+                    ibuf.ReadN(alive);
                     string name = OtpErlangString.FromEncoding(alive);
                     OtpPublishedNode node = null;
 
@@ -288,7 +288,7 @@ namespace Erlang.NET
                         obuf.write1(port4resp);
                         obuf.write1(1);
                     }
-                    obuf.WriteTo(s.getOutputStream());
+                    obuf.WriteTo(s.GetOutputStream());
                 }
                 catch (IOException e)
                 {
@@ -320,7 +320,7 @@ namespace Erlang.NET
                             obuf.writeN(bytes);
                         }
                     }
-                    obuf.WriteTo(s.getOutputStream());
+                    obuf.WriteTo(s.GetOutputStream());
                 }
                 catch (IOException e)
                 {
@@ -343,12 +343,12 @@ namespace Erlang.NET
                     {
                         readSock(sock, lbuf);
                         ibuf = new OtpInputStream(lbuf, 0);
-                        len = ibuf.read2BE();
+                        len = ibuf.Read2BE();
                         byte[] tmpbuf = new byte[len];
                         readSock(sock, tmpbuf);
                         ibuf = new OtpInputStream(tmpbuf, 0);
 
-                        int request = ibuf.read1();
+                        int request = ibuf.Read1();
                         switch (request)
                         {
                             case ALIVE2_REQ:

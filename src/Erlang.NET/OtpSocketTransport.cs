@@ -49,48 +49,27 @@ namespace Erlang.NET
 
         public bool NoDelay
         {
-            get
-            {
-                return (bool)client.Client.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay);
-            }
-            set
-            {
-                client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, value);
-            }
+            get => (bool)client.Client.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay);
+            set => client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, value);
         }
 
         public bool KeepAlive
         {
-            get
-            {
-                return (bool)client.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive);
-            }
-            set
-            {
-                client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
-            }
+            get => (bool)client.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive);
+            set => client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
         }
 
-        public Stream getInputStream()
-        {
-            return inputStream;
-        }
+        public Stream GetInputStream() => inputStream;
 
-        public Stream getOutputStream()
-        {
-            return outputStream;
-        }
+        public Stream GetOutputStream() => outputStream;
 
-        public void close()
+        public void Close()
         {
             client.GetStream().Close();
             client.Close();
         }
 
-        public override string ToString()
-        {
-            return client.Client.RemoteEndPoint.ToString();
-        }
+        public override string ToString() => client.Client.RemoteEndPoint.ToString();
 
         public void Dispose()
         {
@@ -101,9 +80,7 @@ namespace Erlang.NET
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
-            {
-                close();
-            }
+                Close();
         }
     }
 }

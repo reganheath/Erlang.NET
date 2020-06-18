@@ -38,6 +38,9 @@ namespace Erlang.NET
         protected int port;
         protected OtpTransport epmd;
 
+        public OtpInputStream.StreamFlags Flags { get; set; } = 0;
+
+
         /**
          * Create a node with the given name and the default cookie.
          */
@@ -128,7 +131,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    epmd.close();
+                    epmd.Close();
                     epmd = null;
                 }
                 catch (Exception e)
@@ -150,7 +153,7 @@ namespace Erlang.NET
         {
             lock (lockObj)
             {
-                OtpErlangPid p = new OtpErlangPid(base.Node, pidCount, serial, base.Creation);
+                OtpErlangPid p = new OtpErlangPid(OtpExternal.newPidTag, base.Node, pidCount, serial, base.Creation);
 
                 pidCount++;
                 if (pidCount > 0x7fff)

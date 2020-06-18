@@ -36,7 +36,7 @@ namespace Erlang.NET
 
         public OtpErlangFun(OtpInputStream buf)
         {
-            OtpErlangFun f = buf.read_fun();
+            OtpErlangFun f = buf.ReadFun();
             pid = f.pid;
             module = f.module;
             arity = f.arity;

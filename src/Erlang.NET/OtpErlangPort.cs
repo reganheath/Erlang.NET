@@ -45,7 +45,7 @@ namespace Erlang.NET
          */
         public OtpErlangPort(OtpInputStream buf)
         {
-            OtpErlangPort p = buf.read_port();
+            OtpErlangPort p = buf.ReadPort();
 
             Node = p.Node;
             Id = p.Id;

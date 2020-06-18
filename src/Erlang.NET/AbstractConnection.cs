@@ -114,8 +114,6 @@ namespace Erlang.NET
 
         protected static readonly Random random;
 
-        public int Flags { get; set; } = 0;
-
         static AbstractConnection()
         {
             XmlConfigurator.Configure();
@@ -150,7 +148,7 @@ namespace Erlang.NET
         protected AbstractConnection(OtpLocalNode self, OtpTransport s)
             : base("receive", true)
         {
-            this.localNode = self;
+            localNode = self;
             peer = new OtpPeer(self.transportFactory);
             socket = s;
 
@@ -176,7 +174,7 @@ namespace Erlang.NET
             : base("receive", true)
         {
             peer = other;
-            this.localNode = self;
+            localNode = self;
             socket = null;
             int port;
 
@@ -503,16 +501,16 @@ namespace Erlang.NET
 
                     // read 4 bytes - get length of incoming packet
                     ReadSock(socket, lbuf);
-                    ibuf = new OtpInputStream(lbuf, Flags);
-                    len = ibuf.read4BE();
+                    ibuf = new OtpInputStream(lbuf, localNode.Flags);
+                    len = ibuf.Read4BE();
 
                     // received tick? send tock!
                     if (len == 0)
                     {
                         lock (runLock)
                         {
-                            socket.getOutputStream().Write(tock, 0, tock.Length);
-                            socket.getOutputStream().Flush();
+                            socket.GetOutputStream().Write(tock, 0, tock.Length);
+                            socket.GetOutputStream().Flush();
                         }
                         
                         continue;
@@ -521,9 +519,9 @@ namespace Erlang.NET
                     // got a real message (maybe) - read len bytes
                     byte[] tmpbuf = new byte[len];
                     ReadSock(socket, tmpbuf);
-                    ibuf = new OtpInputStream(tmpbuf, Flags);
+                    ibuf = new OtpInputStream(tmpbuf, localNode.Flags);
 
-                    if (ibuf.read1() != passThrough)
+                    if (ibuf.Read1() != passThrough)
                         continue;
 
                     // got a real message (really)
@@ -780,7 +778,7 @@ namespace Erlang.NET
                         {
                             log.Debug("-> CLOSE");
                         }
-                        socket.close();
+                        socket.Close();
                     }
                 }
                 catch (SocketException) /* ignore socket close errors */
@@ -836,8 +834,8 @@ namespace Erlang.NET
                         }
                     }
 
-                    header.WriteTo(socket.getOutputStream());
-                    payload.WriteTo(socket.getOutputStream());
+                    header.WriteTo(socket.GetOutputStream());
+                    payload.WriteTo(socket.GetOutputStream());
                 }
                 catch (IOException)
                 {
@@ -866,7 +864,7 @@ namespace Erlang.NET
                             log.Debug("   " + "can't decode output buffer: " + e);
                         }
                     }
-                    header.WriteTo(socket.getOutputStream());
+                    header.WriteTo(socket.GetOutputStream());
                 }
                 catch (IOException)
                 {
@@ -936,7 +934,7 @@ namespace Erlang.NET
             {
                 if (s == null)
                     throw new IOException("expected " + len + " bytes, socket was closed");
-                st = s.getInputStream();
+                st = s.GetInputStream();
             }
 
             while (got < len)
@@ -980,7 +978,7 @@ namespace Erlang.NET
             {
                 SendStatus("ok");
                 int our_challenge = GenChallenge();
-                SendChallenge(peer.Flags, localNode.Flags, our_challenge);
+                SendChallenge(peer.CapFlags, localNode.CapFlags, our_challenge);
                 RecvComplement(send_name_tag);
                 int her_challenge = RecvChallengeReply(our_challenge);
                 byte[] our_digest = GenDigest(her_challenge, localNode.Cookie);
@@ -1014,12 +1012,12 @@ namespace Erlang.NET
         {
             try
             {
-                socket = peer.createTransport(peer.Host, port);
+                socket = peer.CreateTransport(peer.Host, port);
 
                 if (traceLevel >= handshakeThreshold)
                     log.Debug("-> MD5 CONNECT TO " + peer.Host + ":" + port);
 
-                int send_name_tag = SendName(peer.DistChoose, localNode.Flags, localNode.Creation);
+                int send_name_tag = SendName(peer.DistChoose, localNode.CapFlags, localNode.Creation);
                 RecvStatus();
                 int her_challenge = RecvChallenge();
                 byte[] our_digest = GenDigest(her_challenge, localNode.Cookie);
@@ -1139,7 +1137,7 @@ namespace Erlang.NET
                 obuf.write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
 
-            obuf.WriteTo(socket.getOutputStream());
+            obuf.WriteTo(socket.GetOutputStream());
 
             if (traceLevel >= handshakeThreshold)
                 log.Debug("-> " + "HANDSHAKE sendName" + " flags=" + aflags + " dist=" + dist + " local=" + localNode);
@@ -1150,16 +1148,16 @@ namespace Erlang.NET
         protected void SendComplement(int send_name_tag)
         {
 
-            if (send_name_tag == 'n' && (peer.Flags & AbstractNode.dFlagHandshake23) != 0)
+            if (send_name_tag == 'n' && (peer.CapFlags & AbstractNode.dFlagHandshake23) != 0)
             {
                 OtpOutputStream obuf = new OtpOutputStream();
                 obuf.write2BE(1 + 4 + 4);
                 obuf.write1('c');
-                int flagsHigh = (int)(localNode.Flags >> 32);
+                int flagsHigh = (int)(localNode.CapFlags >> 32);
                 obuf.write4BE(flagsHigh);
                 obuf.write4BE(localNode.Creation);
 
-                obuf.WriteTo(socket.getOutputStream());
+                obuf.WriteTo(socket.GetOutputStream());
 
                 if (traceLevel >= handshakeThreshold)
                     log.Debug("-> " + "HANDSHAKE sendComplement" + " flagsHigh=" + flagsHigh + " creation=" + localNode.Creation);
@@ -1190,7 +1188,7 @@ namespace Erlang.NET
                 obuf.write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
 
-            obuf.WriteTo(socket.getOutputStream());
+            obuf.WriteTo(socket.GetOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1205,7 +1203,7 @@ namespace Erlang.NET
 
             ReadSock(socket, lbuf);
             OtpInputStream ibuf = new OtpInputStream(lbuf, 0);
-            int len = ibuf.read2BE();
+            int len = ibuf.Read2BE();
             tmpbuf = new byte[len];
             ReadSock(socket, tmpbuf);
             return tmpbuf;
@@ -1222,37 +1220,37 @@ namespace Erlang.NET
                 OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
                 byte[] tmpname;
                 int len = tmpbuf.Length;
-                send_name_tag = ibuf.read1();
+                send_name_tag = ibuf.Read1();
                 switch (send_name_tag)
                 {
                     case 'n':
-                        apeer.DistLow = apeer.DistHigh = ibuf.read2BE();
+                        apeer.DistLow = apeer.DistHigh = ibuf.Read2BE();
                         if (apeer.DistLow != 5)
                             throw new IOException("Invalid handshake version");
-                        apeer.Flags = ibuf.read4BE();
+                        apeer.CapFlags = ibuf.Read4BE();
                         tmpname = new byte[len - 7];
-                        ibuf.readN(tmpname);
+                        ibuf.ReadN(tmpname);
                         hisname = OtpErlangString.FromEncoding(tmpname);
                         break;
                     case 'N':
                         apeer.DistLow = apeer.DistHigh = 6;
-                        apeer.Flags = ibuf.read8BE();
-                        if ((apeer.Flags & AbstractNode.dFlagHandshake23) == 0)
+                        apeer.CapFlags = ibuf.Read8BE();
+                        if ((apeer.CapFlags & AbstractNode.dFlagHandshake23) == 0)
                             throw new IOException("Missing DFLAG_HANDSHAKE_23");
-                        apeer.Creation = ibuf.read4BE();
-                        int namelen = ibuf.read2BE();
+                        apeer.Creation = ibuf.Read4BE();
+                        int namelen = ibuf.Read2BE();
                         tmpname = new byte[namelen];
-                        ibuf.readN(tmpname);
+                        ibuf.ReadN(tmpname);
                         hisname = OtpErlangString.FromEncoding(tmpname);
                         break;
                     default:
                         throw new IOException("Unknown remote node type");
                 }
 
-                if ((apeer.Flags & AbstractNode.dFlagExtendedReferences) == 0)
+                if ((apeer.CapFlags & AbstractNode.dFlagExtendedReferences) == 0)
                     throw new IOException("Handshake failed - peer cannot handle extended references");
 
-                if ((apeer.Flags & AbstractNode.dFlagExtendedPidsPorts) == 0)
+                if ((apeer.CapFlags & AbstractNode.dFlagExtendedPidsPorts) == 0)
                     throw new IOException("Handshake failed - peer cannot handle extended pids and ports");
             }
             catch (OtpErlangDecodeException)
@@ -1283,27 +1281,27 @@ namespace Erlang.NET
                 byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int namelen;
-                switch (ibuf.read1())
+                switch (ibuf.Read1())
                 {
                     case 'n':
                         if (peer.DistChoose != 5)
                             throw new IOException("Old challenge wrong version");
-                        peer.DistLow = peer.DistHigh = ibuf.read2BE();
-                        peer.Flags = ibuf.read4BE();
-                        if ((peer.Flags & AbstractNode.dFlagHandshake23) != 0)
+                        peer.DistLow = peer.DistHigh = ibuf.Read2BE();
+                        peer.CapFlags = ibuf.Read4BE();
+                        if ((peer.CapFlags & AbstractNode.dFlagHandshake23) != 0)
                             throw new IOException("Old challenge unexpected DFLAG_HANDHAKE_23");
-                        challenge = ibuf.read4BE();
+                        challenge = ibuf.Read4BE();
                         namelen = buf.Length - (1+2+4+4);
                         break;
 
                     case 'N':
                         peer.DistLow = peer.DistHigh = peer.DistChoose = 6;
-                        peer.Flags = ibuf.read8BE();
-                        if ((peer.Flags & AbstractNode.dFlagHandshake23) == 0)
+                        peer.CapFlags = ibuf.Read8BE();
+                        if ((peer.CapFlags & AbstractNode.dFlagHandshake23) == 0)
                             throw new IOException("New challenge missing DFLAG_HANDHAKE_23");
-                        challenge = ibuf.read4BE();
-                        peer.Creation = ibuf.read4BE();
-                        namelen = ibuf.read2BE();
+                        challenge = ibuf.Read4BE();
+                        peer.Creation = ibuf.Read4BE();
+                        namelen = ibuf.Read2BE();
                         break;
 
                     default:
@@ -1311,15 +1309,15 @@ namespace Erlang.NET
                 }
 
                 byte[] tmpname = new byte[namelen];
-                ibuf.readN(tmpname);
+                ibuf.ReadN(tmpname);
                 string hisname = OtpErlangString.FromEncoding(tmpname);
                 if (!hisname.Equals(peer.Node))
                     throw new IOException("Handshake failed - peer has wrong name: " + hisname);
 
-                if ((peer.Flags & AbstractNode.dFlagExtendedReferences) == 0)
+                if ((peer.CapFlags & AbstractNode.dFlagExtendedReferences) == 0)
                     throw new IOException("Handshake failed - peer cannot handle extended references");
 
-                if ((peer.Flags & AbstractNode.dFlagExtendedPidsPorts) == 0)
+                if ((peer.CapFlags & AbstractNode.dFlagExtendedPidsPorts) == 0)
                     throw new IOException("Handshake failed - peer cannot handle extended pids and ports");
 
             }
@@ -1337,18 +1335,18 @@ namespace Erlang.NET
         protected void RecvComplement(int send_name_tag)
         {
 
-            if (send_name_tag == 'n' && (peer.Flags & AbstractNode.dFlagHandshake23) != 0)
+            if (send_name_tag == 'n' && (peer.CapFlags & AbstractNode.dFlagHandshake23) != 0)
             {
                 try
                 {
                     byte[] tmpbuf = Read2BytePackage();
                     OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
-                    if (ibuf.read1() != 'c')
+                    if (ibuf.Read1() != 'c')
                         throw new IOException("Not a complement tag");
 
-                    long flagsHigh = ibuf.read4BE();
-                    peer.Flags |= flagsHigh << 32;
-                    peer.Creation = ibuf.read4BE();
+                    long flagsHigh = ibuf.Read4BE();
+                    peer.CapFlags |= flagsHigh << 32;
+                    peer.Creation = ibuf.Read4BE();
 
                 }
                 catch (OtpErlangDecodeException e)
@@ -1365,7 +1363,7 @@ namespace Erlang.NET
             obuf.write1(ChallengeReply);
             obuf.write4BE(challenge);
             obuf.write(digest);
-            obuf.WriteTo(socket.getOutputStream());
+            obuf.WriteTo(socket.GetOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1384,11 +1382,11 @@ namespace Erlang.NET
             {
                 byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
-                int tag = ibuf.read1();
+                int tag = ibuf.Read1();
                 if (tag != ChallengeReply)
                     throw new IOException("Handshake protocol error");
-                challenge = ibuf.read4BE();
-                ibuf.readN(her_digest);
+                challenge = ibuf.Read4BE();
+                ibuf.ReadN(her_digest);
                 byte[] our_digest = GenDigest(our_challenge, localNode.Cookie);
                 if (!her_digest.SequenceEqual(our_digest))
                     throw new OtpAuthException("Peer authentication error.");
@@ -1415,7 +1413,7 @@ namespace Erlang.NET
             obuf.write1(ChallengeAck);
             obuf.write(digest);
 
-            obuf.WriteTo(socket.getOutputStream());
+            obuf.WriteTo(socket.GetOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1431,10 +1429,10 @@ namespace Erlang.NET
             {
                 byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
-                int tag = ibuf.read1();
+                int tag = ibuf.Read1();
                 if (tag != ChallengeAck)
                     throw new IOException("Handshake protocol error");
-                ibuf.readN(her_digest);
+                ibuf.ReadN(her_digest);
                 byte[] our_digest = GenDigest(our_challenge, localNode.Cookie);
                 if (!her_digest.SequenceEqual(our_digest))
                     throw new OtpAuthException("Peer authentication error.");
@@ -1463,7 +1461,7 @@ namespace Erlang.NET
             obuf.write1(ChallengeStatus);
             obuf.write(Encoding.GetEncoding("iso-8859-1").GetBytes(status));
 
-            obuf.WriteTo(socket.getOutputStream());
+            obuf.WriteTo(socket.GetOutputStream());
 
             if (traceLevel >= handshakeThreshold)
             {
@@ -1478,11 +1476,11 @@ namespace Erlang.NET
             {
                 byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
-                int tag = ibuf.read1();
+                int tag = ibuf.Read1();
                 if (tag != ChallengeStatus)
                     throw new IOException("Handshake protocol error");
                 byte[] tmpbuf = new byte[buf.Length - 1];
-                ibuf.readN(tmpbuf);
+                ibuf.ReadN(tmpbuf);
                 string status = OtpErlangString.FromEncoding(tmpbuf);
 
                 if (status.CompareTo("ok") != 0)
