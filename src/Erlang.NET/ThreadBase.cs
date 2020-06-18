@@ -23,23 +23,38 @@ namespace Erlang.NET
 {
     public abstract class ThreadBase
     {
-        private readonly Thread thread;
+        protected readonly Thread thread;
+        protected volatile bool done = false;
 
         public ThreadBase(string name, bool isBackground)
         {
-            thread = new Thread(new ThreadStart(Run));
-            thread.IsBackground = isBackground;
-            thread.Name = name;
+            thread = new Thread(new ThreadStart(Run))
+            {
+                IsBackground = isBackground,
+                Name = name
+            };
         }
+
+        public bool Stopping => done;
 
         public virtual void Start()
         {
             thread.Start();
         }
 
+        public virtual void Stop()
+        {
+            done = true;
+        }
+
         public virtual void Join()
         {
             thread.Join();
+        }
+
+        public virtual void Join(TimeSpan timeout)
+        {
+            thread.Join(timeout);
         }
 
         public abstract void Run();

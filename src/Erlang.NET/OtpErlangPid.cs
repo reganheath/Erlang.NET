@@ -28,7 +28,7 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangPid : OtpErlangObject, IEquatable<OtpErlangPid>, IComparable<OtpErlangPid>, IComparable
     {
-        public int Tag {  get { return OtpExternal.newPidTag; } }
+        public int Tag { get { return OtpExternal.newPidTag; } }
         public string Node { get; private set; }
         public int Id { get; private set; }
         public int Serial { get; private set; }
@@ -174,8 +174,8 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return Creation == o.Creation 
-                && Serial == o.Serial 
+            return Creation == o.Creation
+                && Serial == o.Serial
                 && Id == o.Id
                 && Node == o.Node;
         }

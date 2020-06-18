@@ -140,7 +140,7 @@ namespace Erlang.NET
                 s = s.Normalize();
 
             List<int> cps = new List<int>((s.Length * 3) / 2);
-            
+
             var ee = StringInfo.GetTextElementEnumerator(s);
             while (ee.MoveNext())
             {

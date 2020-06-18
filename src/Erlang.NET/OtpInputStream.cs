@@ -20,7 +20,6 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
 
 namespace Erlang.NET
 {
@@ -45,9 +44,6 @@ namespace Erlang.NET
             Flags = flags;
         }
 
-        /**
-         * @param buf
-         */
         public OtpInputStream(byte[] buf)
             : base(buf)
         {
@@ -55,8 +51,6 @@ namespace Erlang.NET
 
         /**
          * Create a stream from a buffer containing encoded Erlang terms.
-         * 
-         * @param flags
          */
         public OtpInputStream(byte[] buf, StreamFlags flags)
             : base(buf)
@@ -67,8 +61,6 @@ namespace Erlang.NET
         /**
          * Create a stream from a buffer containing encoded Erlang terms at the
          * given offset and length.
-         * 
-         * @param flags
          */
         public OtpInputStream(byte[] buf, int offset, int length, StreamFlags flags)
             : base(buf, offset, length)
@@ -76,19 +68,13 @@ namespace Erlang.NET
             Flags = flags;
         }
 
-        public void Mark(int readlimit) => mark = base.Position;
+        public void Mark() => mark = base.Position;
 
         public void Reset() => base.Position = mark;
-
 
         /**
          * Read an array of bytes from the stream. The method reads at most
          * buf.length bytes from the input stream.
-         * 
-         * @return the number of bytes read.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
         public int ReadN(byte[] buf)
         {
@@ -98,11 +84,6 @@ namespace Erlang.NET
         /**
          * Read an array of bytes from the stream. The method reads at most len
          * bytes from the input stream into offset off of the buffer.
-         * 
-         * @return the number of bytes read.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
         public int ReadN(byte[] buf, int off, int len)
         {
@@ -122,11 +103,6 @@ namespace Erlang.NET
         /**
          * Look ahead one position in the stream without consuming the byte found
          * there.
-         * 
-         * @return the next byte in the stream, as an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
         public int Peek1()
         {
@@ -151,11 +127,6 @@ namespace Erlang.NET
 
         /**
          * Read a one byte integer from the stream.
-         * 
-         * @return the byte read, as an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
         public int Read1()
         {
@@ -175,128 +146,21 @@ namespace Erlang.NET
 
         /**
          * Read a two byte big endian integer from the stream.
-         * 
-         * @return the bytes read, converted from big endian to an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
-        public int Read2BE()
-        {
-            byte[] b = new byte[2];
-
-            if (base.Read(b, 0, b.Length) < b.Length)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
-
-            return (b[0] << 8 & 0xff00) + (b[1] & 0xff);
-        }
+        public short Read2BE() => (short)ReadBE(2);
 
         /**
          * Read a four byte big endian integer from the stream.
-         * 
-         * @return the bytes read, converted from big endian to an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
-        public int Read4BE()
-        {
-            byte[] b = new byte[4];
-
-            if (base.Read(b, 0, b.Length) < b.Length)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
-
-            return (int)((b[0] << 24 & 0xff000000) + (b[1] << 16 & 0xff0000) + (b[2] << 8 & 0xff00) + (b[3] & 0xff));
-        }
+        public int Read4BE() => (int)ReadBE(4);
 
         /**
          * Read a eight byte big endian integer from the stream.
-         *
-         * @return the bytes read, converted from big endian to a long integer.
-         *
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
-        public long Read8BE()
-        {
-            long high = Read4BE();
-            long low = Read4BE();
-            return (high << 32) | (low & 0xffffffff);
-        }
-
-        /**
-         * Read a two byte little endian integer from the stream.
-         * 
-         * @return the bytes read, converted from little endian to an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
-         */
-        public int Read2LE()
-        {
-            byte[] b = new byte[2];
-
-            if (base.Read(b, 0, b.Length) < b.Length)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
-
-            return (b[1] << 8 & 0xff00) + (b[0] & 0xff);
-        }
-
-        /**
-         * Read a four byte little endian integer from the stream.
-         * 
-         * @return the bytes read, converted from little endian to an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
-         */
-        public int Read4LE()
-        {
-            byte[] b = new byte[4];
-
-            if (base.Read(b, 0, b.Length) < b.Length)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
-
-            return (int)((b[3] << 24 & 0xff000000) + (b[2] << 16 & 0xff0000) + (b[1] << 8 & 0xff00) + (b[0] & 0xff));
-        }
-
-        /**
-         * Read a little endian integer from the stream.
-         * 
-         * @param n
-         *            the number of bytes to read
-         * 
-         * @return the bytes read, converted from little endian to an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
-         */
-        public long ReadLE(int n)
-        {
-            byte[] b = new byte[n];
-
-            if (base.Read(b, 0, b.Length) < b.Length)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
-
-            long v = 0;
-            while (n-- > 0)
-            {
-                v = v << 8 | (long)b[n] & 0xff;
-            }
-
-            return v;
-        }
+        public long Read8BE() => ReadBE(8);
 
         /**
          * Read a bigendian integer from the stream.
-         * 
-         * @param n
-         *            the number of bytes to read
-         * 
-         * @return the bytes read, converted from big endian to an integer.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
         public long ReadBE(int n)
         {
@@ -305,23 +169,21 @@ namespace Erlang.NET
             if (base.Read(b, 0, b.Length) < b.Length)
                 throw new OtpErlangDecodeException("Cannot read from input stream");
 
-            long v = 0;
-            for (int i = 0; i < n; i++)
-            {
-                v = v << 8 | (long)b[i] & 0xff;
-            }
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(b, 0, b.Length);
 
-            return v;
+            switch (n)
+            {
+                case 2: return BitConverter.ToInt16(b, 0);
+                case 4: return BitConverter.ToInt32(b, 0);
+                case 8: return BitConverter.ToInt64(b, 0);
+                default:
+                    throw new Exception("unsupported");
+            }
         }
 
         /**
          * Read an Erlang atom from the stream and interpret the value as a boolean.
-         * 
-         * @return true if the atom at the current position in the stream contains
-         *         the value 'true' (ignoring case), false otherwise.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an atom.
          */
         public bool ReadBoolean()
         {
@@ -334,11 +196,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang atom from the stream.
-         * 
-         * @return a string containing the value of the atom.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an atom.
          */
         public string ReadAtom()
         {
@@ -358,12 +215,12 @@ namespace Erlang.NET
                 case OtpExternal.smallAtomUtf8Tag:
                 case OtpExternal.atomUtf8Tag:
                     len = (tag == OtpExternal.smallAtomUtf8Tag ? Read1() : Read2BE());
-	                strbuf = new byte[len];
-	                ReadN(strbuf);
+                    strbuf = new byte[len];
+                    ReadN(strbuf);
                     atom = OtpErlangString.FromEncoding(strbuf, "UTF-8");
-	                break;
+                    break;
                 default:
-                    throw new OtpErlangDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag 
+                    throw new OtpErlangDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag
                         + ", or " + OtpExternal.atomUtf8Tag + ", got " + tag);
             }
 
@@ -375,11 +232,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang binary from the stream.
-         * 
-         * @return a byte array containing the value of the binary.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a binary.
          */
         public byte[] ReadBinary()
         {
@@ -397,15 +249,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang bitstr from the stream.
-         * 
-         * @param pad_bits
-         *            an int array whose first element will be set to the number of
-         *            pad bits in the last byte.
-         * 
-         * @return a byte array containing the value of the bitstr.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a bitstr.
          */
         public byte[] ReadBitstr(out int pad_bits)
         {
@@ -429,11 +272,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang float from the stream.
-         * 
-         * @return the float value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a float.
          */
         public float ReadFloat()
         {
@@ -443,11 +281,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang float from the stream.
-         * 
-         * @return the float value, as a double.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a float.
          */
         public double ReadDouble()
         {
@@ -481,11 +314,6 @@ namespace Erlang.NET
 
         /**
          * Read one byte from the stream.
-         * 
-         * @return the byte read.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next byte cannot be read.
          */
         public new byte ReadByte()
         {
@@ -497,12 +325,6 @@ namespace Erlang.NET
 
         /**
          * Read a character from the stream.
-         * 
-         * @return the character value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an integer that can
-         *                be represented as a char.
          */
         public char ReadChar()
         {
@@ -514,12 +336,6 @@ namespace Erlang.NET
 
         /**
          * Read an unsigned integer from the stream.
-         * 
-         * @return the integer value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream can not be represented as a
-         *                positive integer.
          */
         public uint ReadUInt()
         {
@@ -531,12 +347,6 @@ namespace Erlang.NET
 
         /**
          * Read an integer from the stream.
-         * 
-         * @return the integer value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream can not be represented as
-         *                an integer.
          */
         public int ReadInt()
         {
@@ -548,12 +358,6 @@ namespace Erlang.NET
 
         /**
          * Read an unsigned short from the stream.
-         * 
-         * @return the short value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream can not be represented as a
-         *                positive short.
          */
         public ushort ReadUShort()
         {
@@ -565,12 +369,6 @@ namespace Erlang.NET
 
         /**
          * Read a short from the stream.
-         * 
-         * @return the short value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream can not be represented as a
-         *                short.
          */
         public short ReadShort()
         {
@@ -582,23 +380,11 @@ namespace Erlang.NET
 
         /**
          * Read an unsigned long from the stream.
-         * 
-         * @return the long value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream can not be represented as a
-         *                positive long.
          */
         public long ReadULong() => ReadLong(true);
 
         /**
          * Read a long from the stream.
-         * 
-         * @return the long value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream can not be represented as a
-         *                long.
          */
         public long ReadLong() => ReadLong(false);
 
@@ -610,11 +396,6 @@ namespace Erlang.NET
 
         /**
          * Read an integer from the stream.
-         * 
-         * @return the value as a big endian 2's complement byte array.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an integer.
          */
         public byte[] ReadIntegerByteArray()
         {
@@ -658,16 +439,15 @@ namespace Erlang.NET
                     // with one zero byte to make the value 2's complement positive.
                     if (ReadN(nb, 0, arity) != arity)
                         throw new OtpErlangDecodeException("Cannot read from intput stream");
-                    
+
                     // Reverse the array to make it big endian.
-                    for (int i = 0, j = nb.Length; i < j--; i++)
-                        (nb[i], nb[j]) = (nb[j], nb[i]);
+                    Array.Reverse(nb, 0, nb.Length);
 
                     if (sign != 0)
                     {
                         // 2's complement negate the big endian value in the array
                         int c = 1; // Carry
-                        for (int j = nb.Length; j-- > 0; )
+                        for (int j = nb.Length; j-- > 0;)
                         {
                             c = (~nb[j] & 0xFF) + c;
                             nb[j] = (byte)c;
@@ -698,8 +478,7 @@ namespace Erlang.NET
                         throw new OtpErlangDecodeException("Value not unsigned: " + v);
                     break;
                 case 4:
-                    v = ((b[0] & 0xFF) << 24) + ((b[1] & 0xFF) << 16)
-                        + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
+                    v = ((b[0] & 0xFF) << 24) + ((b[1] & 0xFF) << 16) + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
                     v = (int)v; // Sign extend
                     if (v < 0 && unsigned)
                         throw new OtpErlangDecodeException("Value not unsigned: " + v);
@@ -742,9 +521,7 @@ namespace Erlang.NET
                     }
                     // Convert the necessary bytes
                     for (v = c < 0 ? -1 : 0; i < b.Length; i++)
-                    {
-                        v = (long)((((ulong)v) << 8) | ((ulong)(b[i] & 0xFF)));
-                    }
+                        v = (v << 8) | (uint)(b[i] & 0xFF);
                     break;
             }
             return v;
@@ -752,11 +529,6 @@ namespace Erlang.NET
 
         /**
          * Read a list header from the stream.
-         * 
-         * @return the arity of the list.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a list.
          */
         public int ReadListHead()
         {
@@ -786,11 +558,6 @@ namespace Erlang.NET
 
         /**
          * Read a tuple header from the stream.
-         * 
-         * @return the arity of the tuple.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a tuple.
          */
         public int ReadTupleHead()
         {
@@ -816,11 +583,6 @@ namespace Erlang.NET
 
         /**
          * Read a map header from the stream.
-         * 
-         * @return the arity of the map.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a map.
          */
         public int ReadMapHead()
         {
@@ -842,11 +604,6 @@ namespace Erlang.NET
 
         /**
          * Read an empty list from the stream.
-         * 
-         * @return zero (the arity of the list).
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an empty list.
          */
         public int ReadNil()
         {
@@ -868,11 +625,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang PID from the stream.
-         * 
-         * @return the value of the PID.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an Erlang PID.
          */
         public OtpErlangPid ReadPid()
         {
@@ -894,11 +646,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang port from the stream.
-         * 
-         * @return the value of the port.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an Erlang port.
          */
         public OtpErlangPort ReadPort()
         {
@@ -919,11 +666,6 @@ namespace Erlang.NET
 
         /**
          * Read an Erlang reference from the stream.
-         * 
-         * @return the value of the reference
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not an Erlang reference.
          */
         public OtpErlangRef ReadRef()
         {
@@ -1014,11 +756,6 @@ namespace Erlang.NET
 
         /**
          * Read a string from the stream.
-         * 
-         * @return the value of the string.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a string.
          */
         public string ReadString()
         {
@@ -1048,11 +785,6 @@ namespace Erlang.NET
 
         /**
          * Read a compressed term from the stream
-         * 
-         * @return the resulting uncompressed term.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the next term in the stream is not a compressed term.
          */
         public OtpErlangObject ReadCompressed()
         {
@@ -1085,12 +817,6 @@ namespace Erlang.NET
 
         /**
          * Read an arbitrary Erlang term from the stream.
-         * 
-         * @return the Erlang term.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the stream does not contain a known Erlang type at the
-         *                next position.
          */
         public OtpErlangObject ReadAny()
         {

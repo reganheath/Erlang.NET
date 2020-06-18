@@ -16,7 +16,6 @@
  * 
  * %CopyrightEnd%
  */
-using System;
 using System.Collections.Generic;
 
 namespace Erlang.NET

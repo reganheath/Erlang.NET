@@ -98,7 +98,7 @@ namespace Erlang.NET
              */
 
             private readonly static uint[] HASH_CONST = {
-		        0, // not used
+                0, // not used
 		        0x9e3779b9, // the golden ratio; an arbitrary value
 		        0x3c6ef372, // (hashHConst[1] * 2) % (1<<32)
 		        0xdaa66d2b, //             1    3

@@ -19,7 +19,6 @@
  */
 using System;
 using System.IO;
-using System.Net.Sockets;
 
 namespace Erlang.NET
 {
@@ -374,7 +373,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendBuf(string dest, OtpOutputStream payload) => SendBuf(Self.Pid, dest, payload);
+        public void SendBuf(string dest, OtpOutputStream payload) => SendBuf(Self.Pid, dest, payload);
 
         /**
          * Send a pre-encoded message to a process on a remote node.

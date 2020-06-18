@@ -65,7 +65,7 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return Local.Equals(o.Local) 
+            return Local.Equals(o.Local)
                 && Remote.Equals(o.Remote);
         }
 

@@ -21,7 +21,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Erlang.NET
@@ -35,6 +34,14 @@ namespace Erlang.NET
     public class OtpErlangBitstr : OtpErlangObject
     {
         /**
+         * Get the byte array from a bitstr, padded with zero bits in the little end
+         * of the last byte.
+         * 
+         * @return the byte array containing the bytes for this bitstr.
+         */
+        public byte[] Bin { get; protected set; }
+
+        /**
          * Create a bitstr from a byte array
          * 
          * @param bin
@@ -42,8 +49,7 @@ namespace Erlang.NET
          */
         public OtpErlangBitstr(byte[] bin)
         {
-            Bin = new byte[bin.Length];
-            Array.Copy(bin, 0, Bin, 0, bin.Length);
+            Bin = (byte[])bin.Clone();
             PadBits = 0;
         }
 
@@ -57,25 +63,9 @@ namespace Erlang.NET
          */
         public OtpErlangBitstr(byte[] bin, int pad_bits)
         {
-            Bin = new byte[bin.Length];
-            Array.Copy(bin, 0, Bin, 0, bin.Length);
+            Bin = (byte[])bin.Clone();
             PadBits = pad_bits;
             CheckBitstr(Bin, PadBits);
-        }
-
-        private static void CheckBitstr(byte[] bin, int pad_bits)
-        {
-            if (pad_bits < 0 || 7 < pad_bits)
-                throw new ArgumentException("Padding must be in range 0..7");
-
-            if (pad_bits != 0 && bin.Length == 0)
-                throw new ArgumentException("Padding on zero length bitstr");
-
-            if (bin.Length != 0)
-            {
-                // Make sure padding is zero
-                bin[bin.Length - 1] &= (byte)~((1 << pad_bits) - 1);
-            }
         }
 
         /**
@@ -114,6 +104,21 @@ namespace Erlang.NET
             catch (SerializationException e)
             {
                 throw new ArgumentException("Object must implement Serializable", e);
+            }
+        }
+
+        private static void CheckBitstr(byte[] bin, int pad_bits)
+        {
+            if (pad_bits < 0 || 7 < pad_bits)
+                throw new ArgumentException("Padding must be in range 0..7");
+
+            if (pad_bits != 0 && bin.Length == 0)
+                throw new ArgumentException("Padding on zero length bitstr");
+
+            if (bin.Length != 0)
+            {
+                // Make sure padding is zero
+                bin[bin.Length - 1] &= (byte)~((1 << pad_bits) - 1);
             }
         }
 
@@ -159,14 +164,6 @@ namespace Erlang.NET
         }
 
         /**
-         * Get the byte array from a bitstr, padded with zero bits in the little end
-         * of the last byte.
-         * 
-         * @return the byte array containing the bytes for this bitstr.
-         */
-        public byte[] Bin { get; protected set; }
-
-        /**
          * Get the size in whole bytes of the bitstr, rest bits in the last byte not
          * counted.
          * 
@@ -197,7 +194,7 @@ namespace Erlang.NET
          * @return the java Object represented by this bitstr, or null if the bitstr
          *         does not represent a Java Object.
          */
-        public object getObject()
+        public object GetObject()
         {
             if (PadBits != 0)
                 return null;
@@ -269,8 +266,7 @@ namespace Erlang.NET
         public override object Clone()
         {
             OtpErlangBitstr that = (OtpErlangBitstr)base.Clone();
-            that.Bin = new byte[Bin.Length];
-            Array.Copy(Bin, 0, that.Bin, 0, Bin.Length);
+            that.Bin = (byte[])Bin.Clone();
             PadBits = PadBits;
             return that;
         }

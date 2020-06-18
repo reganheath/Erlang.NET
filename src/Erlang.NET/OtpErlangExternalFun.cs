@@ -57,8 +57,8 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return module.Equals(o.module) 
-                && function.Equals(o.function) 
+            return module.Equals(o.module)
+                && function.Equals(o.function)
                 && arity == o.arity;
         }
 

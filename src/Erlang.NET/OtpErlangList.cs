@@ -21,7 +21,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
 
 namespace Erlang.NET
@@ -197,7 +196,7 @@ namespace Erlang.NET
             if (Arity == from && LastTail != null)
                 return LastTail;
             return new OtpErlangList(items.Skip(from), LastTail);
-//            return new SubList(this, from);
+            //            return new SubList(this, from);
         }
 
         /**
@@ -234,12 +233,12 @@ namespace Erlang.NET
             if (arity > 0)
             {
                 buf.WriteListHead(arity);
-                foreach(var item in items.Skip(start))
+                foreach (var item in items.Skip(start))
                     buf.WriteAny(item);
             }
 
             if (LastTail != null)
-                buf.WriteAny(LastTail); 
+                buf.WriteAny(LastTail);
             else
                 buf.WriteNil();
         }
@@ -257,7 +256,7 @@ namespace Erlang.NET
         public override bool Equals(object o) => Equals(o as OtpErlangList);
 
         public bool Equals(OtpErlangList o)
-        { 
+        {
             /*
              * Be careful to use methods even for "this", so that equals work also
              * for sublists
@@ -285,7 +284,7 @@ namespace Erlang.NET
             if (Arity == 0)
                 return unchecked((int)3468870702L);
 
-            foreach(var item in items)
+            foreach (var item in items)
                 hash.Combine(item.GetHashCode());
 
             if (LastTail != null)

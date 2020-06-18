@@ -91,7 +91,7 @@ namespace Erlang.NET
 
             if (!pid.Equals(o.pid) || !module.Equals(o.module) || arity != o.arity)
                 return false;
-            
+
             if (md5 == null)
             {
                 if (o.md5 != null)

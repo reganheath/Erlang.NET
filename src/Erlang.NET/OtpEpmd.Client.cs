@@ -17,15 +17,14 @@
  * 
  * %CopyrightEnd%
  */
+using log4net;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
-using log4net;
 
 namespace Erlang.NET
 {
@@ -56,37 +55,27 @@ namespace Erlang.NET
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static class EpmdPort
+        private static int epmdPort = 0;
+        public static int EpmdPort
         {
-            private static int epmdPort = 0;
-
-            public static int get()
+            set => epmdPort = value;
+            get
             {
                 if (epmdPort == 0)
                 {
-                    string env = null;
                     try
                     {
-                        env = System.Environment.GetEnvironmentVariable("ERL_EPMD_PORT");
-                        epmdPort = (env != null) ? Int32.Parse(env) : 4369;
+                        string env = Environment.GetEnvironmentVariable("ERL_EPMD_PORT");
+                        epmdPort = (env != null ? int.Parse(env) : 4369);
                     }
-                    catch (System.Security.SecurityException)
-                    {
-                        env = null;
-                    }
-                    catch (FormatException)
-                    {
-                        env = null;
-                    }
+                    catch (System.Security.SecurityException) { }
+                    catch (FormatException) { }
                 }
+
                 return epmdPort;
             }
-
-            public static void set(int port)
-            {
-                epmdPort = port;
-            }
         }
+
         // common values
         private const byte stopReq = (byte)115;
 
@@ -120,16 +109,6 @@ namespace Erlang.NET
         }
 
         /**
-         * Set the port number to be used to contact the epmd process.
-         * Only needed when the default port is not desired and system environment
-         * variable ERL_EPMD_PORT can not be read (applet).
-         */
-        public static void useEpmdPort(int port)
-        {
-            EpmdPort.set(port);
-        }
-
-        /**
          * Determine what port a node listens for incoming connections on.
          * 
          * @return the listen port for the specified node, or 0 if the node was not
@@ -138,9 +117,9 @@ namespace Erlang.NET
          * @exception java.io.IOException
          *                if there was no response from the name server.
          */
-        public static int lookupPort(AbstractNode node)
+        public static int LookupPort(AbstractNode node)
         {
-            return r4_lookupPort(node);
+            return LookupPort_R4(node);
         }
 
         /**
@@ -156,9 +135,9 @@ namespace Erlang.NET
          * @exception java.io.IOException
          *                if there was no response from the name server.
          */
-        public static bool publishPort(OtpLocalNode node)
+        public static bool PublishPort(OtpLocalNode node)
         {
-            OtpTransport s = r4_publish(node);
+            OtpTransport s = Publish_R4(node);
             node.setEpmd(s);
             return s != null;
         }
@@ -173,16 +152,16 @@ namespace Erlang.NET
          * <p>
          * This method does not report any failures.
          */
-        public static void unPublishPort(OtpLocalNode node)
+        public static void UnPublishPort(OtpLocalNode node)
         {
             try
             {
-                using (OtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort.get()))
+                using (OtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort))
                 {
                     OtpOutputStream obuf = new OtpOutputStream();
                     obuf.Write2BE(node.Alive.Length + 1);
                     obuf.Write1(stopReq);
-                    obuf.WriteN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
+                    obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
                     obuf.WriteTo(s.GetOutputStream());
                     // don't even wait for a response (is there one?)
                     if (traceLevel >= traceThreshold)
@@ -197,20 +176,20 @@ namespace Erlang.NET
             }
         }
 
-        private static int r4_lookupPort(AbstractNode node)
+        private static int LookupPort_R4(AbstractNode node)
         {
             int port = 0;
 
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                using (var s = node.CreateTransport(node.Host, EpmdPort.get()))
+                using (var s = node.CreateTransport(node.Host, EpmdPort))
                 {
                     // build and send epmd request
                     // length[2], tag[1], alivename[n] (length = n+1)
                     obuf.Write2BE(node.Alive.Length + 1);
                     obuf.Write1(port4req);
-                    obuf.WriteN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
+                    obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
 
                     // send request
                     obuf.WriteTo(s.GetOutputStream());
@@ -289,14 +268,14 @@ namespace Erlang.NET
          * successfully communicate with an r4 epmd, we return either the
          * socket, or null, depending on the result.
          */
-        private static OtpTransport r4_publish(OtpLocalNode node)
+        private static OtpTransport Publish_R4(OtpLocalNode node)
         {
             OtpTransport s = null;
 
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                s = node.CreateTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
+                s = node.CreateTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort));
 
                 obuf.Write2BE(node.Alive.Length + 13);
 
@@ -310,7 +289,7 @@ namespace Erlang.NET
                 obuf.Write2BE(node.DistLow);
 
                 obuf.Write2BE(node.Alive.Length);
-                obuf.WriteN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
+                obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
                 obuf.Write2BE(0); // No extra
 
                 // send request
@@ -372,19 +351,19 @@ namespace Erlang.NET
             return null;
         }
 
-        public static string[] lookupNames()
+        public static string[] LookupNames()
         {
-            return lookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0], new OtpSocketTransportFactory());
+            return LookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0], new OtpSocketTransportFactory());
         }
 
-        public static string[] lookupNames(IPAddress address, OtpTransportFactory transportFactory)
+        public static string[] LookupNames(IPAddress address, OtpTransportFactory transportFactory)
         {
 
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
 
-                using (OtpTransport s = transportFactory.CreateTransport(address.ToString(), EpmdPort.get()))
+                using (OtpTransport s = transportFactory.CreateTransport(address.ToString(), EpmdPort))
                 {
                     obuf.Write2BE(1);
                     obuf.Write1(names4req);
@@ -419,7 +398,7 @@ namespace Erlang.NET
                     return all.Split('\n');
                 }
             }
-            catch (SocketException e) 
+            catch (SocketException e)
             {
                 if (traceLevel >= traceThreshold)
                     log.Debug("<- (no response)");

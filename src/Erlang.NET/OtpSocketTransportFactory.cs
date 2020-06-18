@@ -1,27 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net;
 
 namespace Erlang.NET
 {
     public class OtpSocketTransportFactory : OtpTransportFactory
     {
-        public OtpTransport CreateTransport(string addr, int port)
-        {
-            return new OtpSocketTransport(addr, port);
-        }
+        public OtpTransport CreateTransport(string addr, int port) => new OtpSocketTransport(addr, port);
 
-        public OtpTransport CreateTransport(IPEndPoint addr)
-        {
-            return new OtpSocketTransport(addr);
-        }
+        public OtpTransport CreateTransport(IPEndPoint addr) => new OtpSocketTransport(addr);
 
-        public OtpServerTransport CreateServerTransport(int port)
-        {
-            return new OtpServerSocketTransport(port);
-        }
+        public OtpServerTransport CreateServerTransport(int port) => new OtpServerSocketTransport(port);
     }
 }

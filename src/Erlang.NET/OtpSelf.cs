@@ -158,7 +158,7 @@ namespace Erlang.NET
             if (getEpmd() != null)
                 return false; // already published
 
-            OtpEpmd.publishPort(this);
+            OtpEpmd.PublishPort(this);
             return getEpmd() != null;
         }
 
@@ -169,7 +169,7 @@ namespace Erlang.NET
         public void UnPublishPort()
         {
             // unregister with epmd
-            OtpEpmd.unPublishPort(this);
+            OtpEpmd.UnPublishPort(this);
 
             // close the local descriptor (if we have one)
             try
@@ -209,17 +209,10 @@ namespace Erlang.NET
                 }
                 catch (SocketException e)
                 {
-                    try
-                    {
-                        if (newsock != null)
-                        {
-                            newsock.Close();
-                        }
-                    }
-                    catch (SocketException) /* ignore close errors */
-                    {
-                    }
-                    throw new IOException(e.Message);
+                    try { newsock?.Close(); }
+                    catch (SocketException) { }
+
+                    throw new IOException("Failed to accept connection", e);
                 }
             }
         }
@@ -241,9 +234,6 @@ namespace Erlang.NET
          * @exception OtpAuthException
          *                    if the connection was refused by the remote node.
          */
-        public OtpConnection Connect(OtpPeer other)
-        {
-            return new OtpConnection(this, other);
-        }
+        public OtpConnection Connect(OtpPeer other) => new OtpConnection(this, other);
     }
 }

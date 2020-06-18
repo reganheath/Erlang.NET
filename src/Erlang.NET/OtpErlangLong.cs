@@ -357,7 +357,7 @@ namespace Erlang.NET
         public override bool Equals(object o) => Equals(o as OtpErlangLong);
 
         public bool Equals(OtpErlangLong o)
-        { 
+        {
             if (o == null)
                 return false;
             if (ReferenceEquals(this, o))

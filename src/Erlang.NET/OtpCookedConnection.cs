@@ -19,8 +19,6 @@
  */
 using System;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 
 namespace Erlang.NET
 {
@@ -258,7 +256,7 @@ namespace Erlang.NET
         {
             lock (lockObj)
             {
-                foreach(var link in links.ClearLinks())
+                foreach (var link in links.ClearLinks())
                 {
                     // send exit "from" remote pids to local ones
                     self.Deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));

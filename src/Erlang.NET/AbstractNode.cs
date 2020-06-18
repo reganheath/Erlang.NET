@@ -219,7 +219,7 @@ namespace Erlang.NET
          * 
          * @return the authorization cookie used by this node.
          */
-        public string Cookie { get; private set; }
+        public string Cookie { get; set; }
 
         // package scope
         internal int Type { get; set; } = NTYPE_R6;
@@ -236,36 +236,12 @@ namespace Erlang.NET
         // package scope
         internal int Creation { get; set; } = 0;
 
-        /**
-         * Set the authorization cookie used by this node.
-         * 
-         * @return the previous authorization cookie used by this node.
-         */
-        public string setCookie(string cookie)
-        {
-            string prev = this.Cookie;
-            this.Cookie = cookie;
-            return prev;
-        }
+        public override string ToString() => Node;
 
-        public override string ToString()
-        {
-            return Node;
-        }
+        public OtpTransport CreateTransport(string addr, int port) => transportFactory.CreateTransport(addr, port);
 
-        public OtpTransport CreateTransport(string addr, int port)
-        {
-            return transportFactory.CreateTransport(addr, port);
-        }
+        public OtpTransport CreateTransport(IPEndPoint addr) => transportFactory.CreateTransport(addr);
 
-        public OtpTransport CreateTransport(IPEndPoint addr)
-        {
-            return transportFactory.CreateTransport(addr);
-        }
-
-        public OtpServerTransport CreateServerTransport(int port)
-        {
-            return transportFactory.CreateServerTransport(port);
-        }
+        public OtpServerTransport CreateServerTransport(int port) => transportFactory.CreateServerTransport(port);
     }
 }

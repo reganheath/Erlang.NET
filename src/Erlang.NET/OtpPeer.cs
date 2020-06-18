@@ -17,7 +17,6 @@
  * 
  * %CopyrightEnd%
  */
-using System;
 
 namespace Erlang.NET
 {
@@ -28,13 +27,7 @@ namespace Erlang.NET
      */
     public class OtpPeer : AbstractNode
     {
-        private int distChoose = 0;
-
-        public int DistChoose
-        {
-            get { return distChoose; }
-            set { distChoose = value; }
-        }
+        public int DistChoose { get; set; } = 0;
 
         /*
          * this is set by OtpConnection and is the highest
@@ -68,31 +61,6 @@ namespace Erlang.NET
         {
         }
 
-        /**
-         * Create a connection to a remote node.
-         * 
-         * @param self
-         *                the local node from which you wish to connect.
-         * 
-         * @return a connection to the remote node.
-         * 
-         * @exception java.net.UnknownHostException
-         *                    if the remote host could not be found.
-         * 
-         * @exception java.io.IOException
-         *                    if it was not possible to connect to the remote node.
-         * 
-         * @exception OtpAuthException
-         *                    if the connection was refused by the remote node.
-         * 
-         * @deprecated Use the corresponding method in {@link OtpSelf} instead.
-         */
-        [Obsolete]
-        public OtpConnection connect(OtpSelf self)
-        {
-            return new OtpConnection(self, this);
-        }
-
         // package
         /*
          * Get the port number used by the remote node.
@@ -102,9 +70,9 @@ namespace Erlang.NET
          * 
          * @exception java.io.IOException if the port mapper could not be contacted.
          */
-        internal int port()
+        internal int Port()
         {
-            return OtpEpmd.lookupPort(this);
+            return OtpEpmd.LookupPort(this);
         }
     }
 }

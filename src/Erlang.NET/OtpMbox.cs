@@ -409,19 +409,18 @@ namespace Erlang.NET
         {
             try
             {
-                string currentNode = home.Node;
-                if (node.Equals(currentNode))
-                    Send(name, msg);
-                else if (node.IndexOf('@', 0) < 0 && node.Equals(currentNode.Substring(0, currentNode.IndexOf('@', 0))))
-                    Send(name, msg);
-                else
+                // this node?
+                if (node.Equals(home.Node) || node.Equals(home.Alive))
                 {
-                    // other node
-                    OtpCookedConnection conn = home.GetConnection(node);
-                    if (conn == null)
-                        return;
-                    conn.Send(Self, name, msg);
+                    Send(name, msg);
+                    return;
                 }
+
+                // other node
+                OtpCookedConnection conn = home.GetConnection(node);
+                if (conn == null)
+                    return;
+                conn.Send(Self, name, msg);
             }
             catch (Exception)
             {

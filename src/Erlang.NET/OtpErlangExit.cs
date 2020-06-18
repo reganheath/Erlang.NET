@@ -17,7 +17,6 @@
  * 
  * %CopyrightEnd%
  */
-using System;
 
 namespace Erlang.NET
 {

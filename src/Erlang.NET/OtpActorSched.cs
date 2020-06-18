@@ -16,12 +16,11 @@
  * 
  * %CopyrightEnd%
  */
+using log4net;
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Reflection;
-using log4net;
-using log4net.Config;
+using System.Threading;
 
 namespace Erlang.NET
 {
@@ -65,7 +64,7 @@ namespace Erlang.NET
             }
 
             lock (runnable)
-            { 
+            {
                 task.Active = true;
                 runnable.Enqueue(task);
                 if (runnable.Count == 1)

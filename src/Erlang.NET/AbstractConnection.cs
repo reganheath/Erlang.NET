@@ -91,8 +91,7 @@ namespace Erlang.NET
         protected const int ChallengeAck = 'a';
         protected const int ChallengeStatus = 's';
 
-        private volatile bool done = false;
-        private readonly object runLock = new object();
+        private readonly object objLock = new object();
 
         protected bool connected = false; // connection status
         protected OtpTransport socket; // communication channel
@@ -176,26 +175,22 @@ namespace Erlang.NET
             peer = other;
             localNode = self;
             socket = null;
-            int port;
-
             traceLevel = defaultLevel;
 
-            // now get a connection between the two...
-            port = OtpEpmd.lookupPort(peer);
+            // Locate peer
+            int port = OtpEpmd.LookupPort(peer);
             if (port == 0)
                 throw new IOException("No remote node found - cannot connect");
 
-            // now find highest common dist value
+            // compatible?
             if (peer.Proto != self.Proto || self.DistHigh < peer.DistLow || self.DistLow > peer.DistHigh)
                 throw new IOException("No common protocol found - cannot connect");
 
-            // highest common version: min(peer.distHigh, self.distHigh)
-            peer.DistChoose = peer.DistHigh > self.DistHigh ? self.DistHigh : peer.DistHigh;
+            // highest common version
+            peer.DistChoose = Math.Min(peer.DistHigh, self.DistHigh);
 
             DoConnect(port);
-
             Name = peer.Node;
-            connected = true;
         }
 
         /**
@@ -493,7 +488,7 @@ namespace Erlang.NET
 
             try
             {
-                while (!done)
+                while (!Stopping)
                 {
                     // don't return until we get a real message
                     // or a failure of some kind (e.g. EXIT)
@@ -507,12 +502,12 @@ namespace Erlang.NET
                     // received tick? send tock!
                     if (len == 0)
                     {
-                        lock (runLock)
+                        lock (objLock)
                         {
                             socket.GetOutputStream().Write(tock, 0, tock.Length);
                             socket.GetOutputStream().Flush();
                         }
-                        
+
                         continue;
                     }
 
@@ -574,7 +569,7 @@ namespace Erlang.NET
                                 log.Debug("<- " + HeaderType(head) + " " + head);
 
                                 /* show received payload too */
-                                ibuf.Mark(0);
+                                ibuf.Mark();
                                 traceobj = ibuf.ReadAny();
 
                                 if (traceobj != null)
@@ -618,7 +613,7 @@ namespace Erlang.NET
                                 log.Debug("<- " + HeaderType(head) + " " + head);
 
                                 /* show received payload too */
-                                ibuf.Mark(0);
+                                ibuf.Mark();
                                 traceobj = ibuf.ReadAny();
 
                                 if (traceobj != null)
@@ -766,27 +761,21 @@ namespace Erlang.NET
          */
         public virtual void Close()
         {
-            done = true;
+            Stop();
             connected = false;
-            lock (runLock)
+            lock (objLock)
             {
                 try
                 {
                     if (socket != null)
                     {
                         if (traceLevel >= ctrlThreshold)
-                        {
                             log.Debug("-> CLOSE");
-                        }
                         socket.Close();
                     }
                 }
-                catch (SocketException) /* ignore socket close errors */
-                {
-                }
-                catch (InvalidOperationException)
-                {
-                }
+                catch (SocketException) { }
+                catch (InvalidOperationException) { }
                 finally
                 {
                     socket = null;
@@ -809,7 +798,7 @@ namespace Erlang.NET
         // used by send and send_reg (message types with payload)
         protected void DoSend(OtpOutputStream header, OtpOutputStream payload)
         {
-            lock (runLock)
+            lock (objLock)
             {
                 try
                 {
@@ -848,7 +837,7 @@ namespace Erlang.NET
         // used by the other message types
         protected void DoSend(OtpOutputStream header)
         {
-            lock (runLock)
+            lock (objLock)
             {
                 try
                 {
@@ -930,7 +919,7 @@ namespace Erlang.NET
             int i;
             Stream st = null;
 
-            lock (runLock)
+            lock (objLock)
             {
                 if (s == null)
                     throw new IOException("expected " + len + " bytes, socket was closed");
@@ -1025,6 +1014,7 @@ namespace Erlang.NET
                 SendComplement(send_name_tag);
                 SendChallengeReply(our_challenge, our_digest);
                 RecvChallengeAck(our_challenge);
+                connected = true;
                 cookieOk = true;
                 sendCookie = false;
             }
@@ -1055,7 +1045,7 @@ namespace Erlang.NET
         static string Hex0(byte x)
         {
             char[] tab = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-			    'a', 'b', 'c', 'd', 'e', 'f' };
+                'a', 'b', 'c', 'd', 'e', 'f' };
             uint u;
             if (x < 0)
             {
@@ -1212,7 +1202,7 @@ namespace Erlang.NET
         protected int RecvName(OtpPeer apeer)
         {
             int send_name_tag;
-            string hisname = "";
+            string hisname;
 
             try
             {
@@ -1291,7 +1281,7 @@ namespace Erlang.NET
                         if ((peer.CapFlags & AbstractNode.dFlagHandshake23) != 0)
                             throw new IOException("Old challenge unexpected DFLAG_HANDHAKE_23");
                         challenge = ibuf.Read4BE();
-                        namelen = buf.Length - (1+2+4+4);
+                        namelen = buf.Length - (1 + 2 + 4 + 4);
                         break;
 
                     case 'N':
@@ -1459,7 +1449,7 @@ namespace Erlang.NET
             OtpOutputStream obuf = new OtpOutputStream();
             obuf.Write2BE(status.Length + 1);
             obuf.Write1(ChallengeStatus);
-            obuf.Write(Encoding.GetEncoding("iso-8859-1").GetBytes(status));
+            obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(status));
 
             obuf.WriteTo(socket.GetOutputStream());
 

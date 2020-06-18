@@ -16,13 +16,10 @@
  * 
  * %CopyrightEnd%
  */
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Threading;
-using Erlang.NET;
 using log4net;
 using log4net.Config;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace Erlang.NET.Test
 {
@@ -49,7 +46,7 @@ namespace Erlang.NET.Test
 
                 while (true)
                 {
-                    yield return (delegate(OtpMsg m) { msg = m; });
+                    yield return (delegate (OtpMsg m) { msg = m; });
                     log.Debug("-> ECHO " + msg.getMsg());
                     OtpErlangTuple t = (OtpErlangTuple)msg.getMsg();
                     OtpErlangPid sender = (OtpErlangPid)t.elementAt(0);

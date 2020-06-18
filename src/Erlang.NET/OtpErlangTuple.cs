@@ -228,7 +228,7 @@ namespace Erlang.NET
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(9);
             hash.Combine(Arity);
-            foreach(var elem in elems)
+            foreach (var elem in elems)
                 hash.Combine(elem.GetHashCode());
             return hash.ValueOf();
         }

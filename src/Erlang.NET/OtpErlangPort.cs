@@ -138,12 +138,12 @@ namespace Erlang.NET
         public override bool Equals(object o) => Equals(o as OtpErlangPort);
 
         public bool Equals(OtpErlangPort o)
-        { 
+        {
             if (o == null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return Creation == o.Creation 
+            return Creation == o.Creation
                 && Id == o.Id
                 && Node.Equals(o.Node);
         }

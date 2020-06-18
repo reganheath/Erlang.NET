@@ -780,7 +780,6 @@ namespace Erlang.NET
         {
             private readonly OtpNode node;
             private readonly OtpServerTransport sock;
-            private volatile bool done = false;
 
             public int Port { get; }
 
@@ -800,14 +799,14 @@ namespace Erlang.NET
             {
                 if (node.getEpmd() != null)
                     return false; // already published
-                OtpEpmd.publishPort(node);
+                OtpEpmd.PublishPort(node);
                 return true;
             }
 
             private void UnPublishPort()
             {
                 // unregister with epmd
-                OtpEpmd.unPublishPort(node);
+                OtpEpmd.UnPublishPort(node);
 
                 // close the local descriptor (if we have one)
                 CloseSock(node.getEpmd());
@@ -817,7 +816,7 @@ namespace Erlang.NET
             public void Quit()
             {
                 UnPublishPort();
-                done = true;
+                Stop();
                 CloseSock(sock);
                 node.LocalStatus(node.Node, false, null);
             }
@@ -850,7 +849,7 @@ namespace Erlang.NET
             {
                 node.LocalStatus(node.Node, true, null);
 
-                while (!done)
+                while (!Stopping)
                 {
                     OtpCookedConnection conn = null;
                     OtpTransport newsock;
@@ -866,7 +865,7 @@ namespace Erlang.NET
                         // acceptor.quit()
                         // is called. acceptor.quit() will call localStatus(...), so
                         // we have to check if that's where we come from.
-                        if (!done)
+                        if (!Stopping)
                             node.LocalStatus(node.Node, false, e);
 
                         continue;

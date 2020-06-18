@@ -20,11 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
-using log4net;
 
 namespace Erlang.NET
 {
@@ -49,16 +45,11 @@ namespace Erlang.NET
             }
         }
 
-        private readonly OtpServerTransport sock;
-        private readonly Dictionary<string, OtpPublishedNode> portmap = new Dictionary<string, OtpPublishedNode>();
-        private int creation = 0;
         private readonly object lockObj = new object();
-        private volatile bool done = false;
+        private readonly OtpServerTransport sock;
+        private int creation = 0;
 
-        public Dictionary<string, OtpPublishedNode> Portmap
-        {
-            get { return portmap; }
-        }
+        public Dictionary<string, OtpPublishedNode> Portmap { get; } = new Dictionary<string, OtpPublishedNode>();
 
         private int Creation
         {
@@ -76,7 +67,7 @@ namespace Erlang.NET
         public OtpEpmd()
             : base("OtpEpmd", true)
         {
-            sock = new OtpServerSocketTransport(EpmdPort.get(), false);
+            sock = new OtpServerSocketTransport(EpmdPort, false);
         }
 
         public override void Start()
@@ -85,7 +76,7 @@ namespace Erlang.NET
             base.Start();
         }
 
-        private void closeSock(OtpServerTransport s)
+        private void CloseSock(OtpServerTransport s)
         {
             try
             {
@@ -97,17 +88,17 @@ namespace Erlang.NET
             }
         }
 
-        public void quit()
+        public void Quit()
         {
-            done = true;
-            closeSock(sock);
+            Stop();
+            CloseSock(sock);
         }
 
         public override void Run()
         {
-            log.InfoFormat("[OtpEpmd] start at port {0}", EpmdPort.get());
+            log.InfoFormat("[OtpEpmd] start at port {0}", EpmdPort);
 
-            while (!done)
+            while (!Stopping)
             {
                 try
                 {
@@ -128,7 +119,6 @@ namespace Erlang.NET
             private readonly Dictionary<string, OtpPublishedNode> portmap;
             private readonly List<string> publishedPort = new List<string>();
             private readonly OtpTransport sock;
-            private volatile bool done = false;
 
             public OtpEpmdConnection(OtpEpmd epmd, OtpTransport sock)
                 : base("OtpEpmd.OtpEpmdConnection", true)
@@ -138,7 +128,7 @@ namespace Erlang.NET
                 this.sock = sock;
             }
 
-            private void closeSock(OtpTransport s)
+            private void CloseSock(OtpTransport s)
             {
                 try
                 {
@@ -150,7 +140,7 @@ namespace Erlang.NET
                 }
             }
 
-            private int readSock(OtpTransport s, byte[] b)
+            private int ReadSock(OtpTransport s, byte[] b)
             {
                 int got = 0;
                 int len = b.Length;
@@ -181,11 +171,11 @@ namespace Erlang.NET
                 return got;
             }
 
-            private void quit()
+            private void Quit()
             {
-                done = true;
+                Stop();
+                CloseSock(sock);
 
-                closeSock(sock);
                 foreach (string name in publishedPort)
                 {
                     lock (portmap)
@@ -197,7 +187,7 @@ namespace Erlang.NET
                 publishedPort.Clear();
             }
 
-            private void r4_publish(OtpTransport s, OtpInputStream ibuf)
+            private void Publish_R4(OtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -309,14 +299,14 @@ namespace Erlang.NET
                     }
 
                     OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.Write4BE(EpmdPort.get());
+                    obuf.Write4BE(EpmdPort);
                     lock (portmap)
                     {
                         foreach (KeyValuePair<string, OtpPublishedNode> pair in portmap)
                         {
                             OtpPublishedNode node = pair.Value;
                             string info = string.Format("name {0} at port {1}\n", node.Alive, node.Port);
-                            byte[] bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(info);
+                            byte[] bytes = Encoding.GetEncoding("ISO-8859-1").GetBytes(info);
                             obuf.WriteN(bytes);
                         }
                     }
@@ -339,30 +329,30 @@ namespace Erlang.NET
 
                 try
                 {
-                    while (!done)
+                    while (!Stopping)
                     {
-                        readSock(sock, lbuf);
+                        ReadSock(sock, lbuf);
                         ibuf = new OtpInputStream(lbuf, 0);
                         len = ibuf.Read2BE();
                         byte[] tmpbuf = new byte[len];
-                        readSock(sock, tmpbuf);
+                        ReadSock(sock, tmpbuf);
                         ibuf = new OtpInputStream(tmpbuf, 0);
 
                         int request = ibuf.Read1();
                         switch (request)
                         {
                             case ALIVE2_REQ:
-                                r4_publish(sock, ibuf);
+                                Publish_R4(sock, ibuf);
                                 break;
 
                             case port4req:
                                 r4_port(sock, ibuf);
-                                done = true;
+                                Stop();
                                 break;
 
                             case names4req:
                                 r4_names(sock, ibuf);
-                                done = true;
+                                Stop();
                                 break;
 
                             case stopReq:
@@ -379,7 +369,7 @@ namespace Erlang.NET
                 }
                 finally
                 {
-                    quit();
+                    Quit();
                 }
             }
         }

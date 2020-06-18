@@ -17,7 +17,6 @@
  * 
  * %CopyrightEnd%
  */
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -31,7 +30,7 @@ namespace Erlang.NET
 
     public class GenericQueue
     {
-        private enum QueueState {  Open, Closing, Closed };
+        private enum QueueState { Open, Closing, Closed };
 
         private QueueState status;
         private readonly object lockObj = new object();
@@ -46,7 +45,7 @@ namespace Erlang.NET
         /** Clear a queue */
         public void Flush()
         {
-            lock(lockObj)
+            lock (lockObj)
                 queue = new LinkedList<object>();
         }
 
@@ -84,12 +83,10 @@ namespace Erlang.NET
 
                 while ((o = TryGet()) == null)
                 {
-                    try
-                    {
-                        Monitor.Wait(lockObj);
-                    }
+                    try { Monitor.Wait(lockObj); }
                     catch (ThreadInterruptedException)
                     {
+                        break;
                     }
                 }
 
@@ -117,7 +114,6 @@ namespace Erlang.NET
                 return null;
 
             var stopwatch = new Stopwatch();
-
             lock (lockObj)
             {
                 object o = null;
@@ -130,18 +126,17 @@ namespace Erlang.NET
 
                     long elapsed = stopwatch.ElapsedMilliseconds;
                     if (elapsed > timeout)
-                        throw new ThreadInterruptedException("Get operation timed out");
+                        break;
 
-                    try
-                    {
-                        Monitor.Wait(lockObj, (int)(timeout - elapsed));
-                    }
+                    try { Monitor.Wait(lockObj, (int)(timeout - elapsed)); }
                     catch (ThreadInterruptedException)
                     {
-                        // ignore, but really should retry operation instead
+                        break;
                     }
                 }
             }
+
+            return null;
         }
 
         // attempt to retrieve message from queue head

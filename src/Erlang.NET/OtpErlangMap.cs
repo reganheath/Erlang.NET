@@ -2,9 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -66,7 +63,7 @@ namespace Erlang.NET
             int arity = buf.ReadMapHead();
             if (arity > 0)
             {
-                for(int i = 0; i < arity; i++)
+                for (int i = 0; i < arity; i++)
                 {
                     OtpErlangObject key = buf.ReadAny();
                     OtpErlangObject value = buf.ReadAny();
@@ -113,7 +110,7 @@ namespace Erlang.NET
         public override void Encode(OtpOutputStream buf)
         {
             buf.WriteMapHead(arity());
-            foreach(var p in map)
+            foreach (var p in map)
             {
                 buf.WriteAny(p.Key);
                 buf.WriteAny(p.Value);

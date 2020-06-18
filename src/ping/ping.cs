@@ -16,10 +16,8 @@
  * 
  * %CopyrightEnd%
  */
-using System;
-using Erlang.NET;
-using log4net;
 using log4net.Config;
+using System;
 
 namespace Erlang.NET.Test
 {
