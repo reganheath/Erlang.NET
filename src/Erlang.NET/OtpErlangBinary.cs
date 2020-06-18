@@ -78,7 +78,7 @@ namespace Erlang.NET
          */
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_binary(Bin);
+            buf.WriteBinary(Bin);
         }
 
         public override object Clone()

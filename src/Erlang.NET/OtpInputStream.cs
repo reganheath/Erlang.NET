@@ -133,7 +133,6 @@ namespace Erlang.NET
             long cur = base.Position;
             int i = base.ReadByte();
             base.Position = cur;
-            //base.Seek(cur, SeekOrigin.Begin);
             if (i == -1)
                 throw new OtpErlangDecodeException("Cannot read from input stream");
             return i;

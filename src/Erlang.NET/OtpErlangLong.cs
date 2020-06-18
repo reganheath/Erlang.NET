@@ -341,8 +341,8 @@ namespace Erlang.NET
         public override void Encode(OtpOutputStream buf)
         {
             if (bigVal != null)
-                buf.write_big_integer(bigVal);
-            buf.write_long(value);
+                buf.WriteBigInteger(bigVal);
+            buf.WriteLong(value);
         }
 
         /**

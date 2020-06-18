@@ -180,9 +180,9 @@ namespace Erlang.NET
                 using (OtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort.get()))
                 {
                     OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.write2BE(node.Alive.Length + 1);
-                    obuf.write1(stopReq);
-                    obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
+                    obuf.Write2BE(node.Alive.Length + 1);
+                    obuf.Write1(stopReq);
+                    obuf.WriteN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
                     obuf.WriteTo(s.GetOutputStream());
                     // don't even wait for a response (is there one?)
                     if (traceLevel >= traceThreshold)
@@ -208,9 +208,9 @@ namespace Erlang.NET
                 {
                     // build and send epmd request
                     // length[2], tag[1], alivename[n] (length = n+1)
-                    obuf.write2BE(node.Alive.Length + 1);
-                    obuf.write1(port4req);
-                    obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
+                    obuf.Write2BE(node.Alive.Length + 1);
+                    obuf.Write1(port4req);
+                    obuf.WriteN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
 
                     // send request
                     obuf.WriteTo(s.GetOutputStream());
@@ -298,20 +298,20 @@ namespace Erlang.NET
                 OtpOutputStream obuf = new OtpOutputStream();
                 s = node.CreateTransport(new IPEndPoint(IPAddress.Loopback, EpmdPort.get()));
 
-                obuf.write2BE(node.Alive.Length + 13);
+                obuf.Write2BE(node.Alive.Length + 13);
 
-                obuf.write1(ALIVE2_REQ);
-                obuf.write2BE(node.Port);
+                obuf.Write1(ALIVE2_REQ);
+                obuf.Write2BE(node.Port);
 
-                obuf.write1(node.Type);
+                obuf.Write1(node.Type);
 
-                obuf.write1(node.Proto);
-                obuf.write2BE(node.DistHigh);
-                obuf.write2BE(node.DistLow);
+                obuf.Write1(node.Proto);
+                obuf.Write2BE(node.DistHigh);
+                obuf.Write2BE(node.DistLow);
 
-                obuf.write2BE(node.Alive.Length);
-                obuf.writeN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
-                obuf.write2BE(0); // No extra
+                obuf.Write2BE(node.Alive.Length);
+                obuf.WriteN(Encoding.GetEncoding("iso-8859-1").GetBytes(node.Alive));
+                obuf.Write2BE(0); // No extra
 
                 // send request
                 obuf.WriteTo(s.GetOutputStream());
@@ -386,8 +386,8 @@ namespace Erlang.NET
 
                 using (OtpTransport s = transportFactory.CreateTransport(address.ToString(), EpmdPort.get()))
                 {
-                    obuf.write2BE(1);
-                    obuf.write1(names4req);
+                    obuf.Write2BE(1);
+                    obuf.Write1(names4req);
                     // send request
                     obuf.WriteTo(s.GetOutputStream());
 

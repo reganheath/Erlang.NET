@@ -195,10 +195,10 @@ namespace Erlang.NET
         {
             int arity = elems.Length;
 
-            buf.write_tuple_head(arity);
+            buf.WriteTupleHead(arity);
 
             for (int i = 0; i < arity; i++)
-                buf.write_any(elems[i]);
+                buf.WriteAny(elems[i]);
         }
 
         /**

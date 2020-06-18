@@ -112,11 +112,11 @@ namespace Erlang.NET
 
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_map_head(arity());
+            buf.WriteMapHead(arity());
             foreach(var p in map)
             {
-                buf.write_any(p.Key);
-                buf.write_any(p.Value);
+                buf.WriteAny(p.Key);
+                buf.WriteAny(p.Value);
             }
         }
 

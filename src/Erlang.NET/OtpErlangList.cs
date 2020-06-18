@@ -65,10 +65,7 @@ namespace Erlang.NET
          * @param elem
          *            the elememet to make the list from.
          */
-        public OtpErlangList(OtpErlangObject elem)
-        {
-            items.Add(elem);
-        }
+        public OtpErlangList(OtpErlangObject elem) => items.Add(elem);
 
         /**
          * Create a list from an array of arbitrary Erlang terms.
@@ -76,10 +73,7 @@ namespace Erlang.NET
          * @param elems
          *            the array of terms from which to create the list.
          */
-        public OtpErlangList(IEnumerable<OtpErlangObject> elems)
-        {
-            items.AddRange(elems);
-        }
+        public OtpErlangList(IEnumerable<OtpErlangObject> elems) => items.AddRange(elems);
 
         /**
          * Create a list from an array of arbitrary Erlang terms. Tail can be
@@ -239,15 +233,15 @@ namespace Erlang.NET
             int arity = items.Count - start;
             if (arity > 0)
             {
-                buf.write_list_head(arity);
+                buf.WriteListHead(arity);
                 foreach(var item in items.Skip(start))
-                    buf.write_any(item);
+                    buf.WriteAny(item);
             }
 
             if (LastTail != null)
-                buf.write_any(LastTail); 
+                buf.WriteAny(LastTail); 
             else
-                buf.write_nil();
+                buf.WriteNil();
         }
 
         /**
@@ -351,40 +345,5 @@ namespace Erlang.NET
 
             return OtpErlangString.FromCodePoints(items.Select((e) => ((OtpErlangLong)e).IntValue()));
         }
-
-        //private class SubList : OtpErlangList
-        //{
-        //    private readonly OtpErlangList parent;
-        //    private readonly int start;
-
-        //    public SubList(OtpErlangList parent, int start)
-        //        : base()
-        //    {
-        //        this.parent = parent;
-        //        this.start = start;
-        //    }
-
-        //    public override int Arity => parent.Arity - start;
-
-        //    public override OtpErlangObject ElementAt(int i) => parent.ElementAt(i + start);
-
-        //    public override IEnumerable<OtpErlangObject> Elements => parent.items.Skip(start);
-
-        //    public override bool IsProper() => parent.IsProper();
-
-        //    public override OtpErlangObject Head => parent.ElementAt(start);
-
-        //    public override OtpErlangObject Tail => parent.GetTail(start + 1);
-
-        //    public override OtpErlangObject GetTail(int n) => parent.GetTail(n + start);
-
-        //    public override string ToString() => parent.ToString(start);
-
-        //    public override void Encode(OtpOutputStream stream) => parent.Encode(stream, start);
-
-        //    public override OtpErlangObject LastTail => parent.LastTail;
-
-        //    protected override IEnumerator<OtpErlangObject> Iterator(int start) => parent.Iterator(start);
-        //}
     }
 }

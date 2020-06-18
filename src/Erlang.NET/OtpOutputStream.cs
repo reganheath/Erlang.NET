@@ -60,7 +60,7 @@ namespace Erlang.NET
         public OtpOutputStream(OtpErlangObject o)
             : base()
         {
-            write_any(o);
+            WriteAny(o);
         }
 
         // package scope
@@ -75,7 +75,7 @@ namespace Erlang.NET
          * 
          * @return an input stream containing the same raw data.
          */
-        internal OtpInputStream getOtpInputStream(int offset)
+        internal OtpInputStream GetOtpInputStream(int offset)
         {
             return new OtpInputStream(base.GetBuffer(), offset, ((int)base.Length) - offset, 0);
         }
@@ -85,7 +85,7 @@ namespace Erlang.NET
          * 
          * @return the current position in the stream.
          */
-        public int getPos()
+        public int GetPos()
         {
             return (int)base.Position;
         }
@@ -95,7 +95,7 @@ namespace Erlang.NET
          * buffer's current size.  An application can use this operation to minimize
          * the storage of an <tt>OtpOutputStream</tt> instance.
          */
-        public void trimToSize()
+        public void TrimToSize()
         {
             base.Capacity = (int)base.Length;
         }
@@ -107,12 +107,12 @@ namespace Erlang.NET
          *            the byte to write.
          * 
          */
-        public void write(byte b)
+        public void Write(byte b)
         {
             base.WriteByte(b);
         }
 
-        public void write(int b)
+        public void Write(int b)
         {
             base.WriteByte((byte)b);
         }
@@ -124,16 +124,9 @@ namespace Erlang.NET
          *            the array of bytes to write.
          * 
          */
-        public void write(byte[] buf)
+        public void Write(byte[] buf)
         {
             base.Write(buf, 0, (int)buf.Length);
-        }
-
-        public void write(byte[] buf, int off, int len)
-        {
-            if (off < 0 || off > buf.Length || len < 0 || (off + len) - buf.Length > 0)
-                throw new ArgumentOutOfRangeException();
-            base.Write(buf, off, len);
         }
 
         public override void WriteTo(Stream stream)
@@ -156,9 +149,9 @@ namespace Erlang.NET
          *            the value to use.
          * 
          */
-        public void write1(long n)
+        public void Write1(long n)
         {
-            write((byte)(n & 0xff));
+            Write((byte)(n & 0xff));
         }
 
         /**
@@ -168,31 +161,9 @@ namespace Erlang.NET
          *            the array of bytes to write.
          * 
          */
-        public void writeN(byte[] bytes)
+        public void WriteN(byte[] bytes)
         {
-            write(bytes);
-        }
-
-        /**
-         * Get the current capacity of the stream. As bytes are added the capacity
-         * of the stream is increased automatically, however this method returns the
-         * current size.
-         * 
-         * @return the size of the internal buffer used by the stream.
-         */
-        public int length()
-        {
-            return base.Capacity;
-        }
-
-        /**
-         * Get the number of bytes in the stream.
-         * 
-         * @return the number of bytes in the stream.
-         */
-        public int size()
-        {
-            return (int)base.Length;
+            Write(bytes);
         }
 
         /**
@@ -201,10 +172,10 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void write2BE(long n)
+        public void Write2BE(long n)
         {
-            write((byte)((n & 0xff00) >> 8));
-            write((byte)(n & 0xff));
+            Write((byte)((n & 0xff00) >> 8));
+            Write((byte)(n & 0xff));
         }
 
         /**
@@ -213,12 +184,12 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void write4BE(long n)
+        public void Write4BE(long n)
         {
-            write((byte)((n & 0xff000000) >> 24));
-            write((byte)((n & 0xff0000) >> 16));
-            write((byte)((n & 0xff00) >> 8));
-            write((byte)(n & 0xff));
+            Write((byte)((n & 0xff000000) >> 24));
+            Write((byte)((n & 0xff0000) >> 16));
+            Write((byte)((n & 0xff00) >> 8));
+            Write((byte)(n & 0xff));
         }
 
         /**
@@ -228,16 +199,16 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void write8BE(long n)
+        public void Write8BE(long n)
         {
-            write((byte)(n >> 56 & 0xff));
-            write((byte)(n >> 48 & 0xff));
-            write((byte)(n >> 40 & 0xff));
-            write((byte)(n >> 32 & 0xff));
-            write((byte)(n >> 24 & 0xff));
-            write((byte)(n >> 16 & 0xff));
-            write((byte)(n >> 8 & 0xff));
-            write((byte)(n & 0xff));
+            Write((byte)(n >> 56 & 0xff));
+            Write((byte)(n >> 48 & 0xff));
+            Write((byte)(n >> 40 & 0xff));
+            Write((byte)(n >> 32 & 0xff));
+            Write((byte)(n >> 24 & 0xff));
+            Write((byte)(n >> 16 & 0xff));
+            Write((byte)(n >> 8 & 0xff));
+            Write((byte)(n & 0xff));
         }
 
         /**
@@ -248,11 +219,11 @@ namespace Erlang.NET
          * @param b
          *            the number of bytes to write from the little end.
          */
-        public void writeLE(long n, int b)
+        public void WriteLE(long n, int b)
         {
             for (int i = 0; i < b; i++)
             {
-                write((byte)(n & 0xff));
+                Write((byte)(n & 0xff));
                 n >>= 8;
             }
         }
@@ -263,10 +234,10 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void write2LE(long n)
+        public void Write2LE(long n)
         {
-            write((byte)(n & 0xff));
-            write((byte)((n & 0xff00) >> 8));
+            Write((byte)(n & 0xff));
+            Write((byte)((n & 0xff00) >> 8));
         }
 
         /**
@@ -275,12 +246,12 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void write4LE(long n)
+        public void Write4LE(long n)
         {
-            write((byte)(n & 0xff));
-            write((byte)((n & 0xff00) >> 8));
-            write((byte)((n & 0xff0000) >> 16));
-            write((byte)((n & 0xff000000) >> 24));
+            Write((byte)(n & 0xff));
+            Write((byte)((n & 0xff00) >> 8));
+            Write((byte)((n & 0xff0000) >> 16));
+            Write((byte)((n & 0xff000000) >> 24));
         }
 
         /**
@@ -290,16 +261,16 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void write8LE(long n)
+        public void Write8LE(long n)
         {
-            write((byte)(n & 0xff));
-            write((byte)(n >> 8 & 0xff));
-            write((byte)(n >> 16 & 0xff));
-            write((byte)(n >> 24 & 0xff));
-            write((byte)(n >> 32 & 0xff));
-            write((byte)(n >> 40 & 0xff));
-            write((byte)(n >> 48 & 0xff));
-            write((byte)(n >> 56 & 0xff));
+            Write((byte)(n & 0xff));
+            Write((byte)(n >> 8 & 0xff));
+            Write((byte)(n >> 16 & 0xff));
+            Write((byte)(n >> 24 & 0xff));
+            Write((byte)(n >> 32 & 0xff));
+            Write((byte)(n >> 40 & 0xff));
+            Write((byte)(n >> 48 & 0xff));
+            Write((byte)(n >> 56 & 0xff));
         }
 
         /**
@@ -326,18 +297,17 @@ namespace Erlang.NET
          * @param n
          *            the value to use.
          */
-        public void poke4BE(int offset, long n)
+        public void Poke4BE(int offset, long n)
         {
             long cur = base.Position;
 
-            base.Seek(offset, SeekOrigin.Begin);
+            base.Position = offset;
+            Write((byte)((n & 0xff000000) >> 24));
+            Write((byte)((n & 0xff0000) >> 16));
+            Write((byte)((n & 0xff00) >> 8));
+            Write((byte)(n & 0xff));
 
-            write((byte)((n & 0xff000000) >> 24));
-            write((byte)((n & 0xff0000) >> 16));
-            write((byte)((n & 0xff00) >> 8));
-            write((byte)(n & 0xff));
-
-            base.Seek(cur, SeekOrigin.Begin);
+            base.Position = cur;
         }
 
         /**
@@ -346,7 +316,7 @@ namespace Erlang.NET
          * @param atom
          *            the string to write.
          */
-        public void write_atom(string atom)
+        public void WriteAtom(string atom)
         {
             if (atom.Length > OtpExternal.maxAtomLength)
                 atom = atom.Substring(0, OtpExternal.maxAtomLength);
@@ -354,16 +324,16 @@ namespace Erlang.NET
             byte[] bytes = Encoding.GetEncoding("UTF-8", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
             if (bytes.Length < 256)
             {
-                write1(OtpExternal.smallAtomUtf8Tag);
-                write1(bytes.Length);
+                Write1(OtpExternal.smallAtomUtf8Tag);
+                Write1(bytes.Length);
             }
             else
             {
-                write1(OtpExternal.atomUtf8Tag);
-                write2BE(bytes.Length);
+                Write1(OtpExternal.atomUtf8Tag);
+                Write2BE(bytes.Length);
             }
 
-            writeN(bytes);
+            WriteN(bytes);
         }
 
         /**
@@ -372,11 +342,11 @@ namespace Erlang.NET
          * @param bin
          *            the array of bytes to write.
          */
-        public void write_binary(byte[] bin)
+        public void WriteBinary(byte[] bin)
         {
-            write1(OtpExternal.binTag);
-            write4BE(bin.Length);
-            writeN(bin);
+            Write1(OtpExternal.binTag);
+            Write4BE(bin.Length);
+            WriteN(bin);
         }
 
         /**
@@ -387,17 +357,17 @@ namespace Erlang.NET
          * @param pad_bits
          *            the number of zero pad bits at the low end of the last byte
          */
-        public void write_bitstr(byte[] bin, int pad_bits)
+        public void WriteBitstr(byte[] bin, int pad_bits)
         {
             if (pad_bits == 0)
             {
-                write_binary(bin);
+                WriteBinary(bin);
                 return;
             }
-            write1(OtpExternal.bitBinTag);
-            write4BE(bin.Length);
-            write1(8 - pad_bits);
-            writeN(bin);
+            Write1(OtpExternal.bitBinTag);
+            Write4BE(bin.Length);
+            Write1(8 - pad_bits);
+            WriteN(bin);
         }
 
         /**
@@ -406,9 +376,9 @@ namespace Erlang.NET
          * @param b
          *            the boolean value to write.
          */
-        public void write_boolean(bool b)
+        public void WriteBoolean(bool b)
         {
-            write_atom(b.ToString());
+            WriteAtom(b.ToString());
         }
 
         /**
@@ -418,9 +388,9 @@ namespace Erlang.NET
          * @param b
          *            the byte to use.
          */
-        public void write_byte(byte b)
+        public new void WriteByte(byte b)
         {
-            this.write_long(b & 0xffL, true);
+            WriteLong(b & 0xffL, true);
         }
 
         /**
@@ -431,9 +401,9 @@ namespace Erlang.NET
          * @param c
          *            the character to use.
          */
-        public void write_char(char c)
+        public void WriteChar(char c)
         {
-            this.write_long(c & 0xffffL, true);
+            WriteLong(c & 0xffffL, true);
         }
 
         /**
@@ -442,10 +412,10 @@ namespace Erlang.NET
          * @param d
          *            the double to use.
          */
-        public void write_double(double d)
+        public void WriteDouble(double d)
         {
-            write1(OtpExternal.newFloatTag);
-            write8BE(BitConverter.ToInt64(BitConverter.GetBytes(d), 0));
+            Write1(OtpExternal.newFloatTag);
+            Write8BE(BitConverter.ToInt64(BitConverter.GetBytes(d), 0));
         }
 
         /**
@@ -454,49 +424,46 @@ namespace Erlang.NET
          * @param f
          *            the float to use.
          */
-        public void write_float(float f)
+        public void WriteFloat(float f)
         {
-            write_double(f);
+            WriteDouble(f);
         }
 
-        public void write_big_integer(BigInteger v)
+        public void WriteBigInteger(BigInteger v)
         {
             if (v.bitCount() < 64)
             {
-                this.write_long(v.LongValue(), true);
+                this.WriteLong(v.LongValue(), true);
                 return;
             }
+
             int signum = (v > (BigInteger)0) ? 1 : (v < (BigInteger)0) ? -1 : 0;
             if (signum < 0)
-            {
                 v = -v;
-            }
+
             byte[] magnitude = v.getBytes();
             int n = magnitude.Length;
+
             // Reverse the array to make it little endian.
             for (int i = 0, j = n; i < j--; i++)
-            {
-                // Swap [i] with [j]
-                byte b = magnitude[i];
-                magnitude[i] = magnitude[j];
-                magnitude[j] = b;
-            }
+                (magnitude[i], magnitude[j]) = (magnitude[j], magnitude[i]);
+
             if ((n & 0xFF) == n)
             {
-                write1(OtpExternal.smallBigTag);
-                write1(n); // length
+                Write1(OtpExternal.smallBigTag);
+                Write1(n); // length
             }
             else
             {
-                write1(OtpExternal.largeBigTag);
-                write4BE(n); // length
+                Write1(OtpExternal.largeBigTag);
+                Write4BE(n); // length
             }
-            write1(signum < 0 ? 1 : 0); // sign
+            Write1(signum < 0 ? 1 : 0); // sign
             // Write the array
-            writeN(magnitude);
+            WriteN(magnitude);
         }
 
-        void write_long(long v, bool unsigned)
+        void WriteLong(long v, bool unsigned)
         {
             /*
              * If v<0 and unsigned==true the value
@@ -506,8 +473,8 @@ namespace Erlang.NET
             if ((v & 0xffL) == v)
             {
                 // will fit in one byte
-                write1(OtpExternal.smallIntTag);
-                write1(v);
+                Write1(OtpExternal.smallIntTag);
+                Write1(v);
             }
             else
             {
@@ -523,15 +490,15 @@ namespace Erlang.NET
                     {
                         ; // count nonzero bytes
                     }
-                    write1(OtpExternal.smallBigTag);
-                    write1(n); // length
-                    write1(sign); // sign
-                    writeLE(abs, n); // value. obs! little endian
+                    Write1(OtpExternal.smallBigTag);
+                    Write1(n); // length
+                    Write1(sign); // sign
+                    WriteLE(abs, n); // value. obs! little endian
                 }
                 else
                 {
-                    write1(OtpExternal.intTag);
-                    write4BE(v);
+                    Write1(OtpExternal.intTag);
+                    Write4BE(v);
                 }
             }
         }
@@ -542,9 +509,9 @@ namespace Erlang.NET
          * @param l
          *            the long to use.
          */
-        public void write_long(long l)
+        public void WriteLong(long l)
         {
-            this.write_long(l, false);
+            WriteLong(l, false);
         }
 
         /**
@@ -554,9 +521,9 @@ namespace Erlang.NET
          * @param ul
          *            the long to use.
          */
-        public void write_ulong(long ul)
+        public void WriteULong(long ul)
         {
-            this.write_long(ul, true);
+            WriteLong(ul, true);
         }
 
         /**
@@ -565,9 +532,9 @@ namespace Erlang.NET
          * @param i
          *            the integer to use.
          */
-        public void write_int(int i)
+        public void WriteInt(int i)
         {
-            this.write_long(i, false);
+            WriteLong(i, false);
         }
 
         /**
@@ -577,9 +544,9 @@ namespace Erlang.NET
          * @param ui
          *            the integer to use.
          */
-        public void write_uint(int ui)
+        public void WriteUInt(uint ui)
         {
-            this.write_long(ui & 0xFFFFffffL, true);
+            WriteLong(ui & 0xFFFFffffL, true);
         }
 
         /**
@@ -588,9 +555,9 @@ namespace Erlang.NET
          * @param s
          *            the short to use.
          */
-        public void write_short(short s)
+        public void WriteShort(short s)
         {
-            this.write_long(s, false);
+            WriteLong(s, false);
         }
 
         /**
@@ -600,9 +567,9 @@ namespace Erlang.NET
          * @param s
          *            the short to use.
          */
-        public void write_ushort(short us)
+        public void WriteUShort(ushort us)
         {
-            this.write_long(us & 0xffffL, true);
+            WriteLong(us & 0xffffL, true);
         }
 
         /**
@@ -613,25 +580,25 @@ namespace Erlang.NET
          * @param arity
          *            the number of elements in the list.
          */
-        public void write_list_head(int arity)
+        public void WriteListHead(int arity)
         {
             if (arity == 0)
             {
-                write_nil();
+                WriteNil();
             }
             else
             {
-                write1(OtpExternal.listTag);
-                write4BE(arity);
+                Write1(OtpExternal.listTag);
+                Write4BE(arity);
             }
         }
 
         /**
          * Write an empty Erlang list to the stream.
          */
-        public void write_nil()
+        public void WriteNil()
         {
-            write1(OtpExternal.nilTag);
+            Write1(OtpExternal.nilTag);
         }
 
         /**
@@ -642,17 +609,17 @@ namespace Erlang.NET
          * @param arity
          *            the number of elements in the tuple.
          */
-        public void write_tuple_head(int arity)
+        public void WriteTupleHead(int arity)
         {
             if (arity < 0xff)
             {
-                write1(OtpExternal.smallTupleTag);
-                write1(arity);
+                Write1(OtpExternal.smallTupleTag);
+                Write1(arity);
             }
             else
             {
-                write1(OtpExternal.largeTupleTag);
-                write4BE(arity);
+                Write1(OtpExternal.largeTupleTag);
+                Write4BE(arity);
             }
         }
 
@@ -674,13 +641,13 @@ namespace Erlang.NET
          *            be used.
          * 
          */
-        public void write_pid(string node, int id, int serial, int creation)
+        public void WritePid(string node, int id, int serial, int creation)
         {
-            write1(OtpExternal.newPidTag);
-            write_atom(node);
-            write4BE(id & 0x7fff); // 15 bits
-            write4BE(serial & 0x1fff); // 13 bits
-            write1(creation & 0x3); // 2 bits
+            Write1(OtpExternal.newPidTag);
+            WriteAtom(node);
+            Write4BE(id & 0x7fff); // 15 bits
+            Write4BE(serial & 0x1fff); // 13 bits
+            Write1(creation & 0x3); // 2 bits
         }
 
         /**
@@ -689,13 +656,13 @@ namespace Erlang.NET
          * @param pid
          *            the pid
          */
-        public void write_pid(OtpErlangPid pid)
+        public void WritePid(OtpErlangPid pid)
         {
-            write1(OtpExternal.newPidTag);
-            write_atom(pid.Node);
-            write4BE(pid.Id);
-            write4BE(pid.Serial);
-            write4BE(pid.Creation);
+            Write1(OtpExternal.newPidTag);
+            WriteAtom(pid.Node);
+            Write4BE(pid.Id);
+            Write4BE(pid.Serial);
+            Write4BE(pid.Creation);
         }
 
         /**
@@ -712,12 +679,12 @@ namespace Erlang.NET
          *            used.
          * 
          */
-        public void write_port(string node, int id, int creation)
+        public void WritePort(string node, int id, int creation)
         {
-            write1(OtpExternal.newPortTag);
-            write_atom(node);
-            write4BE(id & 0xfffffff); // 28 bits
-            write1(creation & 0x3); // 2 bits
+            Write1(OtpExternal.newPortTag);
+            WriteAtom(node);
+            Write4BE(id & 0xfffffff); // 28 bits
+            Write1(creation & 0x3); // 2 bits
         }
 
         /**
@@ -726,12 +693,12 @@ namespace Erlang.NET
          * @param port
          *            the port.
          */
-        public void write_port(OtpErlangPort port)
+        public void WritePort(OtpErlangPort port)
         {
-            write1(OtpExternal.newPortTag);
-            write_atom(port.Node);
-            write4BE(port.Id);
-            write4BE(port.Creation);
+            Write1(OtpExternal.newPortTag);
+            WriteAtom(port.Node);
+            Write4BE(port.Id);
+            Write4BE(port.Creation);
         }
 
         /**
@@ -748,12 +715,12 @@ namespace Erlang.NET
          *            used.
          * 
          */
-        public void write_ref(string node, int id, int creation)
+        public void WriteRef(string node, int id, int creation)
         {
             /* Always encode as an extended reference; all
                participating parties are now expected to be
                able to decode extended references. */
-            write_ref(node, new int[1] { id }, creation);
+            WriteRef(node, new int[1] { id }, creation);
         }
 
         /**
@@ -771,28 +738,28 @@ namespace Erlang.NET
          *            another arbitrary number. Only the low order 2 bits will be used.
          * 
          */
-        public void write_ref(string node, int[] ids, int creation)
+        public void WriteRef(string node, int[] ids, int creation)
         {
             int arity = ids.Length;
             if (arity > 3)
                 arity = 3; // max 3 words in ref
 
             // r6 ref
-            write1(OtpExternal.newerRefTag);
+            Write1(OtpExternal.newerRefTag);
 
             // how many id values
-            write2BE(arity);
+            Write2BE(arity);
 
-            write_atom(node);
+            WriteAtom(node);
 
-            write1(creation & 0x3); // 2 bits
+            Write1(creation & 0x3); // 2 bits
 
             // first int gets truncated to 18 bits
-            write4BE(ids[0] & 0x3ffff);
+            Write4BE(ids[0] & 0x3ffff);
 
             // remaining ones are left as is
             for (int i = 1; i < arity; i++)
-                write4BE(ids[i]);
+                Write4BE(ids[i]);
         }
 
         /**
@@ -801,16 +768,16 @@ namespace Erlang.NET
          * @param ref
          *            the reference
          */
-        public void write_ref(OtpErlangRef r)
+        public void WriteRef(OtpErlangRef r)
         {
             int arity = r.Ids.Length;
 
-            write1(OtpExternal.newerRefTag);
-            write2BE(arity);
-            write_atom(r.Node);
-            write4BE(r.Creation);
+            Write1(OtpExternal.newerRefTag);
+            Write2BE(arity);
+            WriteAtom(r.Node);
+            Write4BE(r.Creation);
             for (int i = 0; i < arity; i++)
-                write4BE(r.Ids[i]);
+                Write4BE(r.Ids[i]);
         }
 
         /**
@@ -826,38 +793,38 @@ namespace Erlang.NET
             switch (len)
             {
                 case 0:
-                    write_nil();
+                    WriteNil();
                     break;
                 default:
-                    if (len <= 65535 && is8bitString(s)) // 8-bit string
+                    if (len <= 65535 && Is8bitString(s)) // 8-bit string
                     {
                         try
                         {
                             byte[] bytebuf = Encoding.GetEncoding("ISO-8859-1").GetBytes(s);
-                            write1(OtpExternal.stringTag);
-                            write2BE(len);
-                            writeN(bytebuf);
+                            Write1(OtpExternal.stringTag);
+                            Write2BE(len);
+                            WriteN(bytebuf);
                         }
                         catch (EncoderFallbackException)
                         {
-                            write_nil(); // it should never ever get here...
+                            WriteNil(); // it should never ever get here...
                         }
                     }
                     else // unicode or longer, must code as list
                     {
                         int[] codePoints = OtpErlangString.ToCodePoints(s);
-                        write_list_head(codePoints.Length);
+                        WriteListHead(codePoints.Length);
                         foreach (int codePoint in codePoints)
                         {
-                            write_int(codePoint);
+                            WriteInt(codePoint);
                         }
-                        write_nil();
+                        WriteNil();
                     }
                     break;
             }
         }
 
-        private bool is8bitString(string s)
+        private bool Is8bitString(string s)
         {
             for (int i = 0; i < s.Length; ++i)
             {
@@ -876,24 +843,24 @@ namespace Erlang.NET
          * @param o
          *            the Erlang tem to write.
          */
-        public void write_compressed(OtpErlangObject o)
+        public void WriteCompressed(OtpErlangObject o)
         {
-            write_compressed(o, CompressionLevel.Optimal);
+            WriteCompressed(o, CompressionLevel.Optimal);
         }
 
-        public void write_compressed(OtpErlangObject o, CompressionLevel level)
+        public void WriteCompressed(OtpErlangObject o, CompressionLevel level)
         {
             try
             {
                 OtpOutputStream oos = new OtpOutputStream(o);
-                if (oos.size() < 5)
+                if (oos.Length < 5)
                 {
                     oos.WriteTo(this);
                 }
                 else
                 {
-                    write1(OtpExternal.compressedTag);
-                    write4BE(oos.Length);
+                    Write1(OtpExternal.compressedTag);
+                    Write4BE(oos.Length);
                     DeflateStream dos = new DeflateStream(this, level, true);
                     oos.WriteTo(dos);
                     dos.Close();
@@ -915,24 +882,24 @@ namespace Erlang.NET
          * @param o
          *            the Erlang term to write.
          */
-        public void write_any(OtpErlangObject o)
+        public void WriteAny(OtpErlangObject o)
         {
             // calls one of the above functions, depending on o
             o.Encode(this);
         }
 
-        public void write_fun(OtpErlangPid pid, string module,
+        public void WriteFun(OtpErlangPid pid, string module,
                       long old_index, int arity, byte[] md5,
                       long index, long uniq, OtpErlangObject[] freeVars)
         {
             if (arity == -1)
             {
-                write1(OtpExternal.funTag);
-                write4BE(freeVars.Length);
+                Write1(OtpExternal.funTag);
+                Write4BE(freeVars.Length);
                 pid.Encode(this);
-                write_atom(module);
-                write_long(index);
-                write_long(uniq);
+                WriteAtom(module);
+                WriteLong(index);
+                WriteLong(uniq);
                 foreach (OtpErlangObject fv in freeVars)
                 {
                     fv.Encode(this);
@@ -940,37 +907,37 @@ namespace Erlang.NET
             }
             else
             {
-                write1(OtpExternal.newFunTag);
-                int saveSizePos = getPos();
-                write4BE(0); // this is where we patch in the size
-                write1(arity);
-                writeN(md5);
-                write4BE(index);
-                write4BE(freeVars.Length);
-                write_atom(module);
-                write_long(old_index);
-                write_long(uniq);
+                Write1(OtpExternal.newFunTag);
+                int saveSizePos = GetPos();
+                Write4BE(0); // this is where we patch in the size
+                Write1(arity);
+                WriteN(md5);
+                Write4BE(index);
+                Write4BE(freeVars.Length);
+                WriteAtom(module);
+                WriteLong(old_index);
+                WriteLong(uniq);
                 pid.Encode(this);
                 foreach (OtpErlangObject fv in freeVars)
                 {
                     fv.Encode(this);
                 }
-                poke4BE(saveSizePos, getPos() - saveSizePos);
+                Poke4BE(saveSizePos, GetPos() - saveSizePos);
             }
         }
 
-        public void write_external_fun(string module, string function, int arity)
+        public void WriteExternalFun(string module, string function, int arity)
         {
-            write1(OtpExternal.externalFunTag);
-            write_atom(module);
-            write_atom(function);
-            write_long(arity);
+            Write1(OtpExternal.externalFunTag);
+            WriteAtom(module);
+            WriteAtom(function);
+            WriteLong(arity);
         }
 
-        public void write_map_head(int arity)
+        public void WriteMapHead(int arity)
         {
-            write1(OtpExternal.mapTag);
-            write4BE(arity);
+            Write1(OtpExternal.mapTag);
+            Write4BE(arity);
         }
     }
 }

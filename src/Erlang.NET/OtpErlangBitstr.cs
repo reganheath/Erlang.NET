@@ -229,7 +229,7 @@ namespace Erlang.NET
          */
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_bitstr(Bin, PadBits);
+            buf.WriteBitstr(Bin, PadBits);
         }
 
         /**

@@ -123,7 +123,7 @@ namespace Erlang.NET
          */
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_port(this);
+            buf.WritePort(this);
         }
 
         /**

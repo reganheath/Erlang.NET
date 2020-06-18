@@ -226,9 +226,9 @@ namespace Erlang.NET
                     }
 
                     OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.write1(ALIVE2_RESP);
-                    obuf.write1(0);
-                    obuf.write2BE(epmd.Creation);
+                    obuf.Write1(ALIVE2_RESP);
+                    obuf.Write1(0);
+                    obuf.Write2BE(epmd.Creation);
                     obuf.WriteTo(s.GetOutputStream());
 
                     lock (portmap)
@@ -272,21 +272,21 @@ namespace Erlang.NET
                     OtpOutputStream obuf = new OtpOutputStream();
                     if (node != null)
                     {
-                        obuf.write1(port4resp);
-                        obuf.write1(0);
-                        obuf.write2BE(node.Port);
-                        obuf.write1(node.Type);
-                        obuf.write1(node.Proto);
-                        obuf.write2BE(node.DistHigh);
-                        obuf.write2BE(node.DistLow);
-                        obuf.write2BE(len);
-                        obuf.writeN(alive);
-                        obuf.write2BE(0);
+                        obuf.Write1(port4resp);
+                        obuf.Write1(0);
+                        obuf.Write2BE(node.Port);
+                        obuf.Write1(node.Type);
+                        obuf.Write1(node.Proto);
+                        obuf.Write2BE(node.DistHigh);
+                        obuf.Write2BE(node.DistLow);
+                        obuf.Write2BE(len);
+                        obuf.WriteN(alive);
+                        obuf.Write2BE(0);
                     }
                     else
                     {
-                        obuf.write1(port4resp);
-                        obuf.write1(1);
+                        obuf.Write1(port4resp);
+                        obuf.Write1(1);
                     }
                     obuf.WriteTo(s.GetOutputStream());
                 }
@@ -309,7 +309,7 @@ namespace Erlang.NET
                     }
 
                     OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.write4BE(EpmdPort.get());
+                    obuf.Write4BE(EpmdPort.get());
                     lock (portmap)
                     {
                         foreach (KeyValuePair<string, OtpPublishedNode> pair in portmap)
@@ -317,7 +317,7 @@ namespace Erlang.NET
                             OtpPublishedNode node = pair.Value;
                             string info = string.Format("name {0} at port {1}\n", node.Alive, node.Port);
                             byte[] bytes = Encoding.GetEncoding("iso-8859-1").GetBytes(info);
-                            obuf.writeN(bytes);
+                            obuf.WriteN(bytes);
                         }
                     }
                     obuf.WriteTo(s.GetOutputStream());

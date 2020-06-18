@@ -77,7 +77,7 @@ namespace Erlang.NET
 
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_fun(pid, module, old_index, arity, md5, index, uniq, freeVars);
+            buf.WriteFun(pid, module, old_index, arity, md5, index, uniq, freeVars);
         }
 
         public override bool Equals(object o) => Equals(o as OtpErlangFun);

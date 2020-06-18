@@ -103,7 +103,7 @@ namespace Erlang.NET
          */
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_double(value);
+            buf.WriteDouble(value);
         }
 
         /**

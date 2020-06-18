@@ -188,7 +188,7 @@ namespace Erlang.NET
          */
         public override void Encode(OtpOutputStream buf)
         {
-            buf.write_ref(this);
+            buf.WriteRef(this);
         }
 
         /**

@@ -228,25 +228,25 @@ namespace Erlang.NET
             OtpOutputStream header = new OtpOutputStream(headerLen);
 
             // preamble: 4 byte length + "passthrough" tag + version
-            header.write4BE(0); // reserve space for length
-            header.write1(passThrough);
-            header.write1(version);
+            header.Write4BE(0); // reserve space for length
+            header.Write1(passThrough);
+            header.Write1(version);
 
             // header info
-            header.write_tuple_head(4);
-            header.write_long(regSendTag);
-            header.write_any(from);
+            header.WriteTupleHead(4);
+            header.WriteLong(regSendTag);
+            header.WriteAny(from);
             if (sendCookie)
-                header.write_atom(localNode.Cookie);
+                header.WriteAtom(localNode.Cookie);
             else
-                header.write_atom("");
-            header.write_atom(dest);
+                header.WriteAtom("");
+            header.WriteAtom(dest);
 
             // version for payload
-            header.write1(version);
+            header.Write1(version);
 
             // fix up length in preamble
-            header.poke4BE(0, header.size() + payload.size() - 4);
+            header.Poke4BE(0, header.Length + payload.Length - 4);
 
             DoSend(header, payload);
         }
@@ -271,24 +271,24 @@ namespace Erlang.NET
             OtpOutputStream header = new OtpOutputStream(headerLen);
 
             // preamble: 4 byte length + "passthrough" tag + version
-            header.write4BE(0); // reserve space for length
-            header.write1(passThrough);
-            header.write1(version);
+            header.Write4BE(0); // reserve space for length
+            header.Write1(passThrough);
+            header.Write1(version);
 
             // header info
-            header.write_tuple_head(3);
-            header.write_long(sendTag);
+            header.WriteTupleHead(3);
+            header.WriteLong(sendTag);
             if (sendCookie)
-                header.write_atom(localNode.Cookie);
+                header.WriteAtom(localNode.Cookie);
             else
-                header.write_atom("");
-            header.write_any(dest);
+                header.WriteAtom("");
+            header.WriteAny(dest);
 
             // version for payload
-            header.write1(version);
+            header.Write1(version);
 
             // fix up length in preamble
-            header.poke4BE(0, header.size() + payload.size() - 4);
+            header.Poke4BE(0, header.Length + payload.Length - 4);
 
             DoSend(header, payload);
         }
@@ -305,19 +305,19 @@ namespace Erlang.NET
                 OtpOutputStream header = new OtpOutputStream(headerLen);
 
                 // preamble: 4 byte length + "passthrough" tag + version
-                header.write4BE(0); // reserve space for length
-                header.write1(passThrough);
-                header.write1(version);
+                header.Write4BE(0); // reserve space for length
+                header.Write1(passThrough);
+                header.Write1(version);
 
-                header.write_tuple_head(4);
-                header.write_long(regSendTag);
-                header.write_any(local.createPid()); // disposable pid
-                header.write_atom(cookie.atomValue()); // important: his cookie,
+                header.WriteTupleHead(4);
+                header.WriteLong(regSendTag);
+                header.WriteAny(local.createPid()); // disposable pid
+                header.WriteAtom(cookie.atomValue()); // important: his cookie,
                 // not mine...
-                header.write_atom("auth");
+                header.WriteAtom("auth");
 
                 // version for payload
-                header.write1(version);
+                header.Write1(version);
 
                 // the payload
 
@@ -340,7 +340,7 @@ namespace Erlang.NET
                 OtpOutputStream payload = new OtpOutputStream(new OtpErlangTuple(msg));
 
                 // fix up length in preamble
-                header.poke4BE(0, header.size() + payload.size() - 4);
+                header.Poke4BE(0, header.Length + payload.Length - 4);
 
                 try { DoSend(header, payload); }
                 catch (IOException) { } // ignore
@@ -377,18 +377,18 @@ namespace Erlang.NET
             OtpOutputStream header = new OtpOutputStream(headerLen);
 
             // preamble: 4 byte length + "passthrough" tag
-            header.write4BE(0); // reserve space for length
-            header.write1(passThrough);
-            header.write1(version);
+            header.Write4BE(0); // reserve space for length
+            header.Write1(passThrough);
+            header.Write1(version);
 
             // header
-            header.write_tuple_head(3);
-            header.write_long(linkTag);
-            header.write_any(from);
-            header.write_any(dest);
+            header.WriteTupleHead(3);
+            header.WriteLong(linkTag);
+            header.WriteAny(from);
+            header.WriteAny(dest);
 
             // fix up length in preamble
-            header.poke4BE(0, header.size() - 4);
+            header.Poke4BE(0, header.Length - 4);
 
             DoSend(header);
         }
@@ -413,18 +413,18 @@ namespace Erlang.NET
             OtpOutputStream header = new OtpOutputStream(headerLen);
 
             // preamble: 4 byte length + "passthrough" tag
-            header.write4BE(0); // reserve space for length
-            header.write1(passThrough);
-            header.write1(version);
+            header.Write4BE(0); // reserve space for length
+            header.Write1(passThrough);
+            header.Write1(version);
 
             // header
-            header.write_tuple_head(3);
-            header.write_long(unlinkTag);
-            header.write_any(from);
-            header.write_any(dest);
+            header.WriteTupleHead(3);
+            header.WriteLong(unlinkTag);
+            header.WriteAny(from);
+            header.WriteAny(dest);
 
             // fix up length in preamble
-            header.poke4BE(0, header.size() - 4);
+            header.Poke4BE(0, header.Length - 4);
 
             DoSend(header);
         }
@@ -460,19 +460,19 @@ namespace Erlang.NET
             OtpOutputStream header = new OtpOutputStream(headerLen);
 
             // preamble: 4 byte length + "passthrough" tag
-            header.write4BE(0); // reserve space for length
-            header.write1(passThrough);
-            header.write1(version);
+            header.Write4BE(0); // reserve space for length
+            header.Write1(passThrough);
+            header.Write1(version);
 
             // header
-            header.write_tuple_head(4);
-            header.write_long(tag);
-            header.write_any(from);
-            header.write_any(dest);
-            header.write_any(reason);
+            header.WriteTupleHead(4);
+            header.WriteLong(tag);
+            header.WriteAny(from);
+            header.WriteAny(dest);
+            header.WriteAny(reason);
 
             // fix up length in preamble
-            header.poke4BE(0, header.size() - 4);
+            header.Poke4BE(0, header.Length - 4);
 
             DoSend(header);
         }
@@ -820,11 +820,11 @@ namespace Erlang.NET
                         // First make OtpInputStream, then decode.
                         try
                         {
-                            OtpErlangObject h = header.getOtpInputStream(5).ReadAny();
+                            OtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
 
                             log.Debug("-> " + HeaderType(h) + " " + h);
 
-                            OtpErlangObject o = payload.getOtpInputStream(0).ReadAny();
+                            OtpErlangObject o = payload.GetOtpInputStream(0).ReadAny();
                             log.Debug("   " + o);
                             o = null;
                         }
@@ -856,7 +856,7 @@ namespace Erlang.NET
                     {
                         try
                         {
-                            OtpErlangObject h = header.getOtpInputStream(5).ReadAny();
+                            OtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
                             log.Debug("-> " + HeaderType(h) + " " + h);
                         }
                         catch (OtpErlangDecodeException e)
@@ -1119,22 +1119,22 @@ namespace Erlang.NET
             int send_name_tag;
             if (dist == 5)
             {
-                obuf.write2BE(1 + 2 + 4 + str.Length);
+                obuf.Write2BE(1 + 2 + 4 + str.Length);
                 send_name_tag = 'n';
-                obuf.write1(send_name_tag);
-                obuf.write2BE(dist);
-                obuf.write4BE(aflags);
-                obuf.write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
+                obuf.Write1(send_name_tag);
+                obuf.Write2BE(dist);
+                obuf.Write4BE(aflags);
+                obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
             else
             {
-                obuf.write2BE(1 + 8 + 4 + 2 + str.Length);
+                obuf.Write2BE(1 + 8 + 4 + 2 + str.Length);
                 send_name_tag = 'N';
-                obuf.write1(send_name_tag);
-                obuf.write8BE(aflags);
-                obuf.write4BE(creation);
-                obuf.write2BE(str.Length);
-                obuf.write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
+                obuf.Write1(send_name_tag);
+                obuf.Write8BE(aflags);
+                obuf.Write4BE(creation);
+                obuf.Write2BE(str.Length);
+                obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
 
             obuf.WriteTo(socket.GetOutputStream());
@@ -1151,11 +1151,11 @@ namespace Erlang.NET
             if (send_name_tag == 'n' && (peer.CapFlags & AbstractNode.dFlagHandshake23) != 0)
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                obuf.write2BE(1 + 4 + 4);
-                obuf.write1('c');
+                obuf.Write2BE(1 + 4 + 4);
+                obuf.Write1('c');
                 int flagsHigh = (int)(localNode.CapFlags >> 32);
-                obuf.write4BE(flagsHigh);
-                obuf.write4BE(localNode.Creation);
+                obuf.Write4BE(flagsHigh);
+                obuf.Write4BE(localNode.Creation);
 
                 obuf.WriteTo(socket.GetOutputStream());
 
@@ -1170,22 +1170,22 @@ namespace Erlang.NET
             string str = localNode.Node;
             if ((her_flags & AbstractNode.dFlagHandshake23) == 0)
             {
-                obuf.write2BE(1 + 2 + 4 + 4 + str.Length);
-                obuf.write1('n');
-                obuf.write2BE(5);
-                obuf.write4BE(our_flags & 0xffffffff);
-                obuf.write4BE(challenge);
-                obuf.write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
+                obuf.Write2BE(1 + 2 + 4 + 4 + str.Length);
+                obuf.Write1('n');
+                obuf.Write2BE(5);
+                obuf.Write4BE(our_flags & 0xffffffff);
+                obuf.Write4BE(challenge);
+                obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
             else
             {
-                obuf.write2BE(1 + 8 + 4 + 4 + 2 + str.Length);
-                obuf.write1('N');
-                obuf.write8BE(our_flags);
-                obuf.write4BE(challenge);
-                obuf.write4BE(localNode.Creation);
-                obuf.write2BE(str.Length);
-                obuf.write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
+                obuf.Write2BE(1 + 8 + 4 + 4 + 2 + str.Length);
+                obuf.Write1('N');
+                obuf.Write8BE(our_flags);
+                obuf.Write4BE(challenge);
+                obuf.Write4BE(localNode.Creation);
+                obuf.Write2BE(str.Length);
+                obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
 
             obuf.WriteTo(socket.GetOutputStream());
@@ -1359,10 +1359,10 @@ namespace Erlang.NET
         protected void SendChallengeReply(int challenge, byte[] digest)
         {
             OtpOutputStream obuf = new OtpOutputStream();
-            obuf.write2BE(21);
-            obuf.write1(ChallengeReply);
-            obuf.write4BE(challenge);
-            obuf.write(digest);
+            obuf.Write2BE(21);
+            obuf.Write1(ChallengeReply);
+            obuf.Write4BE(challenge);
+            obuf.Write(digest);
             obuf.WriteTo(socket.GetOutputStream());
 
             if (traceLevel >= handshakeThreshold)
@@ -1409,9 +1409,9 @@ namespace Erlang.NET
         protected void SendChallengeAck(byte[] digest)
         {
             OtpOutputStream obuf = new OtpOutputStream();
-            obuf.write2BE(17);
-            obuf.write1(ChallengeAck);
-            obuf.write(digest);
+            obuf.Write2BE(17);
+            obuf.Write1(ChallengeAck);
+            obuf.Write(digest);
 
             obuf.WriteTo(socket.GetOutputStream());
 
@@ -1457,9 +1457,9 @@ namespace Erlang.NET
         protected void SendStatus(string status)
         {
             OtpOutputStream obuf = new OtpOutputStream();
-            obuf.write2BE(status.Length + 1);
-            obuf.write1(ChallengeStatus);
-            obuf.write(Encoding.GetEncoding("iso-8859-1").GetBytes(status));
+            obuf.Write2BE(status.Length + 1);
+            obuf.Write1(ChallengeStatus);
+            obuf.Write(Encoding.GetEncoding("iso-8859-1").GetBytes(status));
 
             obuf.WriteTo(socket.GetOutputStream());
 
