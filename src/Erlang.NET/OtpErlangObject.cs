@@ -91,7 +91,7 @@ namespace Erlang.NET
 
         internal class Hash
         {
-            uint[] abc = { 0, 0, 0 };
+            readonly uint[] abc = { 0, 0, 0 };
 
             /* Hash function suggested by Bob Jenkins.
              * The same as in the Erlang VM (beam); utils.c.

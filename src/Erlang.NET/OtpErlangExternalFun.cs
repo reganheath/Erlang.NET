@@ -24,9 +24,9 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangExternalFun : OtpErlangObject, IEquatable<OtpErlangExternalFun>
     {
-        private string module;
-        private string function;
-        private int arity;
+        private readonly string module;
+        private readonly string function;
+        private readonly int arity;
 
         public OtpErlangExternalFun(string module, string function, int arity)
             : base()

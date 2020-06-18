@@ -34,8 +34,8 @@ namespace Erlang.NET
      */
     public class OtpErlangExit : OtpErlangException
     {
-        OtpErlangObject reason = null;
-        OtpErlangPid pid = null;
+        readonly OtpErlangObject reason = null;
+        readonly OtpErlangPid pid = null;
 
         /**
          * Create an OtpErlangExit exception with the given reason.

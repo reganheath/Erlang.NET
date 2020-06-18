@@ -619,9 +619,9 @@ namespace Erlang.NET
             private readonly OtpActorSched sched;
 
             // mbox pids here
-            private Dictionary<OtpErlangPid, WeakReference> byPid = null;
+            private readonly Dictionary<OtpErlangPid, WeakReference> byPid = null;
             // mbox names here
-            private Dictionary<string, WeakReference> byName = null;
+            private readonly Dictionary<string, WeakReference> byName = null;
 
             public Mailboxes(OtpNode node, OtpActorSched sched)
             {

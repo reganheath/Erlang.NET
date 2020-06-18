@@ -5,7 +5,7 @@ namespace Erlang.NET
 {
     public class OtpServerSocketTransport : OtpServerTransport
     {
-        private TcpListener socket;
+        private readonly TcpListener socket;
 
         public OtpServerSocketTransport(int port, bool start = true)
         {

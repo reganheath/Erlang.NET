@@ -87,7 +87,7 @@ namespace Erlang.NET
         private const byte ALIVE2_X_RESP = (byte)118;
         private const byte names4req = (byte)110;
 
-        private static int traceLevel = 0;
+        private static readonly int traceLevel = 0;
         private const int traceThreshold = 4;
 
         static OtpEpmd()
