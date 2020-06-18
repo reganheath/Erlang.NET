@@ -61,7 +61,7 @@ namespace Erlang.NET
          *                (may be null).
          * 
          */
-        public void remoteStatus(string node, bool up, Object info)
+        public void RemoteStatus(string node, bool up, object info)
         {
         }
 
@@ -80,7 +80,7 @@ namespace Erlang.NET
          *                exception that was raised causing the event in question
          *                (may be null).
          */
-        public void localStatus(string node, bool up, Object info)
+        public void LocalStatus(string node, bool up, object info)
         {
         }
 
@@ -99,7 +99,7 @@ namespace Erlang.NET
          *                exception that was raised causing the event in question
          *                (may be null).
          */
-        public void connAttempt(string node, bool incoming, Object info)
+        public void ConnAttempt(string node, bool incoming, object info)
         {
         }
     }

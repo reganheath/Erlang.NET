@@ -19,6 +19,7 @@
  */
 using System;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -33,9 +34,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangBitstr : OtpErlangObject
     {
-        protected byte[] bin;
-        protected int pad_bits;
-
         /**
          * Create a bitstr from a byte array
          * 
@@ -44,9 +42,9 @@ namespace Erlang.NET
          */
         public OtpErlangBitstr(byte[] bin)
         {
-            this.bin = new byte[bin.Length];
-            Array.Copy(bin, 0, this.bin, 0, bin.Length);
-            pad_bits = 0;
+            Bin = new byte[bin.Length];
+            Array.Copy(bin, 0, Bin, 0, bin.Length);
+            PadBits = 0;
         }
 
         /**
@@ -59,14 +57,13 @@ namespace Erlang.NET
          */
         public OtpErlangBitstr(byte[] bin, int pad_bits)
         {
-            this.bin = new byte[bin.Length];
-            Array.Copy(bin, 0, this.bin, 0, bin.Length);
-            this.pad_bits = pad_bits;
-
-            check_bitstr(this.bin, this.pad_bits);
+            Bin = new byte[bin.Length];
+            Array.Copy(bin, 0, Bin, 0, bin.Length);
+            PadBits = pad_bits;
+            CheckBitstr(Bin, PadBits);
         }
 
-        private void check_bitstr(byte[] bin, int pad_bits)
+        private static void CheckBitstr(byte[] bin, int pad_bits)
         {
             if (pad_bits < 0 || 7 < pad_bits)
                 throw new ArgumentException("Padding must be in range 0..7");
@@ -94,9 +91,10 @@ namespace Erlang.NET
          */
         public OtpErlangBitstr(OtpInputStream buf)
         {
-            bin = buf.read_bitstr(out pad_bits);
-
-            check_bitstr(bin, pad_bits);
+            int pad_bits;
+            Bin = buf.read_bitstr(out pad_bits);
+            PadBits = pad_bits;
+            CheckBitstr(Bin, PadBits);
         }
 
         /**
@@ -106,12 +104,12 @@ namespace Erlang.NET
          * @param o
          *                the object to serialize and create this bitstr from.
          */
-        public OtpErlangBitstr(Object o)
+        public OtpErlangBitstr(object o)
         {
             try
             {
-                bin = toByteArray(o);
-                pad_bits = 0;
+                Bin = ToByteArray(o);
+                PadBits = 0;
             }
             catch (SerializationException e)
             {
@@ -119,7 +117,7 @@ namespace Erlang.NET
             }
         }
 
-        private static byte[] toByteArray(Object o)
+        private static byte[] ToByteArray(object o)
         {
             if (o == null)
                 return null;
@@ -141,7 +139,7 @@ namespace Erlang.NET
             }
         }
 
-        private static Object fromByteArray(byte[] buf)
+        private static object FromByteArray(byte[] buf)
         {
             if (buf == null)
                 return null;
@@ -166,10 +164,7 @@ namespace Erlang.NET
          * 
          * @return the byte array containing the bytes for this bitstr.
          */
-        public byte[] binaryValue()
-        {
-            return bin;
-        }
+        public byte[] Bin { get; protected set; }
 
         /**
          * Get the size in whole bytes of the bitstr, rest bits in the last byte not
@@ -177,13 +172,13 @@ namespace Erlang.NET
          * 
          * @return the number of bytes contained in the bintstr.
          */
-        public int size()
+        public int Size()
         {
-            if (pad_bits == 0)
-                return bin.Length;
-            if (bin.Length == 0)
+            if (PadBits == 0)
+                return Bin.Length;
+            if (Bin.Length == 0)
                 throw new SystemException("Impossible length");
-            return bin.Length - 1;
+            return Bin.Length - 1;
         }
 
         /**
@@ -192,10 +187,7 @@ namespace Erlang.NET
          * 
          * @return the number of pad bits in the bitstr.
          */
-        public int PadBits
-        {
-            get { return pad_bits; }
-        }
+        public int PadBits { get; protected set; }
 
         /**
          * Get the java Object from the bitstr. If the bitstr contains a serialized
@@ -205,13 +197,11 @@ namespace Erlang.NET
          * @return the java Object represented by this bitstr, or null if the bitstr
          *         does not represent a Java Object.
          */
-        public Object getObject()
+        public object getObject()
         {
-            if (pad_bits != 0)
-            {
+            if (PadBits != 0)
                 return null;
-            }
-            return fromByteArray(bin);
+            return FromByteArray(Bin);
         }
 
         /**
@@ -223,11 +213,11 @@ namespace Erlang.NET
          */
         public override string ToString()
         {
-            if (pad_bits == 0)
-                return "#Bin<" + bin.Length + ">";
-            if (bin.Length == 0)
+            if (PadBits == 0)
+                return "#Bin<" + Bin.Length + ">";
+            if (Bin.Length == 0)
                 throw new SystemException("Impossible length");
-            return "#Bin<" + bin.Length + "-" + pad_bits + ">";
+            return "#Bin<" + Bin.Length + "-" + PadBits + ">";
         }
 
         /**
@@ -237,9 +227,9 @@ namespace Erlang.NET
          *                an output stream to which the encoded bitstr should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
-            buf.write_bitstr(bin, pad_bits);
+            buf.write_bitstr(Bin, PadBits);
         }
 
         /**
@@ -251,55 +241,37 @@ namespace Erlang.NET
          * 
          * @return true if the bitstrs contain the same bits, false otherwise.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangBitstr);
+
+        public bool Equals(OtpErlangBitstr o)
         {
-            if (!(o is OtpErlangBitstr))
-            {
+            if (o == null)
                 return false;
-            }
-
-            OtpErlangBitstr that = (OtpErlangBitstr)o;
-            if (pad_bits != that.pad_bits)
-            {
+            if (ReferenceEquals(this, o))
+                return true;
+            if (PadBits != o.PadBits)
                 return false;
-            }
-
-            int len = bin.Length;
-            if (len != that.bin.Length)
-            {
+            if (Bin.Length != o.Bin.Length)
                 return false;
-            }
-
-            for (int i = 0; i < len; i++)
-            {
-                if (bin[i] != that.bin[i])
-                {
-                    return false; // early exit
-                }
-            }
-
-            return true;
+            return Bin.SequenceEqual(o.Bin);
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(15);
-            hash.combine(bin);
-            hash.combine(pad_bits);
-            return hash.valueOf();
+            hash.Combine(Bin);
+            hash.Combine(PadBits);
+            return hash.ValueOf();
         }
 
-        public override Object Clone()
+        public override object Clone()
         {
             OtpErlangBitstr that = (OtpErlangBitstr)base.Clone();
-            that.bin = new byte[bin.Length];
-            Array.Copy(bin, 0, that.bin, 0, bin.Length);
-            that.pad_bits = pad_bits;
+            that.Bin = new byte[Bin.Length];
+            Array.Copy(Bin, 0, that.Bin, 0, Bin.Length);
+            PadBits = PadBits;
             return that;
         }
     }

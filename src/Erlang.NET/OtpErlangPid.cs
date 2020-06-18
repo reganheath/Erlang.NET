@@ -26,7 +26,7 @@ namespace Erlang.NET
      * processes and consist of a nodename and a number of integers.
      */
     [Serializable]
-    public class OtpErlangPid : OtpErlangObject
+    public class OtpErlangPid : OtpErlangObject, IEquatable<OtpErlangPid>, IComparable<OtpErlangPid>, IComparable
     {
         public int Tag {  get { return OtpExternal.newPidTag; } }
         public string Node { get; private set; }
@@ -152,7 +152,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded PID should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             buf.write_pid(this);
         }
@@ -166,52 +166,57 @@ namespace Erlang.NET
          * 
          * @return true if the PIDs are equal, false otherwise.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangPid);
+
+        public bool Equals(OtpErlangPid o)
         {
-            if (!(o is OtpErlangPid))
-            {
+            if (o == null)
                 return false;
-            }
-
-            OtpErlangPid pid = (OtpErlangPid)o;
-
-            return Creation == pid.Creation && Serial == pid.Serial && Id == pid.Id
-                && Node == pid.Node;
+            if (ReferenceEquals(this, o))
+                return true;
+            return Creation == o.Creation 
+                && Serial == o.Serial 
+                && Id == o.Id
+                && Node == o.Node;
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(5);
-            hash.combine(Creation, Serial);
-            hash.combine(Id, Node.GetHashCode());
-            return hash.valueOf();
+            hash.Combine(Creation, Serial);
+            hash.Combine(Id, Node.GetHashCode());
+            return hash.ValueOf();
         }
 
-        public int compareTo(Object o)
+        public int CompareTo(object o)
         {
+            if (o == null)
+                return -1;
             if (!(o is OtpErlangPid))
                 return -1;
+            return CompareTo(o as OtpErlangPid);
+        }
 
-            OtpErlangPid pid = (OtpErlangPid)o;
-            if (Creation == pid.Creation)
+        public int CompareTo(OtpErlangPid o)
+        {
+            if (o == null)
+                return -1;
+            if (Creation == o.Creation)
             {
-                if (Serial == pid.Serial)
+                if (Serial == o.Serial)
                 {
-                    if (Id == pid.Id)
-                        return Node.CompareTo(pid.Node);
+                    if (Id == o.Id)
+                        return Node.CompareTo(o.Node);
 
-                    return Id - pid.Id;
+                    return Id - o.Id;
                 }
 
-                return Serial - pid.Serial;
+                return Serial - o.Serial;
             }
 
-            return Creation - pid.Creation;
+            return Creation - o.Creation;
         }
     }
 }

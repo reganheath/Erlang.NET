@@ -131,10 +131,11 @@
 //************************************************************************************
 
 using System;
+using System.Linq;
 
 namespace Erlang.NET
 {
-    public class BigInteger
+    public class BigInteger : IEquatable<BigInteger>
     {
         // maximum length of the BigInteger in uint (4 bytes)
         // change this to suit the required level of precision.
@@ -957,29 +958,31 @@ namespace Erlang.NET
 
         public static bool operator ==(BigInteger bi1, BigInteger bi2)
         {
+            if (object.ReferenceEquals(null, bi1))
+                return object.ReferenceEquals(null, bi2);
             return bi1.Equals(bi2);
         }
 
 
         public static bool operator !=(BigInteger bi1, BigInteger bi2)
         {
+            if (object.ReferenceEquals(null, bi1))
+                return !object.ReferenceEquals(null, bi2);
             return !(bi1.Equals(bi2));
         }
 
 
-        public override bool Equals(object o)
+        public override bool Equals(object o) => Equals(o as BigInteger);
+
+        public bool Equals(BigInteger o)
         {
-            BigInteger bi = (BigInteger)o;
-
-            if (this.dataLength != bi.dataLength)
+            if (o == null)
                 return false;
-
-            for (int i = 0; i < this.dataLength; i++)
-            {
-                if (this.data[i] != bi.data[i])
-                    return false;
-            }
-            return true;
+            if (ReferenceEquals(this, o))
+                return true;
+            if (this.dataLength != o.dataLength)
+                return false;
+            return data.SequenceEqual(o.data);
         }
 
 

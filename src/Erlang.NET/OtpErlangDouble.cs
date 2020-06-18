@@ -28,16 +28,16 @@ namespace Erlang.NET
      * the Java types Double and Float.
      */
     [Serializable]
-    public class OtpErlangDouble : OtpErlangObject
+    public class OtpErlangDouble : OtpErlangObject, IEquatable<OtpErlangDouble>
     {
-        private readonly double d;
+        private readonly double value;
 
         /**
          * Create an Erlang float from the given double value.
          */
         public OtpErlangDouble(double d)
         {
-            this.d = d;
+            value = d;
         }
 
         /**
@@ -53,7 +53,7 @@ namespace Erlang.NET
          */
         public OtpErlangDouble(OtpInputStream buf)
         {
-            d = buf.read_double();
+            value = buf.read_double();
         }
 
         /**
@@ -61,9 +61,9 @@ namespace Erlang.NET
          * 
          * @return the value of this object, as a double.
          */
-        public double doubleValue()
+        public double DoubleValue()
         {
-            return d;
+            return value;
         }
 
         /**
@@ -74,12 +74,12 @@ namespace Erlang.NET
          * @exception OtpErlangRangeException
          *                    if the value cannot be represented as a float.
          */
-        public float floatValue()
+        public float FloatValue()
         {
-            float f = (float)d;
+            float f = (float)value;
 
-            if (f != d)
-                throw new OtpErlangRangeException("Value too large for float: " + d);
+            if (f != value)
+                throw new OtpErlangRangeException("Value too large for float: " + value);
 
             return f;
         }
@@ -91,7 +91,7 @@ namespace Erlang.NET
          */
         public override string ToString()
         {
-            return "" + d;
+            return "" + value;
         }
 
         /**
@@ -101,9 +101,9 @@ namespace Erlang.NET
          *                an output stream to which the encoded value should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
-            buf.write_double(d);
+            buf.write_double(value);
         }
 
         /**
@@ -115,25 +115,22 @@ namespace Erlang.NET
          * 
          * @return true if the floats have the same value.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangDouble);
+
+        public bool Equals(OtpErlangDouble o)
         {
-            if (!(o is OtpErlangDouble))
-            {
+            if (o == null)
                 return false;
-            }
-
-            OtpErlangDouble d = (OtpErlangDouble)o;
-            return this.d == d.d;
+            if (ReferenceEquals(this, o))
+                return true;
+            return value == o.value;
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
-            return d.GetHashCode();
+            return value.GetHashCode();
         }
     }
 }

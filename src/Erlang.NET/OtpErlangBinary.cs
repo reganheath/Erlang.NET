@@ -53,8 +53,8 @@ namespace Erlang.NET
         public OtpErlangBinary(OtpInputStream buf)
             : base(new byte[0])
         {
-            bin = buf.read_binary();
-            pad_bits = 0;
+            Bin = buf.read_binary();
+            PadBits = 0;
         }
 
         /**
@@ -64,7 +64,7 @@ namespace Erlang.NET
          * @param o
          *                the object to serialize and create this binary from.
          */
-        public OtpErlangBinary(Object o)
+        public OtpErlangBinary(object o)
             : base(o)
         {
         }
@@ -76,12 +76,12 @@ namespace Erlang.NET
          *                an output stream to which the encoded binary should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
-            buf.write_binary(bin);
+            buf.write_binary(Bin);
         }
 
-        public override Object Clone()
+        public override object Clone()
         {
             OtpErlangBinary that = (OtpErlangBinary)base.Clone();
             return that;

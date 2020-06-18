@@ -18,6 +18,7 @@
  * %CopyrightEnd%
  */
 using System;
+using System.Linq;
 using System.Text;
 
 namespace Erlang.NET
@@ -119,7 +120,7 @@ namespace Erlang.NET
             {
                 elems = new OtpErlangObject[arity];
                 for (int i = 0; i < arity; i++)
-                    elems[i] = buf.read_any();
+                    elems[i] = buf.ReadAny();
             }
         }
 
@@ -128,10 +129,7 @@ namespace Erlang.NET
          * 
          * @return the number of elements contained in the tuple.
          */
-        public int arity()
-        {
-            return elems.Length;
-        }
+        public int Arity => elems.Length;
 
         /**
          * Get the specified element from the tuple.
@@ -144,7 +142,7 @@ namespace Erlang.NET
          */
         public OtpErlangObject elementAt(int i)
         {
-            if (i >= arity() || i < 0)
+            if (i >= Arity || i < 0)
                 return null;
             return elems[i];
         }
@@ -156,7 +154,7 @@ namespace Erlang.NET
          */
         public OtpErlangObject[] elements()
         {
-            OtpErlangObject[] res = new OtpErlangObject[arity()];
+            OtpErlangObject[] res = new OtpErlangObject[Arity];
             Array.Copy(elems, 0, res, 0, res.Length);
             return res;
         }
@@ -193,7 +191,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded tuple should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             int arity = elems.Length;
 
@@ -213,49 +211,30 @@ namespace Erlang.NET
          * @return true if the tuples have the same arity and all the elements are
          *         equal.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangTuple);
+
+        public bool Equals(OtpErlangTuple o)
         {
-            if (!(o is OtpErlangTuple))
+            if (o == null)
                 return false;
-
-            OtpErlangTuple t = (OtpErlangTuple)o;
-            int a = arity();
-
-            if (a != t.arity())
-            {
+            if (Arity != o.Arity)
                 return false;
-            }
-
-            for (int i = 0; i < a; i++)
-            {
-                if (!elems[i].Equals(t.elems[i]))
-                {
-                    return false; // early exit
-                }
-            }
-
-            return true;
+            return elems.SequenceEqual(o.elems);
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(9);
-            int a = arity();
-            hash.combine(a);
-            for (int i = 0; i < a; i++)
-            {
-                hash.combine(elems[i].GetHashCode());
-            }
-            return hash.valueOf();
+            hash.Combine(Arity);
+            foreach(var elem in elems)
+                hash.Combine(elem.GetHashCode());
+            return hash.ValueOf();
         }
 
 
-        public override Object Clone()
+        public override object Clone()
         {
             OtpErlangTuple newTuple = (OtpErlangTuple)base.Clone();
             newTuple.elems = (OtpErlangObject[])elems.Clone();

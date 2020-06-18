@@ -22,7 +22,7 @@ using System;
 namespace Erlang.NET
 {
     [Serializable]
-    public class OtpErlangExternalFun : OtpErlangObject
+    public class OtpErlangExternalFun : OtpErlangObject, IEquatable<OtpErlangExternalFun>
     {
         private string module;
         private string function;
@@ -44,32 +44,32 @@ namespace Erlang.NET
             arity = f.arity;
         }
 
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             buf.write_external_fun(module, function, arity);
         }
 
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangExternalFun);
+
+        public bool Equals(OtpErlangExternalFun o)
         {
-            if (!(o is OtpErlangExternalFun))
-            {
+            if (o == null)
                 return false;
-            }
-            OtpErlangExternalFun f = (OtpErlangExternalFun)o;
-            return module.Equals(f.module) && function.Equals(f.function) && arity == f.arity;
+            if (ReferenceEquals(this, o))
+                return true;
+            return module.Equals(o.module) 
+                && function.Equals(o.function) 
+                && arity == o.arity;
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(14);
-            hash.combine(module.GetHashCode(), function.GetHashCode());
-            hash.combine(arity);
-            return hash.valueOf();
+            hash.Combine(module.GetHashCode(), function.GetHashCode());
+            hash.Combine(arity);
+            return hash.ValueOf();
         }
 
         public override string ToString()

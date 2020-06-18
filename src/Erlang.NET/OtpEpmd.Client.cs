@@ -415,8 +415,8 @@ namespace Erlang.NET
                     int n = tmpbuf.Length;
                     byte[] buf = new byte[n - 4];
                     Array.Copy(tmpbuf, 4, buf, 0, n - 4);
-                    string all = OtpErlangString.newString(buf);
-                    return all.Split(new char[] { '\n' });
+                    string all = OtpErlangString.FromEncoding(buf);
+                    return all.Split('\n');
                 }
             }
             catch (SocketException e) 

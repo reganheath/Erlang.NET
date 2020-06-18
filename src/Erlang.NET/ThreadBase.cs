@@ -27,21 +27,21 @@ namespace Erlang.NET
 
         public ThreadBase(string name, bool isBackground)
         {
-            thread = new Thread(new ThreadStart(run));
+            thread = new Thread(new ThreadStart(Run));
             thread.IsBackground = isBackground;
             thread.Name = name;
         }
 
-        public virtual void start()
+        public virtual void Start()
         {
             thread.Start();
         }
 
-        public virtual void join()
+        public virtual void Join()
         {
             thread.Join();
         }
 
-        public abstract void run();
+        public abstract void Run();
     }
 }

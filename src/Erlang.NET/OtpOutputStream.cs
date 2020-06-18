@@ -819,7 +819,7 @@ namespace Erlang.NET
          * @param s
          *            the string to write.
          */
-        public void write_string(string s)
+        public void WriteString(string s)
         {
             int len = s.Length;
 
@@ -845,7 +845,7 @@ namespace Erlang.NET
                     }
                     else // unicode or longer, must code as list
                     {
-                        int[] codePoints = OtpErlangString.stringToCodePoints(s);
+                        int[] codePoints = OtpErlangString.ToCodePoints(s);
                         write_list_head(codePoints.Length);
                         foreach (int codePoint in codePoints)
                         {
@@ -918,7 +918,7 @@ namespace Erlang.NET
         public void write_any(OtpErlangObject o)
         {
             // calls one of the above functions, depending on o
-            o.encode(this);
+            o.Encode(this);
         }
 
         public void write_fun(OtpErlangPid pid, string module,
@@ -929,13 +929,13 @@ namespace Erlang.NET
             {
                 write1(OtpExternal.funTag);
                 write4BE(freeVars.Length);
-                pid.encode(this);
+                pid.Encode(this);
                 write_atom(module);
                 write_long(index);
                 write_long(uniq);
                 foreach (OtpErlangObject fv in freeVars)
                 {
-                    fv.encode(this);
+                    fv.Encode(this);
                 }
             }
             else
@@ -950,10 +950,10 @@ namespace Erlang.NET
                 write_atom(module);
                 write_long(old_index);
                 write_long(uniq);
-                pid.encode(this);
+                pid.Encode(this);
                 foreach (OtpErlangObject fv in freeVars)
                 {
-                    fv.encode(this);
+                    fv.Encode(this);
                 }
                 poke4BE(saveSizePos, getPos() - saveSizePos);
             }

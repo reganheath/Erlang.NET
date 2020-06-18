@@ -87,7 +87,7 @@ namespace Erlang.NET
             : base(self, s)
         {
             this.self = self;
-            start();
+            Start();
         }
 
         /*
@@ -104,13 +104,13 @@ namespace Erlang.NET
             : base(self, other)
         {
             this.self = self;
-            start();
+            Start();
         }
 
         // pass the error to the node
-        public override void deliver(Exception e)
+        public override void Deliver(Exception e)
         {
-            self.deliverError(this, e);
+            self.DeliverError(this, e);
             return;
         }
 
@@ -119,9 +119,9 @@ namespace Erlang.NET
          * itself needs to know about links (in case of connection failure), so we
          * snoop for link/unlink too here.
          */
-        public override void deliver(OtpMsg msg)
+        public override void Deliver(OtpMsg msg)
         {
-            bool delivered = self.deliver(msg);
+            bool delivered = self.Deliver(msg);
 
             switch (msg.type())
             {
@@ -129,17 +129,16 @@ namespace Erlang.NET
                     if (delivered)
                     {
                         links.AddLink(msg.getRecipientPid(), msg.getSenderPid());
+                        break;
                     }
-                    else
+
+                    try
                     {
-                        try
-                        {
-                            // no such pid - send exit to sender
-                            base.sendExit(msg.getRecipientPid(), msg.getSenderPid(), new OtpErlangAtom("noproc"));
-                        }
-                        catch (IOException)
-                        {
-                        }
+                        // no such pid - send exit to sender
+                        base.SendExit(msg.getRecipientPid(), msg.getSenderPid(), new OtpErlangAtom("noproc"));
+                    }
+                    catch (IOException)
+                    {
                     }
                     break;
 
@@ -158,42 +157,42 @@ namespace Erlang.NET
         /*
          * send to pid
          */
-        public void send(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject msg)
+        public void Send(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject msg)
         {
             // encode and send the message
-            sendBuf(from, dest, new OtpOutputStream(msg));
+            SendBuf(from, dest, new OtpOutputStream(msg));
         }
 
         /*
          * send to remote name dest is recipient's registered name, the nodename is
          * implied by the choice of connection.
          */
-        public void send(OtpErlangPid from, string dest, OtpErlangObject msg)
+        public void Send(OtpErlangPid from, string dest, OtpErlangObject msg)
         {
             // encode and send the message
-            sendBuf(from, dest, new OtpOutputStream(msg));
+            SendBuf(from, dest, new OtpOutputStream(msg));
         }
 
-        public override void close()
+        public override void Close()
         {
             try
             {
-                base.close();
+                base.Close();
             }
             finally
             {
-                breakLinks();
+                BreakLinks();
             }
         }
 
         /*
          * this one called by dying/killed process
          */
-        public void exit(OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
+        public void Exit(OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
         {
             try
             {
-                base.sendExit(from, to, reason);
+                base.SendExit(from, to, reason);
             }
             catch (Exception)
             {
@@ -203,11 +202,11 @@ namespace Erlang.NET
         /*
          * this one called explicitely by user code => use exit2
          */
-        public void exit2(OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
+        public void Exit2(OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
         {
             try
             {
-                base.sendExit2(from, to, reason);
+                base.SendExit2(from, to, reason);
             }
             catch (Exception)
             {
@@ -217,13 +216,13 @@ namespace Erlang.NET
         /*
          * snoop for outgoing links and update own table
          */
-        public void link(OtpErlangPid from, OtpErlangPid to)
+        public void Link(OtpErlangPid from, OtpErlangPid to)
         {
             lock (lockObj)
             {
                 try
                 {
-                    base.sendLink(from, to);
+                    base.SendLink(from, to);
                     links.AddLink(from, to);
                 }
                 catch (IOException)
@@ -236,14 +235,14 @@ namespace Erlang.NET
         /*
          * snoop for outgoing unlinks and update own table
          */
-        public void unlink(OtpErlangPid from, OtpErlangPid to)
+        public void Unlink(OtpErlangPid from, OtpErlangPid to)
         {
             lock (lockObj)
             {
                 links.RemoveLink(from, to);
                 try
                 {
-                    base.sendUnlink(from, to);
+                    base.SendUnlink(from, to);
                 }
                 catch (IOException)
                 {
@@ -255,14 +254,14 @@ namespace Erlang.NET
          * When the connection fails - send exit to all local pids with links
          * through this connection
          */
-        void breakLinks()
+        void BreakLinks()
         {
             lock (lockObj)
             {
                 foreach(var link in links.ClearLinks())
                 {
                     // send exit "from" remote pids to local ones
-                    self.deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));
+                    self.Deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));
                 }
             }
         }

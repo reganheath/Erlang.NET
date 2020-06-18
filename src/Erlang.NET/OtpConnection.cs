@@ -50,8 +50,7 @@ namespace Erlang.NET
      */
     public class OtpConnection : AbstractConnection
     {
-        protected OtpSelf self;
-        protected GenericQueue queue; // messages get delivered here
+        protected readonly GenericQueue queue; // messages get delivered here
 
         /*
          * Accept an incoming connection from a remote node. Used by {@link
@@ -69,9 +68,9 @@ namespace Erlang.NET
         internal OtpConnection(OtpSelf self, OtpTransport s)
             : base(self, s)
         {
-            this.self = self;
+            Self = self;
             queue = new GenericQueue();
-            start();
+            Start();
         }
 
         /*
@@ -87,19 +86,19 @@ namespace Erlang.NET
         internal OtpConnection(OtpSelf self, OtpPeer other)
             : base(self, other)
         {
-            this.self = self;
+            Self = self;
             queue = new GenericQueue();
-            start();
+            Start();
         }
 
-        public override void deliver(Exception e)
+        public override void Deliver(Exception e)
         {
-            queue.put(e);
+            queue.Put(e);
         }
 
-        public override void deliver(OtpMsg msg)
+        public override void Deliver(OtpMsg msg)
         {
-            queue.put(msg);
+            queue.Put(msg);
         }
 
         /**
@@ -107,26 +106,20 @@ namespace Erlang.NET
          * 
          * @return the {@link OtpPeer Node} representing the peer node.
          */
-        public OtpPeer Peer
-        {
-            get { return peer; }
-        }
+        public OtpPeer Peer { get; protected set; }
 
         /**
          * Get information about the node at the local end of this connection.
          * 
          * @return the {@link OtpSelf Node} representing the local node.
          */
-        public OtpSelf Self
-        {
-            get { return self; }
-        }
+        public OtpSelf Self { get; protected set; }
 
         /**
          * Return the number of messages currently waiting in the receive queue for
          * this connection.
          */
-        public int msgCount() => queue.getCount();
+        public int MsgCount() => queue.GetCount();
 
         /**
          * Receive a message from a remote process. This method blocks until a valid
@@ -150,15 +143,15 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpErlangObject receive()
+        public OtpErlangObject Receive()
         {
             try
             {
-                return receiveMsg().getMsg();
+                return ReceiveMsg().getMsg();
             }
             catch (OtpErlangDecodeException e)
             {
-                close();
+                Close();
                 throw new IOException("Receive failed", e);
             }
         }
@@ -194,15 +187,15 @@ namespace Erlang.NET
          *                    if no message if the method times out before a message
          *                    becomes available.
          */
-        public OtpErlangObject receive(long timeout)
+        public OtpErlangObject Receive(long timeout)
         {
             try
             {
-                return receiveMsg(timeout).getMsg();
+                return ReceiveMsg(timeout).getMsg();
             }
             catch (OtpErlangDecodeException e)
             {
-                close();
+                Close();
                 throw new IOException("Receive failed", e);
             }
         }
@@ -230,10 +223,7 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpInputStream receiveBuf()
-        {
-            return receiveMsg().getMsgBuf();
-        }
+        public OtpInputStream ReceiveBuf() => ReceiveMsg().getMsgBuf();
 
         /**
          * Receive a raw (still encoded) message from a remote process. This message
@@ -267,10 +257,7 @@ namespace Erlang.NET
          *                    if no message if the method times out before a message
          *                    becomes available.
          */
-        public OtpInputStream receiveBuf(long timeout)
-        {
-            return receiveMsg(timeout).getMsgBuf();
-        }
+        public OtpInputStream ReceiveBuf(long timeout) => ReceiveMsg(timeout).getMsgBuf();
 
         /**
          * Receive a messge complete with sender and recipient information.
@@ -291,27 +278,17 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpMsg receiveMsg()
+        public OtpMsg ReceiveMsg()
         {
-            Object o = queue.get();
-
-            if (o is OtpMsg)
-            {
-                return (OtpMsg)o;
-            }
-            else if (o is IOException)
-            {
-                throw (IOException)o;
-            }
-            else if (o is OtpErlangExit)
-            {
-                throw (OtpErlangExit)o;
-            }
-            else if (o is OtpAuthException)
-            {
-                throw (OtpAuthException)o;
-            }
-
+            object o = queue.Get();
+            if (o is OtpMsg msg)
+                return msg;
+            if (o is IOException ioex)
+                throw ioex;
+            if (o is OtpErlangExit exit)
+                throw exit;
+            if (o is OtpAuthException ex)
+                throw ex;
             return null;
         }
 
@@ -343,27 +320,17 @@ namespace Erlang.NET
          *                    if no message if the method times out before a message
          *                    becomes available.
          */
-        public OtpMsg receiveMsg(long timeout)
+        public OtpMsg ReceiveMsg(long timeout)
         {
-            Object o = queue.get(timeout);
-
-            if (o is OtpMsg)
-            {
-                return (OtpMsg)o;
-            }
-            else if (o is IOException)
-            {
-                throw (IOException)o;
-            }
-            else if (o is OtpErlangExit)
-            {
-                throw (OtpErlangExit)o;
-            }
-            else if (o is OtpAuthException)
-            {
-                throw (OtpAuthException)o;
-            }
-
+            object o = queue.Get(timeout);
+            if (o is OtpMsg msg)
+                return msg;
+            if (o is IOException ioex)
+                throw ioex;
+            if (o is OtpErlangExit exit)
+                throw exit;
+            if (o is OtpAuthException ex)
+                throw ex;
             return null;
         }
 
@@ -379,11 +346,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void send(OtpErlangPid dest, OtpErlangObject msg)
-        {
-            // encode and send the message
-            base.sendBuf(self.Pid, dest, new OtpOutputStream(msg));
-        }
+        public void Send(OtpErlangPid dest, OtpErlangObject msg) => SendBuf(Self.Pid, dest, new OtpOutputStream(msg));
 
         /**
          * Send a message to a named process on a remote node.
@@ -397,11 +360,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void send(string dest, OtpErlangObject msg)
-        {
-            // encode and send the message
-            base.sendBuf(self.Pid, dest, new OtpOutputStream(msg));
-        }
+        public void Send(string dest, OtpErlangObject msg) => SendBuf(Self.Pid, dest, new OtpOutputStream(msg));
 
         /**
          * Send a pre-encoded message to a named process on a remote node.
@@ -415,10 +374,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendBuf(string dest, OtpOutputStream payload)
-        {
-            base.sendBuf(self.Pid, dest, payload);
-        }
+        public void sendBuf(string dest, OtpOutputStream payload) => SendBuf(Self.Pid, dest, payload);
 
         /**
          * Send a pre-encoded message to a process on a remote node.
@@ -432,10 +388,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendBuf(OtpErlangPid dest, OtpOutputStream payload)
-        {
-            base.sendBuf(self.Pid, dest, payload);
-        }
+        public void SendBuf(OtpErlangPid dest, OtpOutputStream payload) => SendBuf(Self.Pid, dest, payload);
 
         /**
          * Send an RPC request to the remote Erlang node. This convenience function
@@ -463,10 +416,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendRPC(string mod, string fun, OtpErlangObject[] args)
-        {
-            sendRPC(mod, fun, new OtpErlangList(args));
-        }
+        public void SendRPC(string mod, string fun, OtpErlangObject[] args) => SendRPC(mod, fun, new OtpErlangList(args));
 
         /**
          * Send an RPC request to the remote Erlang node. This convenience function
@@ -494,7 +444,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void sendRPC(string mod, string fun, OtpErlangList args)
+        public void SendRPC(string mod, string fun, OtpErlangList args)
         {
             OtpErlangObject[] rpc = new OtpErlangObject[2];
             OtpErlangObject[] call = new OtpErlangObject[5];
@@ -507,10 +457,10 @@ namespace Erlang.NET
             call[3] = args;
             call[4] = new OtpErlangAtom("user");
 
-            rpc[0] = self.Pid;
+            rpc[0] = Self.Pid;
             rpc[1] = new OtpErlangTuple(call);
 
-            send("rex", new OtpErlangTuple(rpc));
+            Send("rex", new OtpErlangTuple(rpc));
         }
 
         /**
@@ -538,17 +488,15 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpErlangObject receiveRPC()
+        public OtpErlangObject ReceiveRPC()
         {
-            OtpErlangObject msg = receive();
+            OtpErlangObject msg = Receive();
 
             if (msg is OtpErlangTuple)
             {
                 OtpErlangTuple t = (OtpErlangTuple)msg;
-                if (t.arity() == 2)
-                {
+                if (t.Arity == 2)
                     return t.elementAt(1); // obs: second element
-                }
             }
 
             return null;
@@ -567,10 +515,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void link(OtpErlangPid dest)
-        {
-            base.sendLink(self.Pid, dest);
-        }
+        public void Link(OtpErlangPid dest) => SendLink(Self.Pid, dest);
 
         /**
          * Remove a link between the local node and the specified process on the
@@ -584,10 +529,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void unlink(OtpErlangPid dest)
-        {
-            base.sendUnlink(self.Pid, dest);
-        }
+        public void Unlink(OtpErlangPid dest) => SendUnlink(Self.Pid, dest);
 
         /**
          * Send an exit signal to a remote process.
@@ -601,9 +543,6 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void exit(OtpErlangPid dest, OtpErlangObject reason)
-        {
-            base.sendExit2(self.Pid, dest, reason);
-        }
+        public void Exit(OtpErlangPid dest, OtpErlangObject reason) => SendExit2(Self.Pid, dest, reason);
     }
 }

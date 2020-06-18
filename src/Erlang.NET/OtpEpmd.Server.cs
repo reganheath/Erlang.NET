@@ -79,10 +79,10 @@ namespace Erlang.NET
             sock = new OtpServerSocketTransport(EpmdPort.get(), false);
         }
 
-        public override void start()
+        public override void Start()
         {
             sock.start();
-            base.start();
+            base.Start();
         }
 
         private void closeSock(OtpServerTransport s)
@@ -103,7 +103,7 @@ namespace Erlang.NET
             closeSock(sock);
         }
 
-        public override void run()
+        public override void Run()
         {
             log.InfoFormat("[OtpEpmd] start at port {0}", EpmdPort.get());
 
@@ -113,7 +113,7 @@ namespace Erlang.NET
                 {
                     OtpTransport newsock = sock.accept();
                     OtpEpmdConnection conn = new OtpEpmdConnection(this, newsock);
-                    conn.start();
+                    conn.Start();
                 }
                 catch (Exception)
                 {
@@ -212,7 +212,7 @@ namespace Erlang.NET
                     int elen = ibuf.read2BE();
                     byte[] extra = new byte[elen];
                     ibuf.readN(extra);
-                    string name = OtpErlangString.newString(alive);
+                    string name = OtpErlangString.FromEncoding(alive);
                     OtpPublishedNode node = new OtpPublishedNode(name);
                     node.Type = type;
                     node.DistHigh = distHigh;
@@ -253,7 +253,7 @@ namespace Erlang.NET
                     int len = (int)(ibuf.Length - 1);
                     byte[] alive = new byte[len];
                     ibuf.readN(alive);
-                    string name = OtpErlangString.newString(alive);
+                    string name = OtpErlangString.FromEncoding(alive);
                     OtpPublishedNode node = null;
 
                     if (traceLevel >= traceThreshold)
@@ -331,7 +331,7 @@ namespace Erlang.NET
                 return;
             }
 
-            public override void run()
+            public override void Run()
             {
                 byte[] lbuf = new byte[2];
                 OtpInputStream ibuf;

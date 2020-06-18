@@ -44,13 +44,13 @@ namespace Erlang.NET
         }
 
         /** Clear a queue */
-        public void flush()
+        public void Flush()
         {
             lock(lockObj)
                 queue = new LinkedList<object>();
         }
 
-        public void close()
+        public void Close()
         {
             status = QueueState.Closing;
         }
@@ -61,7 +61,7 @@ namespace Erlang.NET
          * @param o
          *                Object to insert in the queue
          */
-        public void put(object o)
+        public void Put(object o)
         {
             lock (lockObj)
             {
@@ -76,13 +76,13 @@ namespace Erlang.NET
          * 
          * @return The object at the head of the queue.
          */
-        public object get()
+        public object Get()
         {
             lock (lockObj)
             {
                 object o = null;
 
-                while ((o = tryGet()) == null)
+                while ((o = TryGet()) == null)
                 {
                     try
                     {
@@ -111,7 +111,7 @@ namespace Erlang.NET
          * @return The object at the head of the queue, or null if none arrived in
          *         time.
          */
-        public object get(long timeout)
+        public object Get(long timeout)
         {
             if (status == QueueState.Closed)
                 return null;
@@ -125,7 +125,7 @@ namespace Erlang.NET
                 stopwatch.Start();
                 while (true)
                 {
-                    if ((o = tryGet()) != null)
+                    if ((o = TryGet()) != null)
                         return o;
 
                     long elapsed = stopwatch.ElapsedMilliseconds;
@@ -145,7 +145,7 @@ namespace Erlang.NET
         }
 
         // attempt to retrieve message from queue head
-        public object tryGet()
+        public object TryGet()
         {
             lock (lockObj)
             {
@@ -156,6 +156,6 @@ namespace Erlang.NET
             }
         }
 
-        public int getCount() => queue.Count;
+        public int GetCount() => queue.Count;
     }
 }

@@ -222,9 +222,7 @@ namespace Erlang.NET
         public OtpErlangObject getMsg()
         {
             if (payload == null)
-            {
-                payload = paybuf.read_any();
-            }
+                payload = paybuf.ReadAny();
             return payload;
         }
 
@@ -280,12 +278,10 @@ namespace Erlang.NET
          * @return the Pid of the recipient, or null if the recipient was in fact a
          *         name.
          */
-        public Object getRecipient()
+        public object GetRecipient()
         {
             if (toName != null)
-            {
                 return toName;
-            }
             return to;
         }
 

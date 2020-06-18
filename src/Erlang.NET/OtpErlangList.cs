@@ -20,6 +20,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Erlang.NET
@@ -35,15 +36,13 @@ namespace Erlang.NET
     public class OtpErlangList : OtpErlangObject, IEnumerable<OtpErlangObject>
     {
         private static readonly OtpErlangObject[] NO_ELEMENTS = new OtpErlangObject[0];
-        private readonly OtpErlangObject[] elems;
-        private OtpErlangObject lastTail = null;
+        private readonly OtpErlangObject[] elems = NO_ELEMENTS;
 
         /**
          * Create an empty list.
          */
         public OtpErlangList()
         {
-            elems = NO_ELEMENTS;
         }
 
         /**
@@ -55,13 +54,9 @@ namespace Erlang.NET
          */
         public OtpErlangList(string str)
         {
-            if (str == null || str.Length == 0)
+            if (!String.IsNullOrWhiteSpace(str))
             {
-                elems = NO_ELEMENTS;
-            }
-            else
-            {
-                int[] codePoints = OtpErlangString.stringToCodePoints(str);
+                int[] codePoints = OtpErlangString.ToCodePoints(str);
                 elems = new OtpErlangObject[codePoints.Length];
                 for (int i = 0; i < elems.Length; i++)
                 {
@@ -106,7 +101,7 @@ namespace Erlang.NET
         {
             if (elems.Length == 0 && lastTail != null)
                 throw new OtpErlangException("Bad list, empty head, non-empty tail");
-            this.lastTail = lastTail;
+            LastTail = lastTail;
         }
 
         /**
@@ -126,10 +121,6 @@ namespace Erlang.NET
                 this.elems = new OtpErlangObject[count];
                 Array.Copy(elems, start, this.elems, 0, count);
             }
-            else
-            {
-                this.elems = NO_ELEMENTS;
-            }
         }
 
         /**
@@ -146,27 +137,18 @@ namespace Erlang.NET
         public OtpErlangList(OtpInputStream buf)
         {
             int arity = buf.read_list_head();
-            if (arity > 0)
-            {
-                elems = new OtpErlangObject[arity];
-                for (int i = 0; i < arity; i++)
-                {
-                    elems[i] = buf.read_any();
-                }
-                /* discard the terminating nil (empty list) or read tail */
-                if (buf.peek1() == OtpExternal.nilTag)
-                {
-                    buf.read_nil();
-                }
-                else
-                {
-                    lastTail = buf.read_any();
-                }
-            }
+            if (arity == 0)
+                return;
+
+            elems = new OtpErlangObject[arity];
+            for (int i = 0; i < arity; i++)
+                elems[i] = buf.ReadAny();
+
+            /* discard the terminating nil (empty list) or read tail */
+            if (buf.peek1() == OtpExternal.nilTag)
+                buf.read_nil();
             else
-            {
-                elems = NO_ELEMENTS;
-            }
+                LastTail = buf.ReadAny();
         }
 
         /**
@@ -174,10 +156,7 @@ namespace Erlang.NET
          * 
          * @return the number of elements contained in the list.
          */
-        public virtual int arity()
-        {
-            return elems.Length;
-        }
+        public virtual int Arity => elems.Length;
 
         /**
          * Get the specified element from the list.
@@ -188,12 +167,10 @@ namespace Erlang.NET
          * 
          * @return the requested element, of null if i is not a valid element index.
          */
-        public virtual OtpErlangObject elementAt(int i)
+        public virtual OtpErlangObject ElementAt(int i)
         {
-            if (i >= arity() || i < 0)
-            {
+            if (i >= Arity || i < 0)
                 return null;
-            }
             return elems[i];
         }
 
@@ -202,18 +179,14 @@ namespace Erlang.NET
          * 
          * @return an array containing all of the list's elements.
          */
-        public virtual OtpErlangObject[] elements()
+        public virtual OtpErlangObject[] Elements()
         {
-            if (arity() == 0)
-            {
+            if (Arity == 0)
                 return NO_ELEMENTS;
-            }
-            else
-            {
-                OtpErlangObject[] res = new OtpErlangObject[arity()];
-                Array.Copy(elems, 0, res, 0, res.Length);
-                return res;
-            }
+
+            OtpErlangObject[] res = new OtpErlangObject[Arity];
+            Array.Copy(elems, 0, res, 0, res.Length);
+            return res;
         }
 
         /**
@@ -223,28 +196,17 @@ namespace Erlang.NET
          */
         public override string ToString()
         {
-            return toString(0);
+            return ToString(0);
         }
 
-        protected string toString(int start)
+        protected string ToString(int start)
         {
             StringBuilder s = new StringBuilder();
             s.Append("[");
-
-            for (int i = start; i < arity(); i++)
-            {
-                if (i > start)
-                {
-                    s.Append(",");
-                }
-                s.Append(elems[i].ToString());
-            }
-            if (lastTail != null)
-            {
-                s.Append("|").Append(lastTail.ToString());
-            }
+            s.Append(string.Join(",", elems.Skip(start)));
+            if (LastTail != null)
+                s.Append("|").Append(LastTail.ToString());
             s.Append("]");
-
             return s.ToString();
         }
 
@@ -257,14 +219,14 @@ namespace Erlang.NET
          *            An output stream to which the encoded list should be written.
          * 
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
-            encode(buf, 0);
+            Encode(buf, 0);
         }
 
-        protected void encode(OtpOutputStream buf, int start)
+        protected void Encode(OtpOutputStream buf, int start)
         {
-            int arity = this.arity() - start;
+            int arity = this.Arity - start;
 
             if (arity > 0)
             {
@@ -275,13 +237,13 @@ namespace Erlang.NET
                     buf.write_any(elems[i]);
                 }
             }
-            if (lastTail == null)
+            if (LastTail == null)
             {
                 buf.write_nil();
             }
             else
             {
-                buf.write_any(lastTail);
+                buf.write_any(LastTail);
             }
         }
 
@@ -295,80 +257,63 @@ namespace Erlang.NET
          * @return true if the lists have the same arity and all the elements are
          *         equal.
          */
-        public override bool Equals(Object o)
-        {
+        public override bool Equals(object o) => Equals(o as OtpErlangList);
+
+        public bool Equals(OtpErlangList o)
+        { 
             /*
              * Be careful to use methods even for "this", so that equals work also
              * for sublists
              */
-
-            if (!(o is OtpErlangList))
-            {
+            if (o == null)
                 return false;
-            }
-
-            OtpErlangList l = (OtpErlangList)o;
-
-            int a = arity();
-            if (a != l.arity())
-            {
-                return false;
-            }
-            for (int i = 0; i < a; i++)
-            {
-                if (!elementAt(i).Equals(l.elementAt(i)))
-                {
-                    return false; // early exit
-                }
-            }
-            OtpErlangObject otherTail = l.getLastTail();
-            if (getLastTail() == null && otherTail == null)
-            {
+            if (ReferenceEquals(this, o))
                 return true;
-            }
-            if (getLastTail() == null)
-            {
+
+            if (Arity != o.Arity)
                 return false;
+
+            for (int i = 0; i < Arity; i++)
+            {
+                if (!ElementAt(i).Equals(o.ElementAt(i)))
+                    return false; // early exit
             }
-            return getLastTail().Equals(l.getLastTail());
+
+            if (LastTail == null && o.LastTail == null)
+                return true;
+            if (LastTail == null)
+                return false;
+
+            return LastTail.Equals(o.LastTail);
         }
 
-        public virtual OtpErlangObject getLastTail()
-        {
-            return lastTail;
-        }
+        public virtual OtpErlangObject LastTail { get; protected set; }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(4);
-            int a = arity();
-            if (a == 0)
-            {
+            if (Arity == 0)
                 return unchecked((int)3468870702L);
-            }
-            for (int i = 0; i < a; i++)
+            for (int i = 0; i < Arity; i++)
             {
-                hash.combine(elementAt(i).GetHashCode());
+                hash.Combine(ElementAt(i).GetHashCode());
             }
-            OtpErlangObject t = getLastTail();
+            OtpErlangObject t = LastTail;
             if (t != null)
             {
                 int h = t.GetHashCode();
-                hash.combine(h, h);
+                hash.Combine(h, h);
             }
-            return hash.valueOf();
+            return hash.ValueOf();
         }
 
-        public override Object Clone()
+        public override object Clone()
         {
             try
             {
-                return new OtpErlangList(elements(), getLastTail());
+                return new OtpErlangList(Elements(), LastTail);
             }
             catch (OtpErlangException)
             {
@@ -383,10 +328,10 @@ namespace Erlang.NET
 
         public IEnumerator<OtpErlangObject> GetEnumerator()
         {
-            return iterator(0);
+            return Iterator(0);
         }
 
-        protected virtual IEnumerator<OtpErlangObject> iterator(int start)
+        protected virtual IEnumerator<OtpErlangObject> Iterator(int start)
         {
             return new Itr(start, elems);
         }
@@ -394,34 +339,26 @@ namespace Erlang.NET
         /**
          * @return true if the list is proper, i.e. the last tail is nil
          */
-        public virtual bool isProper()
-        {
-            return lastTail == null;
-        }
+        public virtual bool IsProper() => LastTail == null;
 
-        public virtual OtpErlangObject getHead()
+        public virtual OtpErlangObject GetHead()
         {
-            if (arity() > 0)
-            {
+            if (Arity > 0)
                 return elems[0];
-            }
             return null;
         }
 
-        public virtual OtpErlangObject getTail()
+        public virtual OtpErlangObject GetTail()
         {
-            return getNthTail(1);
+            return GetNthTail(1);
         }
 
-        public virtual OtpErlangObject getNthTail(int n)
+        public virtual OtpErlangObject GetNthTail(int n)
         {
-            int arity = this.arity();
-            if (arity >= n)
+            if (Arity >= n)
             {
-                if (arity == n && lastTail != null)
-                {
-                    return lastTail;
-                }
+                if (Arity == n && LastTail != null)
+                    return LastTail;
                 return new SubList(this, n);
             }
             return null;
@@ -446,26 +383,22 @@ namespace Erlang.NET
          * @see string#string(int[], int, int)
          *
          */
-        public string stringValue()
+        public string StringValue()
         {
-            if (!isProper())
+            if (!IsProper())
                 throw new OtpErlangException("Non-proper list: " + this);
-            char[] values = new char[arity()];
-            for (int i = 0; i < values.Length; ++i)
-            {
-                OtpErlangObject o = elementAt(i);
-                if (!(o is OtpErlangLong))
-                    throw new OtpErlangException("Non-integer term: " + o);
-                OtpErlangLong l = (OtpErlangLong)o;
-                values[i] = (char)l.intValue();
-            }
-            return new string(values, 0, values.Length);
+
+            var o = elems.FirstOrDefault((e) => !(e is OtpErlangLong));
+            if (o != null)
+                throw new OtpErlangException("Non-integer term: " + o);
+
+            return OtpErlangString.FromCodePoints(elems.Select((e) => ((OtpErlangLong)e).IntValue()));
         }
 
         private class SubList : OtpErlangList
         {
-            private readonly int start;
             private readonly OtpErlangList parent;
+            private readonly int start;
 
             public SubList(OtpErlangList parent, int start)
                 : base()
@@ -474,61 +407,34 @@ namespace Erlang.NET
                 this.start = start;
             }
 
-            public override int arity()
-            {
-                return parent.arity() - start;
-            }
+            public override int Arity => parent.Arity - start;
 
-            public override OtpErlangObject elementAt(int i)
-            {
-                return parent.elementAt(i + start);
-            }
+            public override OtpErlangObject ElementAt(int i) => parent.ElementAt(i + start);
 
-            public override OtpErlangObject[] elements()
+            public override OtpErlangObject[] Elements()
             {
-                int n = parent.arity() - start;
+                int n = parent.Arity - start;
                 OtpErlangObject[] res = new OtpErlangObject[n];
                 for (int i = 0; i < res.Length; i++)
                 {
-                    res[i] = parent.elementAt(i + start);
+                    res[i] = parent.ElementAt(i + start);
                 }
                 return res;
             }
 
-            public override bool isProper()
-            {
-                return parent.isProper();
-            }
+            public override bool IsProper() => parent.IsProper();
 
-            public override OtpErlangObject getHead()
-            {
-                return parent.elementAt(start);
-            }
+            public override OtpErlangObject GetHead() => parent.ElementAt(start);
 
-            public override OtpErlangObject getNthTail(int n)
-            {
-                return parent.getNthTail(n + start);
-            }
+            public override OtpErlangObject GetNthTail(int n) => parent.GetNthTail(n + start);
 
-            public override string ToString()
-            {
-                return parent.toString(start);
-            }
+            public override string ToString() => parent.ToString(start);
 
-            public override void encode(OtpOutputStream stream)
-            {
-                parent.encode(stream, start);
-            }
+            public override void Encode(OtpOutputStream stream) => parent.Encode(stream, start);
 
-            public override OtpErlangObject getLastTail()
-            {
-                return parent.getLastTail();
-            }
+            public override OtpErlangObject LastTail => parent.LastTail;
 
-            protected override IEnumerator<OtpErlangObject> iterator(int start)
-            {
-                return parent.iterator(start);
-            }
+            protected override IEnumerator<OtpErlangObject> Iterator(int start) => parent.Iterator(start);
         }
 
         private class Itr : IEnumerator<OtpErlangObject>
@@ -536,9 +442,9 @@ namespace Erlang.NET
             /**
              * Index of element to be returned by subsequent call to next.
              */
-            private int start;
+            private readonly int start;
+            private readonly OtpErlangObject[] elems;
             private int cursor;
-            private OtpErlangObject[] elems;
 
             public Itr(int start, OtpErlangObject[] elems)
             {
@@ -550,13 +456,9 @@ namespace Erlang.NET
             public bool MoveNext()
             {
                 if (cursor == -1)
-                {
                     cursor = start;
-                }
                 else
-                {
                     cursor++;
-                }
                 
                 return cursor < elems.Length;
             }
@@ -566,13 +468,7 @@ namespace Erlang.NET
                 cursor = -1;
             }
 
-            object IEnumerator.Current
-            {
-                get
-                {
-                    return Current;
-                }
-            }
+            object IEnumerator.Current => Current;
 
             public OtpErlangObject Current
             {

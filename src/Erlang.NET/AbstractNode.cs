@@ -19,6 +19,7 @@
  */
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
@@ -65,11 +66,7 @@ namespace Erlang.NET
      */
     public class AbstractNode : OtpTransportFactory
     {
-        static readonly string localHost;
-        string node;
-        string host;
-        string alive;
-        string cookie;
+        private static readonly string localHost;
         protected static readonly string defaultCookie;
         internal readonly OtpTransportFactory transportFactory;
 
@@ -94,18 +91,7 @@ namespace Erlang.NET
         public const int dFlagMapTag = 0x20000;
         public const int dFlagBigCreation = 0x40000;
         public const int dFlagHandshake23 = 0x1000000;
-
-        int ntype = NTYPE_R6;
-        int proto = 0; // tcp/ip
-        int distHigh = 6;
-        int distLow = 5; // Cannot talk to nodes before R6
-        int creation = 0;
-        long flags = dFlagExtendedReferences | dFlagExtendedPidsPorts
-            | dFlagBitBinaries | dFlagNewFloats | dFlagFunTags
-            | dflagNewFunTags | dFlagUtf8Atoms | dFlagMapTag
-            | dFlagExportPtrTag
-            | dFlagBigCreation
-            | dFlagHandshake23;
+        private const int V = 6;
 
         /* initialize hostname and default cookie */
         static AbstractNode()
@@ -113,15 +99,8 @@ namespace Erlang.NET
             try
             {
                 localHost = Dns.GetHostName();
-                /*
-                 * Make sure it's a short name, i.e. strip of everything after first
-                 * '.'
-                 */
-                int dot = localHost.IndexOf(".");
-                if (dot != -1)
-                {
-                    localHost = localHost.Substring(0, dot);
-                }
+                // Make sure it's a short name, i.e. strip of everything after first '.'
+                localHost = localHost.Split('.').FirstOrDefault() ?? localHost;
             }
             catch (SocketException)
             {
@@ -138,10 +117,10 @@ namespace Erlang.NET
                     userHome = Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
                     break;
             }
-            string dotCookieFilename = Path.Combine(userHome, ".erlang.cookie");
 
             try
             {
+                string dotCookieFilename = Path.Combine(userHome, ".erlang.cookie");
                 using (StreamReader sr = new StreamReader(dotCookieFilename))
                     defaultCookie = sr.ReadLine()?.Trim() ?? "";
             }
@@ -190,45 +169,32 @@ namespace Erlang.NET
          */
         protected AbstractNode(string name, string cookie, OtpTransportFactory transportFactory)
         {
-            this.cookie = cookie;
+            this.Cookie = cookie;
             this.transportFactory = transportFactory;
 
-            int i = name.IndexOf('@', 0);
-            if (i < 0)
-            {
-                alive = name;
-                host = localHost;
-            }
-            else
-            {
-                alive = name.Substring(0, i);
-                host = name.Substring(i + 1, name.Length - (i + 1));
-            }
+            string[] parts = name.Split(new char[] { '@' }, 2);
+            Alive = parts.First();
+            Host = parts.Skip(1).FirstOrDefault() ?? localHost;
 
-            if (alive.Length > 0xff)
-            {
-                alive = alive.Substring(0, 0xff);
-            }
+            if (Alive.Length > 0xff)
+                Alive = Alive.Substring(0, 0xff);
 
-            node = alive + "@" + host;
+            Node = Alive + "@" + Host;
         }
 
-        public long Flags
-        {
-            get { return flags; }
-            set { flags = value; }
-        }
+        public long Flags { get; set; } = dFlagExtendedReferences | dFlagExtendedPidsPorts
+            | dFlagBitBinaries | dFlagNewFloats | dFlagFunTags
+            | dflagNewFunTags | dFlagUtf8Atoms | dFlagMapTag
+            | dFlagExportPtrTag
+            | dFlagBigCreation
+            | dFlagHandshake23;
 
         /**
          * Get the name of this node.
          * 
          * @return the name of the node represented by this object.
          */
-        public string Node
-        {
-            get { return node; }
-            set { node = value; }
-        }
+        public string Node { get; set; }
 
         /**
          * Get the hostname part of the nodename. Nodenames are composed of two
@@ -237,11 +203,7 @@ namespace Erlang.NET
          * 
          * @return the hostname component of the nodename.
          */
-        public string Host
-        {
-            get { return host; }
-            set { host = value; }
-        }
+        public string Host { get; set; }
 
         /**
          * Get the alivename part of the hostname. Nodenames are composed of two
@@ -250,56 +212,29 @@ namespace Erlang.NET
          * 
          * @return the alivename component of the nodename.
          */
-        public string Alive
-        {
-            get { return alive; }
-            set { alive = value; }
-        }
+        public string Alive { get; set; }
 
         /**
          * Get the authorization cookie used by this node.
          * 
          * @return the authorization cookie used by this node.
          */
-        public string Cookie
-        {
-            get { return cookie; }
-        }
+        public string Cookie { get; private set; }
 
         // package scope
-        internal int Type
-        {
-            get { return ntype; }
-            set { ntype = value; }
-        }
+        internal int Type { get; set; } = NTYPE_R6;
 
         // package scope
-        internal int DistHigh
-        {
-            get { return distHigh; }
-            set { distHigh = value; }
-        }
+        internal int DistHigh { get; set; } = V;
 
         // package scope
-        internal int DistLow
-        {
-            get { return distLow; }
-            set { distLow = value; }
-        }
+        internal int DistLow { get; set; } = 5;
 
         // package scope: useless information?
-        internal int Proto
-        {
-            get { return proto; }
-            set { proto = value; }
-        }
+        internal int Proto { get; set; } = 0;
 
         // package scope
-        internal int Creation
-        {
-            get { return creation; }
-            set { creation = value; }
-        }
+        internal int Creation { get; set; } = 0;
 
         /**
          * Set the authorization cookie used by this node.
@@ -308,14 +243,14 @@ namespace Erlang.NET
          */
         public string setCookie(string cookie)
         {
-            string prev = this.cookie;
-            this.cookie = cookie;
+            string prev = this.Cookie;
+            this.Cookie = cookie;
             return prev;
         }
 
         public override string ToString()
         {
-            return node;
+            return Node;
         }
 
         public OtpTransport createTransport(string addr, int port)

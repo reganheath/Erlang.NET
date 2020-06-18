@@ -28,7 +28,7 @@ namespace Erlang.NET
      * characters.
      */
     [Serializable]
-    public class OtpErlangAtom : OtpErlangObject
+    public class OtpErlangAtom : OtpErlangObject, IEquatable<OtpErlangAtom>
     {
         /** The maximun allowed length of an atom, in characters */
         public static readonly int maxAtomLength = 0xff; // one byte length
@@ -128,22 +128,20 @@ namespace Erlang.NET
          * 
          * @return true if the atoms are equal, false otherwise.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangAtom);
+
+        public bool Equals(OtpErlangAtom o)
         {
-            if (!(o is OtpErlangAtom))
-            {
+            if (o == null)
                 return false;
-            }
-            OtpErlangAtom atom = (OtpErlangAtom)o;
-            return this.atom.Equals(atom.atom);
+            if (ReferenceEquals(this, o))
+                return true;
+            return atom.Equals(o.atom);
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             return atom.GetHashCode();
         }
@@ -155,7 +153,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded atom should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             buf.write_atom(atom);
         }

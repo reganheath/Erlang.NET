@@ -18,6 +18,8 @@
  * %CopyrightEnd%
  */
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Erlang.NET
@@ -28,14 +30,12 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangString : OtpErlangObject
     {
-        private readonly string str;
-
         /**
          * Create an Erlang string from the given string.
          */
         public OtpErlangString(string str)
         {
-            this.str = str;
+            Value = str;
         }
 
         /**
@@ -51,19 +51,7 @@ namespace Erlang.NET
          */
         public OtpErlangString(OtpErlangList list)
         {
-            string s = list.stringValue();
-
-            int[] offset = System.Globalization.StringInfo.ParseCombiningCharacters(s);
-            int n = offset.Length;
-            for (int i = 0; i < n; i++)
-            {
-                int cp = (int)codePointAt(s, offset[i]);
-                if (!isValidCodePoint(cp))
-                {
-                    throw new OtpErlangRangeException("Invalid CodePoint: " + cp);
-                }
-            }
-            str = s;
+            Value = list.StringValue();
         }
 
         /**
@@ -79,7 +67,7 @@ namespace Erlang.NET
          */
         public OtpErlangString(OtpInputStream buf)
         {
-            str = buf.read_string();
+            Value = buf.ReadString();
         }
 
         /**
@@ -90,10 +78,7 @@ namespace Erlang.NET
          * 
          * @see #toString
          */
-        public string stringValue()
-        {
-            return str;
-        }
+        public string Value { get; private set; }
 
         /**
          * Get the printable version of the string contained in this object.
@@ -102,10 +87,7 @@ namespace Erlang.NET
          * 
          * @see #stringValue
          */
-        public override string ToString()
-        {
-            return "\"" + str + "\"";
-        }
+        public override string ToString() => "\"" + Value + "\"";
 
         /**
          * Convert this string to the equivalent Erlang external representation.
@@ -114,10 +96,7 @@ namespace Erlang.NET
          *            an output stream to which the encoded string should be
          *            written.
          */
-        public override void encode(OtpOutputStream buf)
-        {
-            buf.write_string(str);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WriteString(Value);
 
         /**
          * Determine if two strings are equal. They are equal if they represent the
@@ -130,29 +109,18 @@ namespace Erlang.NET
          * @return true if the strings consist of the same sequence of characters,
          *         false otherwise.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o)
         {
-            if (o is string)
-            {
-                return str.CompareTo((string)o) == 0;
-            }
-            else if (o is OtpErlangString)
-            {
-                return str.CompareTo(((OtpErlangString)o).str) == 0;
-            }
-
+            if (o is string s)
+                return Value.Equals(s);
+            if (o is OtpErlangString es)
+                return Value.Equals(es.Value);
             return false;
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
-        {
-            return str.GetHashCode();
-        }
+        protected override int DoHashCode() => Value.GetHashCode();
 
         /**
          * Create Unicode code points from a string.
@@ -163,28 +131,44 @@ namespace Erlang.NET
          * @return the corresponding array of integers representing
          *         Unicode code points
          */
-        public static int[] stringToCodePoints(string s)
+        public static int[] ToCodePoints(string s)
         {
-            int[] offset = System.Globalization.StringInfo.ParseCombiningCharacters(s);
-            int m = offset.Length;
-            int[] codePoints = new int[m];
-            for (int i = 0; i < m; i++)
+            if (!s.IsNormalized())
+                s = s.Normalize();
+
+            List<int> cps = new List<int>((s.Length * 3) / 2);
+            
+            var ee = StringInfo.GetTextElementEnumerator(s);
+            while (ee.MoveNext())
             {
-                codePoints[i] = codePointAt(s, offset[i]);
+                string e = ee.GetTextElement();
+                cps.Add(char.ConvertToUtf32(e, 0));
             }
-            return codePoints;
+
+            return cps.ToArray();
         }
 
-        public static char codePointAt(string s, int index)
+        /**
+         * Create Unicode code points into a string.
+         * 
+         * @param  cps
+         *             a Unicode code point array
+         *
+         * @return the corresponding string equivalent to the
+         *         Unicode code points
+         */
+        public static string FromCodePoints(IEnumerable<int> cps)
         {
-            if (Char.IsHighSurrogate(s[index]))
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var cp in cps)
             {
-                char high = s[index], low = s[index + 1];
-                if (Char.IsLowSurrogate(low))
-                    return (char)((high - 0xD800) * 0x400 + (low - 0xDC00) + 0x10000);
+                if (!IsValidCodePoint(cp))
+                    throw new OtpErlangRangeException("Invalid CodePoint: " + cp);
+                sb.Append(char.ConvertFromUtf32(cp));
             }
 
-            return s[index];
+            return sb.ToString();
         }
 
         /**
@@ -198,7 +182,7 @@ namespace Erlang.NET
          * @return true if the code point is valid,
          *         false otherwise.
          */
-        public static bool isValidCodePoint(int cp)
+        private static bool IsValidCodePoint(int cp)
         {
             // Erlang definition of valid Unicode code points; 
             // Unicode 3.0, XML, et.al.
@@ -210,7 +194,7 @@ namespace Erlang.NET
          * Construct a string from encoded byte array
          *
          */
-        public static string newString(byte[] bytes, string encoding = "ISO-8859-1")
+        public static string FromEncoding(byte[] bytes, string encoding = "ISO-8859-1")
         {
             try
             {

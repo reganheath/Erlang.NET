@@ -34,9 +34,9 @@ namespace Erlang.NET.Test
         {
             OtpNode pingNode = new OtpNode("ping");
             OtpNode pongNode = new OtpNode("pong");
-            bool ok = pingNode.ping("pong", 10000);
-            pingNode.close();
-            pongNode.close();
+            bool ok = pingNode.Ping("pong", 10000);
+            pingNode.Close();
+            pongNode.Close();
             Environment.Exit(ok ? 0 : 1);
         }
     }

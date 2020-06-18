@@ -129,9 +129,11 @@ namespace Erlang.NET
                 try
                 {
                     epmd.close();
+                    epmd = null;
                 }
                 catch (Exception e)
                 {
+                    epmd = null;
                     throw new IOException(e.Message);
                 }
             }

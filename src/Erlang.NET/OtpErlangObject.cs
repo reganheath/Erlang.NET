@@ -46,7 +46,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded term should be
          *                written.
          */
-        public abstract void encode(OtpOutputStream buf);
+        public abstract void Encode(OtpOutputStream buf);
 
         /**
          * Read binary data in the Erlang external format, and produce a
@@ -64,10 +64,7 @@ namespace Erlang.NET
          *                    if the stream does not contain a valid representation
          *                    of an Erlang term.
          */
-        public static OtpErlangObject decode(OtpInputStream buf)
-        {
-            return buf.read_any();
-        }
+        public static OtpErlangObject Decode(OtpInputStream buf) => buf.ReadAny();
 
         /**
          * Determine if two Erlang objects are equal. In general, Erlang objects are
@@ -79,26 +76,18 @@ namespace Erlang.NET
          * @return true if the objects are identical.
          */
 
-        public abstract override bool Equals(Object o);
+        public abstract override bool Equals(object o);
 
         public override int GetHashCode()
         {
             if (hashCodeValue == 0)
-            {
-                hashCodeValue = doHashCode();
-            }
+                hashCodeValue = DoHashCode();
             return hashCodeValue;
         }
 
-        protected virtual int doHashCode()
-        {
-            return base.GetHashCode();
-        }
+        protected virtual int DoHashCode() => base.GetHashCode();
 
-        public virtual Object Clone()
-        {
-            return base.MemberwiseClone();
-        }
+        public virtual object Clone() => MemberwiseClone();
 
         internal class Hash
         {
@@ -137,7 +126,7 @@ namespace Erlang.NET
             //    Hash(1);
             //}
 
-            private void mix()
+            private void Mix()
             {
                 abc[0] -= abc[1]; abc[0] -= abc[2]; abc[0] ^= (abc[2] >> 13);
                 abc[1] -= abc[2]; abc[1] -= abc[0]; abc[1] ^= (abc[0] << 8);
@@ -150,25 +139,25 @@ namespace Erlang.NET
                 abc[2] -= abc[0]; abc[2] -= abc[1]; abc[2] ^= (abc[1] >> 15);
             }
 
-            public void combine(int a)
+            public void Combine(int a)
             {
                 abc[0] += (uint)a;
-                mix();
+                Mix();
             }
 
-            public void combine(long a)
+            public void Combine(long a)
             {
-                combine((int)(((uint)a) >> 32), (int)a);
+                Combine((int)(((uint)a) >> 32), (int)a);
             }
 
-            public void combine(int a, int b)
+            public void Combine(int a, int b)
             {
                 abc[0] += (uint)a;
                 abc[1] += (uint)b;
-                mix();
+                Mix();
             }
 
-            public void combine(byte[] b)
+            public void Combine(byte[] b)
             {
                 int j, k;
                 for (j = 0, k = 0;
@@ -177,7 +166,7 @@ namespace Erlang.NET
                 {
                     abc[k] += ((uint)b[j + 0] & 0xFF) + ((uint)b[j + 1] << 8 & 0xFF00)
                     + ((uint)b[j + 2] << 16 & 0xFF0000) + ((uint)b[j + 3] << 24);
-                    mix();
+                    Mix();
                 }
                 for (int n = 0, m = 0xFF;
                      j < b.Length;
@@ -185,10 +174,10 @@ namespace Erlang.NET
                 {
                     abc[k] += (uint)(b[j] << n & m);
                 }
-                mix();
+                Mix();
             }
 
-            public int valueOf()
+            public int ValueOf()
             {
                 return (int)abc[2];
             }

@@ -54,7 +54,7 @@ namespace Erlang.NET.Test
                     OtpErlangTuple t = (OtpErlangTuple)msg.getMsg();
                     OtpErlangPid sender = (OtpErlangPid)t.elementAt(0);
                     OtpErlangObject[] v = { mbox.Self, t.elementAt(1) };
-                    mbox.send(sender, new OtpErlangTuple(v));
+                    mbox.Send(sender, new OtpErlangTuple(v));
                 }
             }
         }
@@ -62,17 +62,17 @@ namespace Erlang.NET.Test
         public static void Main(string[] args)
         {
             OtpNode b = new OtpNode("b");
-            OtpActorMbox echo = (OtpActorMbox)b.createMbox("echo", false);
-            b.react(new OtpEchoActor(echo));
+            OtpActorMbox echo = (OtpActorMbox)b.CreateMbox("echo", false);
+            b.React(new OtpEchoActor(echo));
 
             OtpNode a = new OtpNode("a");
-            OtpMbox echoback = a.createMbox("echoback", true);
+            OtpMbox echoback = a.CreateMbox("echoback", true);
             OtpErlangObject[] v = { echoback.Self, new OtpErlangString("Hello, World!") };
-            echoback.send(echo.Self, new OtpErlangTuple(v));
-            log.Debug("<- ECHO (back) " + echoback.receive());
+            echoback.Send(echo.Self, new OtpErlangTuple(v));
+            log.Debug("<- ECHO (back) " + echoback.Receive());
 
-            a.close();
-            b.close();
+            a.Close();
+            b.Close();
         }
     }
 }

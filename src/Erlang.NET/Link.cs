@@ -22,7 +22,7 @@ using System;
 namespace Erlang.NET
 {
     // package scope
-    public class Link : IEquatable<Link>, IComparable<Link>
+    public class Link : IEquatable<Link>, IComparable<Link>, IComparable
     {
         public OtpErlangPid Local { get; private set; }
         public OtpErlangPid Remote { get; private set; }
@@ -35,12 +35,12 @@ namespace Erlang.NET
             Remote = remote;
         }
 
-        public bool contains(OtpErlangPid pid)
+        public bool Contains(OtpErlangPid pid)
         {
             return Local.Equals(pid) || Remote.Equals(pid);
         }
 
-        public bool equals(OtpErlangPid local, OtpErlangPid remote)
+        public bool Equals(OtpErlangPid local, OtpErlangPid remote)
         {
             return Local.Equals(local) && Remote.Equals(remote)
                 || Local.Equals(remote) && Remote.Equals(local);
@@ -51,20 +51,39 @@ namespace Erlang.NET
             if (hashCodeValue == 0)
             {
                 OtpErlangObject.Hash hash = new OtpErlangObject.Hash(5);
-                hash.combine(Local.GetHashCode() + Remote.GetHashCode());
-                hashCodeValue = hash.valueOf();
+                hash.Combine(Local.GetHashCode() + Remote.GetHashCode());
+                hashCodeValue = hash.ValueOf();
             }
             return hashCodeValue;
         }
 
-        public bool Equals(Link other)
+        public override bool Equals(object o) => Equals(o as Link);
+
+        public bool Equals(Link o)
         {
-            return Local.Equals(other.Local) && Remote.Equals(other.Remote);
+            if (o == null)
+                return false;
+            if (ReferenceEquals(this, o))
+                return true;
+            return Local.Equals(o.Local) 
+                && Remote.Equals(o.Remote);
+        }
+
+        public int CompareTo(object other)
+        {
+            if (other == null)
+                return -1;
+            if (!(other is Link))
+                return -1;
+            return CompareTo(other as Link);
         }
 
         public int CompareTo(Link other)
         {
-            throw new NotImplementedException();
+            int res = Local.CompareTo(other.Local);
+            if (res == 0)
+                res = Remote.CompareTo(other.Remote);
+            return res;
         }
     }
 }

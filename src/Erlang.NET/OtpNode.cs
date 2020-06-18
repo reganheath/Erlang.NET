@@ -18,11 +18,8 @@
  * %CopyrightEnd%
  */
 using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
+using System.IO;
 
 namespace Erlang.NET
 {
@@ -59,7 +56,7 @@ namespace Erlang.NET
      */
     public class OtpNode : OtpLocalNode
     {
-        private bool initDone = false;
+        private readonly object lockObj = new object();
 
         // thread to manage incoming connections
         private Acceptor acceptor = null;
@@ -67,28 +64,15 @@ namespace Erlang.NET
         // thread to schedule actors
         private OtpActorSched sched = null;
 
-        // keep track of all connections
-        Dictionary<string, OtpCookedConnection> connections = null;
-
         // keep track of all mailboxes
-        Mailboxes mboxes = null;
+        private Mailboxes mboxes = null;
 
         // handle status changes
-        OtpNodeStatus handler;
+        private OtpNodeStatus handler;
 
-        // flags
-        private int connFlags = 0;
+        public Dictionary<string, OtpCookedConnection> Connections { get; private set; } = null;
 
-
-        public Dictionary<string, OtpCookedConnection> Connections
-        {
-            get { return connections; }
-        }
-
-        public new int Flags
-        {
-            get { return connFlags; }
-        }
+        public new int Flags { get; set; } = 0;
 
         /**
          * <p>
@@ -113,13 +97,13 @@ namespace Erlang.NET
         public OtpNode(string node)
             : base(node)
         {
-            init(0);
+            Init(0);
         }
 
         public OtpNode(string node, OtpTransportFactory transportFactory)
             : base(node, transportFactory)
         {
-            init(0);
+            Init(0);
         }
 
         /**
@@ -139,13 +123,13 @@ namespace Erlang.NET
         public OtpNode(string node, string cookie)
             : base(node, cookie)
         {
-            init(0);
+            Init(0);
         }
 
         public OtpNode(string node, string cookie, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
-            init(0);
+            Init(0);
         }
 
         /**
@@ -169,51 +153,38 @@ namespace Erlang.NET
         public OtpNode(string node, string cookie, int port, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
-            init(port);
+            Init(port);
         }
 
-        private void init(int port)
+        private void Init(int port)
         {
-            lock (this)
-            {
-                if (!initDone)
-                {
-                    connections = new Dictionary<string, OtpCookedConnection>();
+            Connections = new Dictionary<string, OtpCookedConnection>();
 
-                    sched = new OtpActorSched();
-                    mboxes = new Mailboxes(this, sched);
-                    acceptor = new Acceptor(this, port);
-                    initDone = true;
-                }
-            }
+            sched = new OtpActorSched();
+            mboxes = new Mailboxes(this, sched);
+            acceptor = new Acceptor(this, port);
         }
 
         /**
          * Close the node. Unpublish the node from Epmd (preventing new connections)
          * and close all existing connections.
          */
-        public void close()
+        public void Close()
         {
-            lock (this)
+            lock (lockObj)
             {
                 acceptor.quit();
-
                 mboxes.clear();
 
-                lock (connections)
+                lock (Connections)
                 {
-                    OtpCookedConnection[] conns = new OtpCookedConnection[connections.Count];
+                    OtpCookedConnection[] conns = new OtpCookedConnection[Connections.Count];
                     int i = 0;
-                    foreach (OtpCookedConnection conn in connections.Values)
-                    {
+                    foreach (OtpCookedConnection conn in Connections.Values)
                         conns[i++] = conn;
-                    }
-                    connections.Clear();
+                    Connections.Clear();
                     foreach (OtpCookedConnection conn in conns)
-                    {
-                        conn.close();
-                    }
-                    initDone = false;
+                        conn.Close();
                 }
             }
         }
@@ -226,7 +197,7 @@ namespace Erlang.NET
          * 
          * @return a mailbox.
          */
-        public OtpMbox createMbox(bool sync)
+        public OtpMbox CreateMbox(bool sync)
         {
             return mboxes.create(sync);
         }
@@ -251,9 +222,9 @@ namespace Erlang.NET
          *            </p>
          * 
          */
-        public void closeMbox(OtpMbox mbox)
+        public void CloseMbox(OtpMbox mbox)
         {
-            closeMbox(mbox, new OtpErlangAtom("normal"));
+            CloseMbox(mbox, new OtpErlangAtom("normal"));
         }
 
         /**
@@ -278,13 +249,13 @@ namespace Erlang.NET
          *            </p>
          * 
          */
-        public void closeMbox(OtpMbox mbox, OtpErlangObject reason)
+        public void CloseMbox(OtpMbox mbox, OtpErlangObject reason)
         {
             if (mbox != null)
             {
                 mboxes.remove(mbox);
                 mbox.Name = null;
-                mbox.breakLinks(reason);
+                mbox.BreakLinks(reason);
             }
         }
 
@@ -301,7 +272,7 @@ namespace Erlang.NET
          * @return a mailbox, or null if the name was already in use.
          * 
          */
-        public OtpMbox createMbox(string name, bool sync)
+        public OtpMbox CreateMbox(string name, bool sync)
         {
             return mboxes.create(name, sync);
         }
@@ -324,7 +295,7 @@ namespace Erlang.NET
          * 
          * @return true if the name was available, or false otherwise.
          */
-        public bool registerName(string name, OtpMbox mbox)
+        public bool RegisterName(string name, OtpMbox mbox)
         {
             return mboxes.register(name, mbox);
         }
@@ -335,10 +306,7 @@ namespace Erlang.NET
          * @return an array of Strings, containins all known registered names on
          *         this node.
          */
-        public string[] getNames()
-        {
-            return mboxes.names();
-        }
+        public string[] Names() => mboxes.names();
 
         /**
          * Determine the {@link OtpErlangPid pid} corresponding to a registered name
@@ -347,13 +315,11 @@ namespace Erlang.NET
          * @return the {@link OtpErlangPid pid} corresponding to the registered
          *         name, or null if the name is not known on this node.
          */
-        public OtpErlangPid whereis(string name)
+        public OtpErlangPid WhereIs(string name)
         {
             OtpMbox m = mboxes.get(name);
             if (m != null)
-            {
                 return m.Self;
-            }
             return null;
         }
 
@@ -367,12 +333,10 @@ namespace Erlang.NET
          *            null as the handler to use.
          * 
          */
-        public void registerStatusHandler(OtpNodeStatus handler)
+        public void RegisterStatusHandler(OtpNodeStatus handler)
         {
-            lock (this)
-            {
+            lock (lockObj)
                 this.handler = handler;
-            }
         }
 
         /**
@@ -414,7 +378,7 @@ namespace Erlang.NET
          * 
          * the reply: <- SEND {2,'',#Pid<bingo@aule.1.0>} {#Ref<bingo@aule.2>,yes}
          */
-        public bool ping(string node, long timeout)
+        public bool Ping(string node, long timeout)
         {
             if (node.Equals(this.Node))
             {
@@ -429,9 +393,9 @@ namespace Erlang.NET
             OtpMbox mbox = null;
             try
             {
-                mbox = createMbox(true);
-                mbox.send("net_kernel", node, getPingTuple(mbox));
-                OtpErlangObject reply = mbox.receive(timeout);
+                mbox = CreateMbox(true);
+                mbox.Send("net_kernel", node, GetPingTuple(mbox));
+                OtpErlangObject reply = mbox.Receive(timeout);
                 OtpErlangTuple t = (OtpErlangTuple)reply;
                 OtpErlangAtom a = (OtpErlangAtom)t.elementAt(1);
                 return "yes".Equals(a.atomValue());
@@ -441,13 +405,13 @@ namespace Erlang.NET
             }
             finally
             {
-                closeMbox(mbox);
+                CloseMbox(mbox);
             }
             return false;
         }
 
         /* create the outgoing ping message */
-        private OtpErlangTuple getPingTuple(OtpMbox mbox)
+        private OtpErlangTuple GetPingTuple(OtpMbox mbox)
         {
             OtpErlangObject[] ping = new OtpErlangObject[3];
             OtpErlangObject[] pid = new OtpErlangObject[2];
@@ -470,7 +434,7 @@ namespace Erlang.NET
          * this method simulates net_kernel only for the purpose of replying to
          * pings.
          */
-        private bool netKernel(OtpMsg m)
+        private bool NetKernel(OtpMsg m)
         {
             OtpMbox mbox = null;
             try
@@ -486,8 +450,8 @@ namespace Erlang.NET
                 pong[0] = req.elementAt(1); // his #Ref
                 pong[1] = new OtpErlangAtom("yes");
 
-                mbox = createMbox(true);
-                mbox.send(pid, new OtpErlangTuple(pong));
+                mbox = CreateMbox(true);
+                mbox.Send(pid, new OtpErlangTuple(pong));
                 return true;
             }
             catch (Exception)
@@ -495,7 +459,7 @@ namespace Erlang.NET
             }
             finally
             {
-                closeMbox(mbox);
+                CloseMbox(mbox);
             }
             return false;
         }
@@ -504,7 +468,7 @@ namespace Erlang.NET
          * OtpCookedConnection delivers messages here return true if message was
          * delivered successfully, or false otherwise.
          */
-        public bool deliver(OtpMsg m)
+        public bool Deliver(OtpMsg m)
         {
             OtpMbox mbox = null;
 
@@ -518,7 +482,7 @@ namespace Erlang.NET
                     /* special case for netKernel requests */
                     if (name.Equals("net_kernel"))
                     {
-                        return netKernel(m);
+                        return NetKernel(m);
                     }
                     else
                     {
@@ -534,7 +498,7 @@ namespace Erlang.NET
                 {
                     return false;
                 }
-                mbox.deliver(m);
+                mbox.Deliver(m);
             }
             catch (Exception)
             {
@@ -548,102 +512,101 @@ namespace Erlang.NET
          * OtpCookedConnection delivers errors here, we send them on to the handler
          * specified by the application
          */
-        public void deliverError(OtpCookedConnection conn, Exception e)
+        public void DeliverError(OtpCookedConnection conn, Exception e)
         {
-            removeConnection(conn);
-            remoteStatus(conn.Name, false, e);
+            RemoveConnection(conn);
+            RemoteStatus(conn.Name, false, e);
         }
 
-        public void react(OtpActor actor)
+        public void React(OtpActor actor)
         {
-            sched.react(actor);
+            sched.React(actor);
         }
 
         /*
          * find or create a connection to the given node
          */
-        public OtpCookedConnection getConnection(string node)
+        public OtpCookedConnection GetConnection(string node)
         {
-            OtpPeer peer = null;
             OtpCookedConnection conn = null;
 
-            lock (connections)
+            lock (Connections)
             {
                 // first just try looking up the name as-is
 
-                if (connections.ContainsKey(node))
-                    return connections[node];
+                if (Connections.ContainsKey(node))
+                    return Connections[node];
 
                 // in case node had no '@' add localhost info and try again
-                peer = new OtpPeer(node);
+                OtpPeer peer = new OtpPeer(node);
 
-                if (connections.ContainsKey(peer.Node))
-                    return connections[peer.Node];
+                if (Connections.ContainsKey(peer.Node))
+                    return Connections[peer.Node];
 
                 try
                 {
                     conn = new OtpCookedConnection(this, peer);
-                    conn.setFlags(connFlags);
-                    addConnection(conn);
+                    conn.Flags = Flags;
+                    AddConnection(conn);
                 }
                 catch (Exception e)
                 {
                     /* false = outgoing */
-                    connAttempt(peer.Node, false, e);
+                    ConnAttempt(peer.Node, false, e);
                 }
 
                 return conn;
             }
         }
 
-        void addConnection(OtpCookedConnection conn)
+        void AddConnection(OtpCookedConnection conn)
         {
             if (conn != null && conn.Name != null)
             {
-                connections.Add(conn.Name, conn);
-                remoteStatus(conn.Name, true, null);
+                Connections.Add(conn.Name, conn);
+                RemoteStatus(conn.Name, true, null);
             }
         }
 
-        private void removeConnection(OtpCookedConnection conn)
+        private void RemoveConnection(OtpCookedConnection conn)
         {
             if (conn != null && conn.Name != null)
-                connections.Remove(conn.Name);
+                Connections.Remove(conn.Name);
         }
 
         /* use these wrappers to call handler functions */
-        private void remoteStatus(string node, bool up, Object info)
+        private void RemoteStatus(string node, bool up, object info)
         {
-            lock (this)
+            lock (lockObj)
             {
                 if (handler == null)
                     return;
 
-                try { handler.remoteStatus(node, up, info); }
+                try { handler.RemoteStatus(node, up, info); }
                 catch (Exception) { }
             }
         }
 
-        internal void localStatus(string node, bool up, Object info)
+        internal void LocalStatus(string node, bool up, object info)
         {
-            lock (this)
+            lock (lockObj)
             {
                 if (handler == null)
                     return;
 
-                try { handler.localStatus(node, up, info); }
+                try { handler.LocalStatus(node, up, info); }
                 catch (Exception) { }
             }
         }
 
-        internal void connAttempt(string node, bool incoming, Object info)
+        internal void ConnAttempt(string node, bool incoming, object info)
         {
-            lock (this)
+            lock (lockObj)
             {
                 if (handler == null)
                     return;
 
-                try { handler.connAttempt(node, incoming, info); }
+                try { handler.ConnAttempt(node, incoming, info); }
                 catch (Exception) { }
             }
         }
@@ -654,6 +617,7 @@ namespace Erlang.NET
          */
         public class Mailboxes
         {
+            private readonly object lockObj = new object();
             private readonly OtpNode node;
             private readonly OtpActorSched sched;
 
@@ -674,7 +638,7 @@ namespace Erlang.NET
             {
                 OtpMbox m = null;
 
-                lock (this)
+                lock (lockObj)
                 {
                     if (get(name) != null)
                     {
@@ -692,7 +656,7 @@ namespace Erlang.NET
             {
                 OtpErlangPid pid = node.createPid();
                 OtpMbox m = sync ? new OtpMbox(node, pid) : new OtpActorMbox(sched, node, pid);
-                lock (this)
+                lock (lockObj)
                 {
                     byPid.Add(pid, new WeakReference(m));
                 }
@@ -701,7 +665,7 @@ namespace Erlang.NET
 
             public void clear()
             {
-                lock (this)
+                lock (lockObj)
                 {
                     byPid.Clear();
                     byName.Clear();
@@ -712,7 +676,7 @@ namespace Erlang.NET
             {
                 string[] allnames = null;
 
-                lock (this)
+                lock (lockObj)
                 {
                     int n = byName.Count;
                     allnames = new string[n];
@@ -728,7 +692,7 @@ namespace Erlang.NET
 
             public bool register(string name, OtpMbox mbox)
             {
-                lock (this)
+                lock (lockObj)
                 {
                     if (name == null)
                     {
@@ -758,7 +722,7 @@ namespace Erlang.NET
              */
             public OtpMbox get(string name)
             {
-                lock (this)
+                lock (lockObj)
                 {
                     if (byName.ContainsKey(name))
                     {
@@ -782,7 +746,7 @@ namespace Erlang.NET
              */
             public OtpMbox get(OtpErlangPid pid)
             {
-                lock (this)
+                lock (lockObj)
                 {
                     if (byPid.ContainsKey(pid))
                     {
@@ -801,7 +765,7 @@ namespace Erlang.NET
 
             public void remove(OtpMbox mbox)
             {
-                lock (this)
+                lock (lockObj)
                 {
                     byPid.Remove(mbox.Self);
                     if (mbox.Name != null)
@@ -831,7 +795,7 @@ namespace Erlang.NET
                 this.acceptorPort = sock.getLocalPort();
                 node.port = this.acceptorPort;
                 publishPort();
-                base.start();
+                base.Start();
             }
 
             private bool publishPort()
@@ -857,7 +821,7 @@ namespace Erlang.NET
                 unPublishPort();
                 done = true;
                 closeSock(sock);
-                node.localStatus(node.Node, false, null);
+                node.LocalStatus(node.Node, false, null);
             }
 
             private void closeSock(OtpTransport s)
@@ -889,12 +853,12 @@ namespace Erlang.NET
                 get { return acceptorPort; }
             }
 
-            public override void run()
+            public override void Run()
             {
                 OtpTransport newsock = null;
                 OtpCookedConnection conn = null;
 
-                node.localStatus(node.Node, true, null);
+                node.LocalStatus(node.Node, true, null);
 
                 while (!done)
                 {
@@ -912,7 +876,7 @@ namespace Erlang.NET
                         // is called. acceptor.quit() will call localStatus(...), so
                         // we have to check if that's where we come from.
                         if (!done)
-                            node.localStatus(node.Node, false, e);
+                            node.LocalStatus(node.Node, false, e);
 
                         continue;
                     }
@@ -922,42 +886,37 @@ namespace Erlang.NET
                         lock (node.Connections)
                         {
                             conn = new OtpCookedConnection(node, newsock);
-                            conn.setFlags(node.Flags);
-                            node.addConnection(conn);
+                            conn.Flags = node.Flags;
+                            node.AddConnection(conn);
                         }
                     }
                     catch (OtpAuthException e)
                     {
                         if (conn != null && conn.Name != null)
-                            node.connAttempt(conn.Name, true, e);
+                            node.ConnAttempt(conn.Name, true, e);
                         else
-                            node.connAttempt("unknown", true, e);
+                            node.ConnAttempt("unknown", true, e);
                         closeSock(newsock);
                     }
                     catch (IOException e)
                     {
                         if (conn != null && conn.Name != null)
-                            node.connAttempt(conn.Name, true, e);
+                            node.ConnAttempt(conn.Name, true, e);
                         else
-                            node.connAttempt("unknown", true, e);
+                            node.ConnAttempt("unknown", true, e);
                         closeSock(newsock);
                     }
                     catch (Exception e)
                     {
                         closeSock(newsock);
                         closeSock(sock);
-                        node.localStatus(node.Node, false, e);
+                        node.LocalStatus(node.Node, false, e);
                     }
                 }
 
                 // if we have exited loop we must do this too
                 unPublishPort();
             }
-        }
-
-        public void setFlags(int flags)
-        {
-            this.connFlags = flags;
         }
     }
 }

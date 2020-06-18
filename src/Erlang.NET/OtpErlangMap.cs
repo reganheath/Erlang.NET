@@ -68,8 +68,8 @@ namespace Erlang.NET
             {
                 for(int i = 0; i < arity; i++)
                 {
-                    OtpErlangObject key = buf.read_any();
-                    OtpErlangObject value = buf.read_any();
+                    OtpErlangObject key = buf.ReadAny();
+                    OtpErlangObject value = buf.ReadAny();
                     map.Add(key, value);
                 }
             }
@@ -110,7 +110,7 @@ namespace Erlang.NET
             return "#{" + string.Join(",", map.Select((p) => p.Key + " => " + p.Value)) + "}";
         }
 
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             buf.write_map_head(arity());
             foreach(var p in map)
@@ -120,41 +120,34 @@ namespace Erlang.NET
             }
         }
 
-        public override bool Equals(object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangMap);
+
+        public bool Equals(OtpErlangMap o)
         {
             if (o == null)
                 return false;
-            if (o.GetType() != typeof(OtpErlangMap))
-                return false;
-            return Equals((OtpErlangMap)o);
-        }
-
-        public bool Equals(OtpErlangMap map)
-        {
-            if (map == null)
-                return false;
-            if (ReferenceEquals(this, map))
+            if (ReferenceEquals(this, o))
                 return true;
-            if (arity() != map.arity())
+            if (arity() != o.arity())
                 return false;
             if (arity() == 0)
                 return true;
             //if (GetHashCode() != map.GetHashCode())
             //    return false;
-            return map.OrderBy(kvp => kvp.Key).SequenceEqual(map.map.OrderBy(kvp => kvp.Key));
+            return o.OrderBy(kvp => kvp.Key).SequenceEqual(o.map.OrderBy(kvp => kvp.Key));
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(9);
-            hash.combine(arity());
+            hash.Combine(arity());
             foreach (var key in map.Keys)
-                hash.combine(key.GetHashCode());
+                hash.Combine(key.GetHashCode());
             foreach (var value in map.Values)
-                hash.combine(value.GetHashCode());
-            return hash.valueOf();
+                hash.Combine(value.GetHashCode());
+            return hash.ValueOf();
         }
 
         public override object Clone()

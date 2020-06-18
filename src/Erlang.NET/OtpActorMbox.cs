@@ -23,13 +23,8 @@ namespace Erlang.NET
     public class OtpActorMbox : OtpMbox
     {
         protected readonly OtpActorSched sched;
-        protected OtpActorSched.OtpActorSchedTask task;
 
-        public OtpActorSched.OtpActorSchedTask Task
-        {
-            get { return task; }
-            set { task = value; }
-        }
+        public OtpActorSched.OtpActorSchedTask Task { get; set; }
 
         internal OtpActorMbox(OtpActorSched sched, OtpNode home, OtpErlangPid self, string name)
             : base(home, self, name)
@@ -43,44 +38,32 @@ namespace Erlang.NET
             this.sched = sched;
         }
 
-        public override void close()
+        public override void Close()
         {
-            base.close();
-            sched.canncel(this);
+            base.Close();
+            sched.Cancel(this);
         }
 
-        public override OtpMsg receiveMsg()
+        public override OtpMsg ReceiveMsg()
         {
-            Object m = Queue.tryGet();
-
+            object m = Queue.TryGet();
             if (m == null)
-            {
                 return null;
-            }
-            else
-            {
-                return (OtpMsg)m;
-            }
+            return (OtpMsg)m;
         }
 
-        public override OtpMsg receiveMsg(long timeout)
+        public override OtpMsg ReceiveMsg(long timeout)
         {
-            Object m = Queue.get(timeout);
-
+            object m = Queue.Get(timeout);
             if (m == null)
-            {
                 return null;
-            }
-            else
-            {
-                return (OtpMsg)m;
-            }
+            return (OtpMsg)m;
         }
 
-        public override void deliver(OtpMsg m)
+        public override void Deliver(OtpMsg m)
         {
-            base.deliver(m);
-            sched.notify(this);
+            base.Deliver(m);
+            sched.Notify(this);
         }
     }
 }

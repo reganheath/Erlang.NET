@@ -23,7 +23,7 @@ using System.Linq;
 namespace Erlang.NET
 {
     [Serializable]
-    public class OtpErlangFun : OtpErlangObject
+    public class OtpErlangFun : OtpErlangObject, IEquatable<OtpErlangFun>
     {
         private readonly OtpErlangPid pid;
         private readonly string module;
@@ -75,60 +75,59 @@ namespace Erlang.NET
             this.freeVars = freeVars;
         }
 
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
-            buf.write_fun(pid, module, old_index, arity, md5, index, uniq,
-                  freeVars);
+            buf.write_fun(pid, module, old_index, arity, md5, index, uniq, freeVars);
         }
 
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangFun);
+
+        public bool Equals(OtpErlangFun o)
         {
-            if (!(o is OtpErlangFun))
+            if (o == null)
                 return false;
-            
-            OtpErlangFun f = (OtpErlangFun)o;
-            if (!pid.Equals(f.pid) || !module.Equals(f.module) || arity != f.arity)
+            if (ReferenceEquals(this, o))
+                return true;
+
+            if (!pid.Equals(o.pid) || !module.Equals(o.module) || arity != o.arity)
                 return false;
             
             if (md5 == null)
             {
-                if (f.md5 != null)
+                if (o.md5 != null)
                     return false;
             }
             else
             {
-                if (!md5.SequenceEqual(f.md5))
+                if (!md5.SequenceEqual(o.md5))
                     return false;
             }
 
-            if (index != f.index || uniq != f.uniq)
+            if (index != o.index || uniq != o.uniq)
                 return false;
 
             if (freeVars == null)
-                return f.freeVars == null;
+                return o.freeVars == null;
 
-            return freeVars.SequenceEqual(f.freeVars);
+            return freeVars.SequenceEqual(o.freeVars);
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(1);
-            hash.combine(pid.GetHashCode(), module.GetHashCode());
-            hash.combine(arity);
-            if (md5 != null) hash.combine(md5);
-            hash.combine(index);
-            hash.combine(uniq);
+            hash.Combine(pid.GetHashCode(), module.GetHashCode());
+            hash.Combine(arity);
+            if (md5 != null) hash.Combine(md5);
+            hash.Combine(index);
+            hash.Combine(uniq);
             if (freeVars != null)
             {
                 foreach (OtpErlangObject o in freeVars)
-                    hash.combine(o.GetHashCode(), 1);
+                    hash.Combine(o.GetHashCode(), 1);
             }
-            return hash.valueOf();
+            return hash.ValueOf();
         }
 
         public override string ToString()

@@ -61,16 +61,6 @@ namespace Erlang.NET
             }
         }
 
-        /* returns a copy of the link table */
-        public Link[] All
-        {
-            get
-            {
-                lock (lockObj)
-                    return links.ToArray();
-            }
-        }
-
         public void AddLink(OtpErlangPid local, OtpErlangPid remote)
         {
             lock (lockObj)
@@ -100,7 +90,7 @@ namespace Erlang.NET
         public Link Find(OtpErlangPid local, OtpErlangPid remote)
         {
             lock (lockObj)
-                return links.FirstOrDefault((l) => l.equals(local, remote));
+                return links.FirstOrDefault((l) => l.Equals(local, remote));
         }
 
         /* clears the link table, returns a copy */

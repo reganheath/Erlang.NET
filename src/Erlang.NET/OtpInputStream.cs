@@ -405,14 +405,14 @@ namespace Erlang.NET
                     len = read2BE();
                     strbuf = new byte[len];
                     this.readN(strbuf);
-                    atom = OtpErlangString.newString(strbuf);
+                    atom = OtpErlangString.FromEncoding(strbuf);
                     break;
                 case OtpExternal.smallAtomUtf8Tag:
                 case OtpExternal.atomUtf8Tag:
                     len = (tag == OtpExternal.smallAtomUtf8Tag ? read1() : read2BE());
 	                strbuf = new byte[len];
 	                this.readN(strbuf);
-                    atom = OtpErlangString.newString(strbuf, "UTF-8");
+                    atom = OtpErlangString.FromEncoding(strbuf, "UTF-8");
 	                break;
                 default:
                     throw new OtpErlangDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag 
@@ -528,7 +528,7 @@ namespace Erlang.NET
                     // get the string
                     byte[] strbuf = new byte[31];
                     this.readN(strbuf);
-                    string str = OtpErlangString.newString(strbuf);
+                    string str = OtpErlangString.FromEncoding(strbuf);
                     if (!Double.TryParse(str, out val))
                         throw new OtpErlangDecodeException("Invalid float format: '" + str + "'");
                     break;
@@ -1077,7 +1077,7 @@ namespace Erlang.NET
                 long uniq = read_long();
                 OtpErlangObject[] freeVars = new OtpErlangObject[nFreeVars];
                 for (int i = 0; i < nFreeVars; ++i)
-                    freeVars[i] = read_any();
+                    freeVars[i] = ReadAny();
                 return new OtpErlangFun(pid, module, index, uniq, freeVars);
             }
             else if (tag == OtpExternal.newFunTag)
@@ -1094,7 +1094,7 @@ namespace Erlang.NET
                 OtpErlangPid pid = read_pid();
                 OtpErlangObject[] freeVars = new OtpErlangObject[nFreeVars];
                 for (int i = 0; i < nFreeVars; ++i)
-                    freeVars[i] = read_any();
+                    freeVars[i] = ReadAny();
                 return new OtpErlangFun(pid, module, arity, md5, index, oldIndex, uniq, freeVars);
             }
             else
@@ -1122,44 +1122,27 @@ namespace Erlang.NET
          * @exception OtpErlangDecodeException
          *                if the next term in the stream is not a string.
          */
-        public string read_string()
+        public string ReadString()
         {
-            int tag;
             int len;
-            byte[] strbuf;
-            tag = read1skip_version();
+            int tag = read1skip_version();
             switch (tag)
             {
                 case OtpExternal.stringTag:
                     len = read2BE();
-                    strbuf = new byte[len];
+                    byte[] strbuf = new byte[len];
                     this.readN(strbuf);
-                    return OtpErlangString.newString(strbuf);
+                    return OtpErlangString.FromEncoding(strbuf);
                 case OtpExternal.nilTag:
                     return "";
                 case OtpExternal.listTag: // List when unicode +
                     len = read4BE();
-                    StringBuilder sb = new StringBuilder();
+                    int[] cps = new int[len];
                     for (int i = 0; i < len; i++)
-                    {
-                        uint cp = (uint)read_int();
-                        if (!OtpErlangString.isValidCodePoint((int)cp))
-                            throw new OtpErlangDecodeException("Invalid CodePoint: " + cp);
-                        if (1 <= (cp >> 16))
-                        {
-                            cp -= 0x10000;
-                            char high = (char)((cp / 0x400) + 0xD800);
-                            char low = (char)((cp % 0x400) + 0xDC00);
-                            sb.Append(high);
-                            sb.Append(low);
-                        }
-                        else
-                        {
-                            sb.Append((char)cp);
-                        }
-                    }
+                        cps[i] = read_int();
+                    var s = OtpErlangString.FromCodePoints(cps);
                     read_nil();
-                    return sb.ToString();
+                    return s;
                 default:
                     throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.stringTag + " or " + OtpExternal.listTag + ", got " + tag);
             }
@@ -1199,7 +1182,7 @@ namespace Erlang.NET
             }
 
             OtpInputStream ois = new OtpInputStream(buf, flags);
-            return ois.read_any();
+            return ois.ReadAny();
         }
 
         /**
@@ -1211,7 +1194,7 @@ namespace Erlang.NET
          *                if the stream does not contain a known Erlang type at the
          *                next position.
          */
-        public OtpErlangObject read_any()
+        public OtpErlangObject ReadAny()
         {
             // calls one of the above functions, depending on o
             int tag = peek1skip_version();

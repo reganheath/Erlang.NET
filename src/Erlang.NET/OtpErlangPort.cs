@@ -25,7 +25,7 @@ namespace Erlang.NET
      * Provides a Java representation of Erlang ports.
      */
     [Serializable]
-    public class OtpErlangPort : OtpErlangObject
+    public class OtpErlangPort : OtpErlangObject, IEquatable<OtpErlangPort>
     {
         public int Tag { get { return OtpExternal.newPortTag; } }
         public string Node { get; private set; }
@@ -121,7 +121,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded port should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             buf.write_port(this);
         }
@@ -135,30 +135,27 @@ namespace Erlang.NET
          * 
          * @return true if the ports are equal, false otherwise.
          */
-        public override bool Equals(Object o)
-        {
-            if (!(o is OtpErlangPort))
-            {
+        public override bool Equals(object o) => Equals(o as OtpErlangPort);
+
+        public bool Equals(OtpErlangPort o)
+        { 
+            if (o == null)
                 return false;
-            }
-
-            OtpErlangPort port = (OtpErlangPort)o;
-
-            return Creation == port.Creation && Id == port.Id
-            && Node.CompareTo(port.Node) == 0;
+            if (ReferenceEquals(this, o))
+                return true;
+            return Creation == o.Creation 
+                && Id == o.Id
+                && Node.Equals(o.Node);
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(6);
-            hash.combine(Creation);
-            hash.combine(Id, Node.GetHashCode());
-            return hash.valueOf();
+            hash.Combine(Creation);
+            hash.Combine(Id, Node.GetHashCode());
+            return hash.ValueOf();
         }
     }
 }

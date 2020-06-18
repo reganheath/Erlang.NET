@@ -17,17 +17,16 @@
  * 
  * %CopyrightEnd%
  */
+using log4net;
+using log4net.Config;
 using System;
 using System.Configuration;
 using System.IO;
-using System.Net;
+using System.Linq;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
-using System.Threading;
-using log4net;
-using log4net.Config;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Erlang.NET
 {
@@ -93,19 +92,14 @@ namespace Erlang.NET
         protected const int ChallengeStatus = 's';
 
         private volatile bool done = false;
-        private object runLock = new object();
+        private readonly object runLock = new object();
 
         protected bool connected = false; // connection status
         protected OtpTransport socket; // communication channel
         protected OtpPeer peer; // who are we connected to
         protected OtpLocalNode localNode; // this nodes id
-        string name; // local name of this connection
 
-        public string Name
-        {
-            get { return name; }
-            set { name = value; }
-        }
+        public string Name { get; set; }
 
         protected bool cookieOk = false; // already checked the cookie for this connection
         protected bool sendCookie = true; // Send cookies in messages?
@@ -120,7 +114,7 @@ namespace Erlang.NET
 
         protected static readonly Random random;
 
-        private int connFlags = 0;
+        public int Flags { get; set; } = 0;
 
         static AbstractConnection()
         {
@@ -165,8 +159,8 @@ namespace Erlang.NET
             if (traceLevel >= handshakeThreshold)
                 log.Debug("<- ACCEPT FROM " + s);
 
-            doAccept();
-            name = peer.Node;
+            DoAccept();
+            Name = peer.Node;
         }
 
         /**
@@ -200,21 +194,21 @@ namespace Erlang.NET
             // highest common version: min(peer.distHigh, self.distHigh)
             peer.DistChoose = peer.DistHigh > self.DistHigh ? self.DistHigh : peer.DistHigh;
 
-            doConnect(port);
+            DoConnect(port);
 
-            name = peer.Node;
+            Name = peer.Node;
             connected = true;
         }
 
         /**
          * Deliver communication exceptions to the recipient.
          */
-        public abstract void deliver(Exception e);
+        public abstract void Deliver(Exception e);
 
         /**
          * Deliver messages to the recipient.
          */
-        public abstract void deliver(OtpMsg msg);
+        public abstract void Deliver(OtpMsg msg);
 
         /**
          * Send a pre-encoded message to a named process on a remote node.
@@ -228,7 +222,7 @@ namespace Erlang.NET
          *                if the connection is not active or a communication error
          *                occurs.
          */
-        protected void sendBuf(OtpErlangPid from, string dest, OtpOutputStream payload)
+        protected void SendBuf(OtpErlangPid from, string dest, OtpOutputStream payload)
         {
             if (!connected)
                 throw new IOException("Not connected");
@@ -256,7 +250,7 @@ namespace Erlang.NET
             // fix up length in preamble
             header.poke4BE(0, header.size() + payload.size() - 4);
 
-            do_send(header, payload);
+            DoSend(header, payload);
         }
 
         /**
@@ -271,7 +265,7 @@ namespace Erlang.NET
          *                if the connection is not active or a communication error
          *                occurs.
          */
-        protected void sendBuf(OtpErlangPid from, OtpErlangPid dest, OtpOutputStream payload)
+        protected void SendBuf(OtpErlangPid from, OtpErlangPid dest, OtpOutputStream payload)
         {
             if (!connected)
                 throw new IOException("Not connected");
@@ -298,7 +292,7 @@ namespace Erlang.NET
             // fix up length in preamble
             header.poke4BE(0, header.size() + payload.size() - 4);
 
-            do_send(header, payload);
+            DoSend(header, payload);
         }
 
         /*
@@ -306,7 +300,7 @@ namespace Erlang.NET
          * uses his cookie (not revealing ours). This is just like send_reg
          * otherwise
          */
-        private void cookieError(OtpLocalNode local, OtpErlangAtom cookie)
+        private void CookieError(OtpLocalNode local, OtpErlangAtom cookie)
         {
             try
             {
@@ -350,13 +344,13 @@ namespace Erlang.NET
                 // fix up length in preamble
                 header.poke4BE(0, header.size() + payload.size() - 4);
 
-                try { do_send(header, payload); }
+                try { DoSend(header, payload); }
                 catch (IOException) { } // ignore
 
             }
             finally
             {
-                close();
+                Close();
             }
 
             throw new OtpAuthException("Remote cookie not authorized: " + cookie.atomValue());
@@ -377,7 +371,7 @@ namespace Erlang.NET
          *                if the connection is not active or a communication error
          *                occurs.
          */
-        protected void sendLink(OtpErlangPid from, OtpErlangPid dest)
+        protected void SendLink(OtpErlangPid from, OtpErlangPid dest)
         {
             if (!connected)
                 throw new IOException("Not connected");
@@ -398,7 +392,7 @@ namespace Erlang.NET
             // fix up length in preamble
             header.poke4BE(0, header.size() - 4);
 
-            do_send(header);
+            DoSend(header);
         }
 
         /**
@@ -413,7 +407,7 @@ namespace Erlang.NET
          *                if the connection is not active or a communication error
          *                occurs.
          */
-        protected void sendUnlink(OtpErlangPid from, OtpErlangPid dest)
+        protected void SendUnlink(OtpErlangPid from, OtpErlangPid dest)
         {
             if (!connected)
                 throw new IOException("Not connected");
@@ -434,13 +428,13 @@ namespace Erlang.NET
             // fix up length in preamble
             header.poke4BE(0, header.size() - 4);
 
-            do_send(header);
+            DoSend(header);
         }
 
         /* used internally when "processes" terminate */
-        protected void sendExit(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
+        protected void SendExit(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
         {
-            sendExit(exitTag, from, dest, reason);
+            SendExit(exitTag, from, dest, reason);
         }
 
         /**
@@ -455,12 +449,12 @@ namespace Erlang.NET
          *                if the connection is not active or a communication error
          *                occurs.
          */
-        protected void sendExit2(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
+        protected void SendExit2(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
         {
-            sendExit(exit2Tag, from, dest, reason);
+            SendExit(exit2Tag, from, dest, reason);
         }
 
-        private void sendExit(int tag, OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
+        private void SendExit(int tag, OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
         {
             if (!connected)
                 throw new IOException("Not connected");
@@ -482,14 +476,14 @@ namespace Erlang.NET
             // fix up length in preamble
             header.poke4BE(0, header.size() - 4);
 
-            do_send(header);
+            DoSend(header);
         }
 
-        public override void run()
+        public override void Run()
         {
             if (!connected)
             {
-                deliver(new IOException("Not connected"));
+                Deliver(new IOException("Not connected"));
                 return;
             }
 
@@ -508,8 +502,8 @@ namespace Erlang.NET
                     // read length and read buffer must be atomic!
 
                     // read 4 bytes - get length of incoming packet
-                    readSock(socket, lbuf);
-                    ibuf = new OtpInputStream(lbuf, connFlags);
+                    ReadSock(socket, lbuf);
+                    ibuf = new OtpInputStream(lbuf, Flags);
                     len = ibuf.read4BE();
 
                     // received tick? send tock!
@@ -526,8 +520,8 @@ namespace Erlang.NET
 
                     // got a real message (maybe) - read len bytes
                     byte[] tmpbuf = new byte[len];
-                    readSock(socket, tmpbuf);
-                    ibuf = new OtpInputStream(tmpbuf, connFlags);
+                    ReadSock(socket, tmpbuf);
+                    ibuf = new OtpInputStream(tmpbuf, Flags);
 
                     if (ibuf.read1() != passThrough)
                         continue;
@@ -543,7 +537,7 @@ namespace Erlang.NET
                     int tag;
 
                     // decode the header
-                    tmp = ibuf.read_any();
+                    tmp = ibuf.ReadAny();
                     if (!(tmp is OtpErlangTuple))
                         continue;
 
@@ -552,7 +546,7 @@ namespace Erlang.NET
                         continue;
 
                     // lets see what kind of message this is
-                    tag = (int)((OtpErlangLong)head.elementAt(0)).longValue();
+                    tag = (int)((OtpErlangLong)head.elementAt(0)).LongValue();
 
                     switch (tag)
                     {
@@ -567,23 +561,23 @@ namespace Erlang.NET
                                 if (sendCookie)
                                 {
                                     if (!cookie.atomValue().Equals(localNode.Cookie))
-                                        cookieError(localNode, cookie);
+                                        CookieError(localNode, cookie);
                                 }
                                 else
                                 {
                                     if (!cookie.atomValue().Equals(""))
-                                        cookieError(localNode, cookie);
+                                        CookieError(localNode, cookie);
                                 }
                                 cookieOk = true;
                             }
 
                             if (traceLevel >= sendThreshold)
                             {
-                                log.Debug("<- " + headerType(head) + " " + head);
+                                log.Debug("<- " + HeaderType(head) + " " + head);
 
                                 /* show received payload too */
                                 ibuf.Mark(0);
-                                traceobj = ibuf.read_any();
+                                traceobj = ibuf.ReadAny();
 
                                 if (traceobj != null)
                                     log.Debug("   " + traceobj);
@@ -595,7 +589,7 @@ namespace Erlang.NET
 
                             to = (OtpErlangPid)head.elementAt(2);
 
-                            deliver(new OtpMsg(to, ibuf));
+                            Deliver(new OtpMsg(to, ibuf));
                             break;
 
                         case regSendTag:   // { REG_SEND, FromPid, Cookie, ToName }
@@ -610,12 +604,12 @@ namespace Erlang.NET
                                 if (sendCookie)
                                 {
                                     if (!cookie.atomValue().Equals(localNode.Cookie))
-                                        cookieError(localNode, cookie);
+                                        CookieError(localNode, cookie);
                                 }
                                 else
                                 {
                                     if (!cookie.atomValue().Equals(""))
-                                        cookieError(localNode, cookie);
+                                        CookieError(localNode, cookie);
                                 }
 
                                 cookieOk = true;
@@ -623,11 +617,11 @@ namespace Erlang.NET
 
                             if (traceLevel >= sendThreshold)
                             {
-                                log.Debug("<- " + headerType(head) + " " + head);
+                                log.Debug("<- " + HeaderType(head) + " " + head);
 
                                 /* show received payload too */
                                 ibuf.Mark(0);
-                                traceobj = ibuf.read_any();
+                                traceobj = ibuf.ReadAny();
 
                                 if (traceobj != null)
                                     log.Debug("   " + traceobj);
@@ -640,7 +634,7 @@ namespace Erlang.NET
                             from = (OtpErlangPid)head.elementAt(1);
                             toName = (OtpErlangAtom)head.elementAt(3);
 
-                            deliver(new OtpMsg(from, toName.atomValue(), ibuf));
+                            Deliver(new OtpMsg(from, toName.atomValue(), ibuf));
                             break;
 
                         case exitTag:  // { EXIT, FromPid, ToPid, Reason }
@@ -649,13 +643,13 @@ namespace Erlang.NET
                                 continue;
 
                             if (traceLevel >= ctrlThreshold)
-                                log.Debug("<- " + headerType(head) + " " + head);
+                                log.Debug("<- " + HeaderType(head) + " " + head);
 
                             from = (OtpErlangPid)head.elementAt(1);
                             to = (OtpErlangPid)head.elementAt(2);
                             reason = head.elementAt(3);
 
-                            deliver(new OtpMsg(tag, from, to, reason));
+                            Deliver(new OtpMsg(tag, from, to, reason));
                             break;
 
                         case exitTTTag:  // { EXIT, FromPid, ToPid, TraceToken, Reason }
@@ -665,31 +659,31 @@ namespace Erlang.NET
                                 continue;
 
                             if (traceLevel >= ctrlThreshold)
-                                log.Debug("<- " + headerType(head) + " " + head);
+                                log.Debug("<- " + HeaderType(head) + " " + head);
 
                             from = (OtpErlangPid)head.elementAt(1);
                             to = (OtpErlangPid)head.elementAt(2);
                             reason = head.elementAt(4);
 
-                            deliver(new OtpMsg(tag, from, to, reason));
+                            Deliver(new OtpMsg(tag, from, to, reason));
                             break;
 
                         case linkTag:   // { LINK, FromPid, ToPid}
                         case unlinkTag: // { UNLINK, FromPid, ToPid}
                             if (traceLevel >= ctrlThreshold)
-                                log.Debug("<- " + headerType(head) + " " + head);
+                                log.Debug("<- " + HeaderType(head) + " " + head);
 
                             from = (OtpErlangPid)head.elementAt(1);
                             to = (OtpErlangPid)head.elementAt(2);
 
-                            deliver(new OtpMsg(tag, from, to));
+                            Deliver(new OtpMsg(tag, from, to));
                             break;
 
                         // absolutely no idea what to do with these, so we ignore them...
                         case groupLeaderTag: // { GROUPLEADER, FromPid, ToPid}
                             // (just show trace)
                             if (traceLevel >= ctrlThreshold)
-                                log.Debug("<- " + headerType(head) + " " + head);
+                                log.Debug("<- " + HeaderType(head) + " " + head);
                             break;
 
                         default:
@@ -700,24 +694,24 @@ namespace Erlang.NET
 
                 // this section reachable only with break
                 // we have received garbage from peer
-                deliver(new OtpErlangExit("Remote is sending garbage"));
+                Deliver(new OtpErlangExit("Remote is sending garbage"));
 
             }
             catch (OtpAuthException e)
             {
-                deliver(e);
+                Deliver(e);
             }
             catch (OtpErlangDecodeException)
             {
-                deliver(new OtpErlangExit("Remote is sending garbage"));
+                Deliver(new OtpErlangExit("Remote is sending garbage"));
             }
             catch (IOException)
             {
-                deliver(new OtpErlangExit("Remote has closed connection"));
+                Deliver(new OtpErlangExit("Remote has closed connection"));
             }
             finally
             {
-                close();
+                Close();
             }
         }
 
@@ -740,7 +734,7 @@ namespace Erlang.NET
          * 
          * @return the previous trace level.
          */
-        public int setTraceLevel(int level)
+        public int SetTraceLevel(int level)
         {
             int oldLevel = traceLevel;
 
@@ -764,7 +758,7 @@ namespace Erlang.NET
          * 
          * @return the current trace level.
          */
-        public int getTraceLevel()
+        public int GetTraceLevel()
         {
             return traceLevel;
         }
@@ -772,7 +766,7 @@ namespace Erlang.NET
         /**
          * Close the connection to the remote node.
          */
-        public virtual void close()
+        public virtual void Close()
         {
             done = true;
             connected = false;
@@ -809,13 +803,13 @@ namespace Erlang.NET
          * 
          * @return true if the connection is alive.
          */
-        public bool isConnected()
+        public bool IsConnected()
         {
             return connected;
         }
 
         // used by send and send_reg (message types with payload)
-        protected void do_send(OtpOutputStream header, OtpOutputStream payload)
+        protected void DoSend(OtpOutputStream header, OtpOutputStream payload)
         {
             lock (runLock)
             {
@@ -828,11 +822,11 @@ namespace Erlang.NET
                         // First make OtpInputStream, then decode.
                         try
                         {
-                            OtpErlangObject h = header.getOtpInputStream(5).read_any();
+                            OtpErlangObject h = header.getOtpInputStream(5).ReadAny();
 
-                            log.Debug("-> " + headerType(h) + " " + h);
+                            log.Debug("-> " + HeaderType(h) + " " + h);
 
-                            OtpErlangObject o = payload.getOtpInputStream(0).read_any();
+                            OtpErlangObject o = payload.getOtpInputStream(0).ReadAny();
                             log.Debug("   " + o);
                             o = null;
                         }
@@ -847,14 +841,14 @@ namespace Erlang.NET
                 }
                 catch (IOException)
                 {
-                    close();
+                    Close();
                     throw;
                 }
             }
         }
 
         // used by the other message types
-        protected void do_send(OtpOutputStream header)
+        protected void DoSend(OtpOutputStream header)
         {
             lock (runLock)
             {
@@ -864,8 +858,8 @@ namespace Erlang.NET
                     {
                         try
                         {
-                            OtpErlangObject h = header.getOtpInputStream(5).read_any();
-                            log.Debug("-> " + headerType(h) + " " + h);
+                            OtpErlangObject h = header.getOtpInputStream(5).ReadAny();
+                            log.Debug("-> " + HeaderType(h) + " " + h);
                         }
                         catch (OtpErlangDecodeException e)
                         {
@@ -876,19 +870,19 @@ namespace Erlang.NET
                 }
                 catch (IOException)
                 {
-                    close();
+                    Close();
                     throw;
                 }
             }
         }
 
-        protected string headerType(OtpErlangObject h)
+        protected string HeaderType(OtpErlangObject h)
         {
             int tag = -1;
 
             if (h is OtpErlangTuple)
             {
-                tag = (int)((OtpErlangLong)((OtpErlangTuple)h).elementAt(0)).longValue();
+                tag = (int)((OtpErlangLong)((OtpErlangTuple)h).elementAt(0)).LongValue();
             }
 
             switch (tag)
@@ -931,7 +925,7 @@ namespace Erlang.NET
         }
 
         /* this method now throws exception if we don't get full read */
-        protected int readSock(OtpTransport s, byte[] b)
+        protected int ReadSock(OtpTransport s, byte[] b)
         {
             int got = 0;
             int len = b.Length;
@@ -979,36 +973,36 @@ namespace Erlang.NET
             return got;
         }
 
-        protected void doAccept()
+        protected void DoAccept()
         {
-            int send_name_tag = recvName(peer);
+            int send_name_tag = RecvName(peer);
             try
             {
-                sendStatus("ok");
-                int our_challenge = genChallenge();
-                sendChallenge(peer.Flags, localNode.Flags, our_challenge);
-                recvComplement(send_name_tag);
-                int her_challenge = recvChallengeReply(our_challenge);
-                byte[] our_digest = genDigest(her_challenge, localNode.Cookie);
-                sendChallengeAck(our_digest);
+                SendStatus("ok");
+                int our_challenge = GenChallenge();
+                SendChallenge(peer.Flags, localNode.Flags, our_challenge);
+                RecvComplement(send_name_tag);
+                int her_challenge = RecvChallengeReply(our_challenge);
+                byte[] our_digest = GenDigest(her_challenge, localNode.Cookie);
+                SendChallengeAck(our_digest);
                 connected = true;
                 cookieOk = true;
                 sendCookie = false;
             }
             catch (IOException)
             {
-                close();
+                Close();
                 throw;
             }
             catch (OtpAuthException)
             {
-                close();
+                Close();
                 throw;
             }
             catch (Exception e)
             {
                 string nn = peer.Node;
-                close();
+                Close();
                 throw new IOException("Error accepting connection from " + nn, e);
             }
 
@@ -1016,7 +1010,7 @@ namespace Erlang.NET
                 log.Debug("<- MD5 ACCEPTED " + peer.Host);
         }
 
-        protected void doConnect(int port)
+        protected void DoConnect(int port)
         {
             try
             {
@@ -1025,14 +1019,14 @@ namespace Erlang.NET
                 if (traceLevel >= handshakeThreshold)
                     log.Debug("-> MD5 CONNECT TO " + peer.Host + ":" + port);
 
-                int send_name_tag = sendName(peer.DistChoose, localNode.Flags, localNode.Creation);
-                recvStatus();
-                int her_challenge = recvChallenge();
-                byte[] our_digest = genDigest(her_challenge, localNode.Cookie);
-                int our_challenge = genChallenge();
-                sendComplement(send_name_tag);
-                sendChallengeReply(our_challenge, our_digest);
-                recvChallengeAck(our_challenge);
+                int send_name_tag = SendName(peer.DistChoose, localNode.Flags, localNode.Creation);
+                RecvStatus();
+                int her_challenge = RecvChallenge();
+                byte[] our_digest = GenDigest(her_challenge, localNode.Cookie);
+                int our_challenge = GenChallenge();
+                SendComplement(send_name_tag);
+                SendChallengeReply(our_challenge, our_digest);
+                RecvChallengeAck(our_challenge);
                 cookieOk = true;
                 sendCookie = false;
             }
@@ -1042,25 +1036,25 @@ namespace Erlang.NET
             }
             catch (OtpAuthException)
             {
-                close();
+                Close();
                 throw;
             }
             catch (Exception e)
             {
-                close();
+                Close();
                 throw new IOException("Cannot connect to peer node", e);
             }
         }
 
         // This is nooo good as a challenge,
         // XXX fix me.
-        static protected int genChallenge()
+        static protected int GenChallenge()
         {
             return random.Next();
         }
 
         // Used to debug print a message digest
-        static string hex0(byte x)
+        static string Hex0(byte x)
         {
             char[] tab = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 			    'a', 'b', 'c', 'd', 'e', 'f' };
@@ -1077,7 +1071,7 @@ namespace Erlang.NET
             return "" + tab[u >> 4] + tab[u & 0xF];
         }
 
-        static string hex(byte[] b)
+        static string Hex(byte[] b)
         {
             StringBuilder sb = new StringBuilder();
             try
@@ -1085,7 +1079,7 @@ namespace Erlang.NET
                 int i;
                 for (i = 0; i < b.Length; ++i)
                 {
-                    sb.Append(hex0(b[i]));
+                    sb.Append(Hex0(b[i]));
                 }
             }
             catch (Exception)
@@ -1095,7 +1089,7 @@ namespace Erlang.NET
             return sb.ToString();
         }
 
-        protected byte[] genDigest(int challenge, string cookie)
+        protected byte[] GenDigest(int challenge, string cookie)
         {
             long ch2;
 
@@ -1120,7 +1114,7 @@ namespace Erlang.NET
             }
         }
 
-        protected int sendName(int dist, long aflags, int creation)
+        protected int SendName(int dist, long aflags, int creation)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             string str = localNode.Node;
@@ -1153,7 +1147,7 @@ namespace Erlang.NET
             return send_name_tag;
         }
 
-        protected void sendComplement(int send_name_tag)
+        protected void SendComplement(int send_name_tag)
         {
 
             if (send_name_tag == 'n' && (peer.Flags & AbstractNode.dFlagHandshake23) != 0)
@@ -1172,7 +1166,7 @@ namespace Erlang.NET
             }
         }
 
-        protected void sendChallenge(long her_flags, long our_flags, int challenge)
+        protected void SendChallenge(long her_flags, long our_flags, int challenge)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             string str = localNode.Node;
@@ -1204,27 +1198,27 @@ namespace Erlang.NET
             }
         }
 
-        protected byte[] read2BytePackage()
+        protected byte[] Read2BytePackage()
         {
             byte[] lbuf = new byte[2];
             byte[] tmpbuf;
 
-            readSock(socket, lbuf);
+            ReadSock(socket, lbuf);
             OtpInputStream ibuf = new OtpInputStream(lbuf, 0);
             int len = ibuf.read2BE();
             tmpbuf = new byte[len];
-            readSock(socket, tmpbuf);
+            ReadSock(socket, tmpbuf);
             return tmpbuf;
         }
 
-        protected int recvName(OtpPeer apeer)
+        protected int RecvName(OtpPeer apeer)
         {
             int send_name_tag;
             string hisname = "";
 
             try
             {
-                byte[] tmpbuf = read2BytePackage();
+                byte[] tmpbuf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
                 byte[] tmpname;
                 int len = tmpbuf.Length;
@@ -1238,7 +1232,7 @@ namespace Erlang.NET
                         apeer.Flags = ibuf.read4BE();
                         tmpname = new byte[len - 7];
                         ibuf.readN(tmpname);
-                        hisname = OtpErlangString.newString(tmpname);
+                        hisname = OtpErlangString.FromEncoding(tmpname);
                         break;
                     case 'N':
                         apeer.DistLow = apeer.DistHigh = 6;
@@ -1249,7 +1243,7 @@ namespace Erlang.NET
                         int namelen = ibuf.read2BE();
                         tmpname = new byte[namelen];
                         ibuf.readN(tmpname);
-                        hisname = OtpErlangString.newString(tmpname);
+                        hisname = OtpErlangString.FromEncoding(tmpname);
                         break;
                     default:
                         throw new IOException("Unknown remote node type");
@@ -1267,9 +1261,12 @@ namespace Erlang.NET
             }
 
             string[] parts = hisname.Split(new char[] { '@' }, 2);
+            if (parts.Length != 2)
+                throw new IOException("Handshake failed - peer name invalid: " + hisname);
+
             apeer.Node = hisname;
-            apeer.Alive = parts[0];
-            apeer.Host = parts[1];
+            apeer.Alive = parts.First();
+            apeer.Host = parts.Skip(1).First();
 
             if (traceLevel >= handshakeThreshold)
                 log.Debug("<- " + "HANDSHAKE" + " ntype=" + apeer.Type + " dist=" + apeer.DistHigh + " remote=" + apeer);
@@ -1277,13 +1274,13 @@ namespace Erlang.NET
             return send_name_tag;
         }
 
-        protected int recvChallenge()
+        protected int RecvChallenge()
         {
             int challenge;
 
             try
             {
-                byte[] buf = read2BytePackage();
+                byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int namelen;
                 switch (ibuf.read1())
@@ -1315,7 +1312,7 @@ namespace Erlang.NET
 
                 byte[] tmpname = new byte[namelen];
                 ibuf.readN(tmpname);
-                string hisname = OtpErlangString.newString(tmpname);
+                string hisname = OtpErlangString.FromEncoding(tmpname);
                 if (!hisname.Equals(peer.Node))
                     throw new IOException("Handshake failed - peer has wrong name: " + hisname);
 
@@ -1337,14 +1334,14 @@ namespace Erlang.NET
             return challenge;
         }
 
-        protected void recvComplement(int send_name_tag)
+        protected void RecvComplement(int send_name_tag)
         {
 
             if (send_name_tag == 'n' && (peer.Flags & AbstractNode.dFlagHandshake23) != 0)
             {
                 try
                 {
-                    byte[] tmpbuf = read2BytePackage();
+                    byte[] tmpbuf = Read2BytePackage();
                     OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
                     if (ibuf.read1() != 'c')
                         throw new IOException("Not a complement tag");
@@ -1361,7 +1358,7 @@ namespace Erlang.NET
             }
         }
 
-        protected void sendChallengeReply(int challenge, byte[] digest)
+        protected void SendChallengeReply(int challenge, byte[] digest)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             obuf.write2BE(21);
@@ -1373,41 +1370,27 @@ namespace Erlang.NET
             if (traceLevel >= handshakeThreshold)
             {
                 log.Debug("-> " + "HANDSHAKE sendChallengeReply"
-                             + " challenge=" + challenge + " digest=" + hex(digest)
+                             + " challenge=" + challenge + " digest=" + Hex(digest)
                              + " local=" + localNode);
             }
         }
 
-        // Would use Array.equals in newer JDK...
-        private bool digests_equals(byte[] a, byte[] b)
-        {
-            int i;
-            for (i = 0; i < 16; ++i)
-            {
-                if (a[i] != b[i])
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        protected int recvChallengeReply(int our_challenge)
+        protected int RecvChallengeReply(int our_challenge)
         {
             int challenge;
             byte[] her_digest = new byte[16];
 
             try
             {
-                byte[] buf = read2BytePackage();
+                byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int tag = ibuf.read1();
                 if (tag != ChallengeReply)
                     throw new IOException("Handshake protocol error");
                 challenge = ibuf.read4BE();
                 ibuf.readN(her_digest);
-                byte[] our_digest = genDigest(our_challenge, localNode.Cookie);
-                if (!digests_equals(her_digest, our_digest))
+                byte[] our_digest = GenDigest(our_challenge, localNode.Cookie);
+                if (!her_digest.SequenceEqual(our_digest))
                     throw new OtpAuthException("Peer authentication error.");
             }
             catch (OtpErlangDecodeException e)
@@ -1419,13 +1402,13 @@ namespace Erlang.NET
             {
                 log.Debug("<- " + "HANDSHAKE recvChallengeReply"
                              + " from=" + peer.Node + " challenge=" + challenge
-                             + " digest=" + hex(her_digest) + " local=" + localNode);
+                             + " digest=" + Hex(her_digest) + " local=" + localNode);
             }
 
             return challenge;
         }
 
-        protected void sendChallengeAck(byte[] digest)
+        protected void SendChallengeAck(byte[] digest)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             obuf.write2BE(17);
@@ -1437,23 +1420,23 @@ namespace Erlang.NET
             if (traceLevel >= handshakeThreshold)
             {
                 log.Debug("-> " + "HANDSHAKE sendChallengeAck"
-                             + " digest=" + hex(digest) + " local=" + localNode);
+                             + " digest=" + Hex(digest) + " local=" + localNode);
             }
         }
 
-        protected void recvChallengeAck(int our_challenge)
+        protected void RecvChallengeAck(int our_challenge)
         {
             byte[] her_digest = new byte[16];
             try
             {
-                byte[] buf = read2BytePackage();
+                byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int tag = ibuf.read1();
                 if (tag != ChallengeAck)
                     throw new IOException("Handshake protocol error");
                 ibuf.readN(her_digest);
-                byte[] our_digest = genDigest(our_challenge, localNode.Cookie);
-                if (!digests_equals(her_digest, our_digest))
+                byte[] our_digest = GenDigest(our_challenge, localNode.Cookie);
+                if (!her_digest.SequenceEqual(our_digest))
                     throw new OtpAuthException("Peer authentication error.");
             }
             catch (OtpErlangDecodeException e)
@@ -1469,11 +1452,11 @@ namespace Erlang.NET
             if (traceLevel >= handshakeThreshold)
             {
                 log.Debug("<- " + "HANDSHAKE recvChallengeAck" + " from="
-                             + peer.Node + " digest=" + hex(her_digest) + " local=" + localNode);
+                             + peer.Node + " digest=" + Hex(her_digest) + " local=" + localNode);
             }
         }
 
-        protected void sendStatus(string status)
+        protected void SendStatus(string status)
         {
             OtpOutputStream obuf = new OtpOutputStream();
             obuf.write2BE(status.Length + 1);
@@ -1489,18 +1472,18 @@ namespace Erlang.NET
             }
         }
 
-        protected void recvStatus()
+        protected void RecvStatus()
         {
             try
             {
-                byte[] buf = read2BytePackage();
+                byte[] buf = Read2BytePackage();
                 OtpInputStream ibuf = new OtpInputStream(buf, 0);
                 int tag = ibuf.read1();
                 if (tag != ChallengeStatus)
                     throw new IOException("Handshake protocol error");
                 byte[] tmpbuf = new byte[buf.Length - 1];
                 ibuf.readN(tmpbuf);
-                string status = OtpErlangString.newString(tmpbuf);
+                string status = OtpErlangString.FromEncoding(tmpbuf);
 
                 if (status.CompareTo("ok") != 0)
                     throw new IOException("Peer replied with status '" + status + "' instead of 'ok'");
@@ -1513,16 +1496,6 @@ namespace Erlang.NET
             {
                 log.Debug("<- " + "HANDSHAKE recvStatus (ok)" + " local=" + localNode);
             }
-        }
-
-        public void setFlags(int flags)
-        {
-            this.connFlags = flags;
-        }
-
-        public int getFlags()
-        {
-            return connFlags;
         }
     }
 }

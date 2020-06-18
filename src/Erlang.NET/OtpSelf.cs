@@ -17,9 +17,7 @@
  * 
  * %CopyrightEnd%
  */
-using System;
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
 
 namespace Erlang.NET
@@ -51,7 +49,6 @@ namespace Erlang.NET
     public class OtpSelf : OtpLocalNode
     {
         private readonly OtpServerTransport sock;
-        private readonly OtpErlangPid pid;
 
         /**
          * <p>
@@ -104,32 +101,22 @@ namespace Erlang.NET
             : base(node, cookie)
         {
             sock = createServerTransport(port);
-
             if (port != 0)
-            {
                 this.port = port;
-            }
             else
-            {
                 this.port = sock.getLocalPort();
-            }
-            pid = createPid();
+            Pid = createPid();
         }
 
         public OtpSelf(string node, string cookie, int port, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
             sock = createServerTransport(port);
-
             if (port != 0)
-            {
                 this.port = port;
-            }
             else
-            {
                 this.port = sock.getLocalPort();
-            }
-            pid = createPid();
+            Pid = createPid();
         }
 
         /**
@@ -141,10 +128,7 @@ namespace Erlang.NET
          * @return the Erlang PID that will be used as the sender id in all
          *         anonymous messages sent by this node.
          */
-        public OtpErlangPid Pid
-        {
-            get { return pid; }
-        }
+        public OtpErlangPid Pid { get; }
 
         /**
          * Make public the information needed by remote nodes that may wish to
@@ -169,12 +153,10 @@ namespace Erlang.NET
          * @exception java.io.IOException
          *                    if the port mapper could not be contacted.
          */
-        public bool publishPort()
+        public bool PublishPort()
         {
             if (getEpmd() != null)
-            {
                 return false; // already published
-            }
 
             OtpEpmd.publishPort(this);
             return getEpmd() != null;
@@ -184,7 +166,7 @@ namespace Erlang.NET
          * Unregister the server node's name and port number from the Erlang port
          * mapper, thus preventing any new connections from remote nodes.
          */
-        public void unPublishPort()
+        public void UnPublishPort()
         {
             // unregister with epmd
             OtpEpmd.unPublishPort(this);
@@ -193,14 +175,11 @@ namespace Erlang.NET
             try
             {
                 if (getEpmd() != null)
-                {
                     closeEpmd();
-                }
             }
             catch (IOException) /* ignore close errors */
             {
             }
-            base.epmd = null;
         }
 
         /**
@@ -217,7 +196,7 @@ namespace Erlang.NET
          *                    if a remote node attempted to connect, but was not
          *                    authorized to connect.
          */
-        public OtpConnection accept()
+        public OtpConnection Accept()
         {
             OtpTransport newsock = null;
 
@@ -262,7 +241,7 @@ namespace Erlang.NET
          * @exception OtpAuthException
          *                    if the connection was refused by the remote node.
          */
-        public OtpConnection connect(OtpPeer other)
+        public OtpConnection Connect(OtpPeer other)
         {
             return new OtpConnection(this, other);
         }

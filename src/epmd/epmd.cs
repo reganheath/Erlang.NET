@@ -89,8 +89,8 @@ namespace Erlang.NET
         public static void Main(string[] args)
         {
             OtpEpmd epmd = new OtpEpmd();
-            epmd.start();
-            epmd.join();
+            epmd.Start();
+            epmd.Join();
         }
     }
 #endif

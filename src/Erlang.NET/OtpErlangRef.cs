@@ -18,6 +18,7 @@
  * %CopyrightEnd%
  */
 using System;
+using System.Linq;
 
 namespace Erlang.NET
 {
@@ -27,7 +28,7 @@ namespace Erlang.NET
      * manages both types.
      */
     [Serializable]
-    public class OtpErlangRef : OtpErlangObject
+    public class OtpErlangRef : OtpErlangObject, IEquatable<OtpErlangRef>
     {
         public int Tag { get { return OtpExternal.newerRefTag; } }
         public string Node { get; private set; }
@@ -153,7 +154,7 @@ namespace Erlang.NET
          * 
          * @return true if this ref is a new style ref, false otherwise.
          */
-        public bool isNewRef()
+        public bool IsNewRef()
         {
             return Ids.Length > 1;
         }
@@ -185,7 +186,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded ref should be
          *                written.
          */
-        public override void encode(OtpOutputStream buf)
+        public override void Encode(OtpOutputStream buf)
         {
             buf.write_ref(this);
         }
@@ -200,31 +201,22 @@ namespace Erlang.NET
          * 
          * @return true if the refs are equal, false otherwise.
          */
-        public override bool Equals(Object o)
+        public override bool Equals(object o) => Equals(o as OtpErlangRef);
+
+        public bool Equals(OtpErlangRef o)
         {
-            if (!(o is OtpErlangRef))
-            {
+            if (o == null)
                 return false;
-            }
-
-            OtpErlangRef r = (OtpErlangRef)o;
-
-            if (!(Node.Equals(r.Node) && Creation == r.Creation))
-            {
+            if (ReferenceEquals(this, o))
+                return true;
+            if (!(Node.Equals(o.Node) && Creation == o.Creation))
                 return false;
-            }
-
-            if (isNewRef() && r.isNewRef())
-            {
-                return Ids[0] == r.Ids[0] && Ids[1] == r.Ids[1] && Ids[2] == r.Ids[2];
-            }
-            return Ids[0] == r.Ids[0];
+            if (IsNewRef() && o.IsNewRef())
+                return Ids.SequenceEqual(o.Ids);
+            return Ids[0] == o.Ids[0];
         }
 
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
-        }
+        public override int GetHashCode() => base.GetHashCode();
 
         /**
          * Compute the hashCode value for a given ref. This function is compatible
@@ -232,18 +224,16 @@ namespace Erlang.NET
          *
          * @return the hashCode of the node.
          **/
-        protected override int doHashCode()
+        protected override int DoHashCode()
         {
             OtpErlangObject.Hash hash = new OtpErlangObject.Hash(7);
-            hash.combine(Creation, Ids[0]);
-            if (isNewRef())
-            {
-                hash.combine(Ids[1], Ids[2]);
-            }
-            return hash.valueOf();
+            hash.Combine(Creation, Ids[0]);
+            if (IsNewRef())
+                hash.Combine(Ids[1], Ids[2]);
+            return hash.ValueOf();
         }
 
-        public override Object Clone()
+        public override object Clone()
         {
             OtpErlangRef newRef = (OtpErlangRef)base.Clone();
             newRef.Ids = (int[])Ids.Clone();
