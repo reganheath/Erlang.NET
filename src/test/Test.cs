@@ -28,6 +28,10 @@ namespace Erlang.NET.Test
                     new OtpErlangString(OtpErlangString.FromCodePoints(new int[] { 127744,32,69,108,32,78,105,241,111 })) // 🌀 El Niño
                 })
             });
+
+            //send message to registered process hello_server on node one @grannysmith
+            //> { hello_server, 'one@grannysmith'} ! test.
+
             mbox.Send("player_srv", "edsrv@GAMING", tuple);
             log.Debug("<- " + mbox.Receive());
         }

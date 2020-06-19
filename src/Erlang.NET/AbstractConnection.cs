@@ -1248,13 +1248,10 @@ namespace Erlang.NET
                 throw new IOException("Handshake failed - not enough data");
             }
 
-            string[] parts = hisname.Split(new char[] { '@' }, 2);
-            if (parts.Length != 2)
+            (apeer.Alive, apeer.Host) = hisname.Split('@');
+            if (apeer.Alive == null || apeer.Host == null)
                 throw new IOException("Handshake failed - peer name invalid: " + hisname);
-
             apeer.Node = hisname;
-            apeer.Alive = parts.First();
-            apeer.Host = parts.Skip(1).First();
 
             if (traceLevel >= handshakeThreshold)
                 log.Debug("<- " + "HANDSHAKE" + " ntype=" + apeer.Type + " dist=" + apeer.DistHigh + " remote=" + apeer);

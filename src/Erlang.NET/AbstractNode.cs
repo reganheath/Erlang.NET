@@ -18,6 +18,7 @@
  * %CopyrightEnd% 
  */
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -172,9 +173,9 @@ namespace Erlang.NET
             Cookie = cookie;
             this.transportFactory = transportFactory;
 
-            string[] parts = name.Split(new char[] { '@' }, 2);
-            Alive = parts.First();
-            Host = parts.Skip(1).FirstOrDefault() ?? localHost;
+            (Alive, Host) = name.Split('@');
+            if (Host == null)
+                Host = localHost;
 
             if (Alive.Length > 0xff)
                 Alive = Alive.Substring(0, 0xff);
