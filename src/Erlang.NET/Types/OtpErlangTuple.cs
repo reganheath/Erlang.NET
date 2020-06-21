@@ -18,6 +18,8 @@
  * %CopyrightEnd%
  */
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -33,10 +35,9 @@ namespace Erlang.NET
      * appropriate index.
      */
     [Serializable]
-    public class OtpErlangTuple : OtpErlangObject
+    public class OtpErlangTuple : OtpErlangObject, IEquatable<OtpErlangTuple>, IEnumerable<OtpErlangObject>
     {
-        private static readonly OtpErlangObject[] NO_ELEMENTS = new OtpErlangObject[0];
-        private OtpErlangObject[] elems = NO_ELEMENTS;
+        private readonly List<OtpErlangObject> items = new List<OtpErlangObject>();
 
         /**
          * Create a unary tuple containing the given element.
@@ -51,7 +52,7 @@ namespace Erlang.NET
         {
             if (elem == null)
                 throw new ArgumentException("Tuple element cannot be null");
-            elems = new OtpErlangObject[] { elem };
+            items.Add(elem);
         }
 
         /**
@@ -64,9 +65,9 @@ namespace Erlang.NET
          *                    if the array is empty (null) or contains null
          *                    elements.
          */
-        public OtpErlangTuple(OtpErlangObject[] elems)
-            : this(elems, 0, elems.Length)
+        public OtpErlangTuple(IEnumerable<OtpErlangObject> elems)
         {
+            items.AddRange(elems);
         }
 
         /**
@@ -83,21 +84,22 @@ namespace Erlang.NET
          *                    if the array is empty (null) or contains null
          *                    elements.
          */
-        public OtpErlangTuple(OtpErlangObject[] elems, int start, int count)
+        public OtpErlangTuple(IEnumerable<OtpErlangObject> elems, int start, int count)
         {
             if (elems == null)
                 throw new ArgumentException("Tuple content can't be null");
 
-            if (count >= 1)
-            {
-                this.elems = new OtpErlangObject[count];
-                for (int i = 0; i < count; i++)
-                {
-                    if (elems[start + i] == null)
-                        throw new ArgumentException("Tuple element cannot be null (element" + (start + i) + ")");
+            if (count <= 0)
+                return;
 
-                    this.elems[i] = elems[start + i];
-                }
+            int i = 0;
+            foreach (var elem in elems.Skip(start).Take(count))
+            {
+                if (elem == null)
+                    throw new ArgumentException("Tuple element cannot be null (element" + i + ")");
+
+                items.Add(elem);
+                i++;
             }
         }
 
@@ -115,21 +117,32 @@ namespace Erlang.NET
         public OtpErlangTuple(OtpInputStream buf)
         {
             int arity = buf.ReadTupleHead();
-
-            if (arity > 0)
-            {
-                elems = new OtpErlangObject[arity];
-                for (int i = 0; i < arity; i++)
-                    elems[i] = buf.ReadAny();
-            }
+            if (arity == 0)
+                return;
+            for (int i = 0; i < arity; i++)
+                items.Add(buf.ReadAny());
         }
+
+        /**
+         * Get all the elements from the list as an array.
+         * 
+         * @return an array containing all of the list's elements.
+         */
+        public IEnumerable<OtpErlangObject> Elements => items;
 
         /**
          * Get the arity of the tuple.
          * 
          * @return the number of elements contained in the tuple.
          */
-        public int Arity => elems.Length;
+        public int Arity => items.Count;
+
+        // Get element from list (throws)
+        public OtpErlangObject this[int i]
+        {
+            get => items[i];
+            set => items[i] = value;
+        }
 
         /**
          * Get the specified element from the tuple.
@@ -140,23 +153,11 @@ namespace Erlang.NET
          * 
          * @return the requested element, of null if i is not a valid element index.
          */
-        public OtpErlangObject elementAt(int i)
+        public OtpErlangObject ElementAt(int i)
         {
             if (i >= Arity || i < 0)
                 return null;
-            return elems[i];
-        }
-
-        /**
-         * Get all the elements from the tuple as an array.
-         * 
-         * @return an array containing all of the tuple's elements.
-         */
-        public OtpErlangObject[] elements()
-        {
-            OtpErlangObject[] res = new OtpErlangObject[Arity];
-            Array.Copy(elems, 0, res, 0, res.Length);
-            return res;
+            return items[i];
         }
 
         /**
@@ -166,21 +167,9 @@ namespace Erlang.NET
          */
         public override string ToString()
         {
-            int i;
-            StringBuilder s = new StringBuilder();
-            int arity = elems.Length;
-
-            s.Append("{");
-
-            for (i = 0; i < arity; i++)
-            {
-                if (i > 0)
-                    s.Append(",");
-                s.Append(elems[i].ToString());
-            }
-
+            StringBuilder s = new StringBuilder("{");
+            s.Append(string.Join(",", items));
             s.Append("}");
-
             return s.ToString();
         }
 
@@ -193,12 +182,9 @@ namespace Erlang.NET
          */
         public override void Encode(OtpOutputStream buf)
         {
-            int arity = elems.Length;
-
-            buf.WriteTupleHead(arity);
-
-            for (int i = 0; i < arity; i++)
-                buf.WriteAny(elems[i]);
+            buf.WriteTupleHead(Arity);
+            foreach(var item in items)
+                buf.WriteAny(item);
         }
 
         /**
@@ -219,26 +205,27 @@ namespace Erlang.NET
                 return false;
             if (Arity != o.Arity)
                 return false;
-            return elems.SequenceEqual(o.elems);
+            return items.SequenceEqual(o.items);
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(9);
+            Hash hash = new Hash(9);
             hash.Combine(Arity);
-            foreach (var elem in elems)
-                hash.Combine(elem.GetHashCode());
+            foreach (var item in items)
+                hash.Combine(item.GetHashCode());
             return hash.ValueOf();
         }
 
 
-        public override object Clone()
-        {
-            OtpErlangTuple newTuple = (OtpErlangTuple)base.Clone();
-            newTuple.elems = (OtpErlangObject[])elems.Clone();
-            return newTuple;
-        }
+        public override object Clone() => new OtpErlangTuple(items);
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public IEnumerator<OtpErlangObject> GetEnumerator() => Iterator(0);
+
+        protected IEnumerator<OtpErlangObject> Iterator(int start) => items.Skip(start).GetEnumerator();
     }
 }

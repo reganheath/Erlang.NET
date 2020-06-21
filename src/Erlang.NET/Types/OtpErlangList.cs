@@ -33,7 +33,7 @@ namespace Erlang.NET
      * The arity of the list is the number of elements it contains.
      */
     [Serializable]
-    public class OtpErlangList : OtpErlangObject, IEnumerable<OtpErlangObject>
+    public class OtpErlangList : OtpErlangObject, IEquatable<OtpErlangList>, IEnumerable<OtpErlangObject>
     {
         private readonly List<OtpErlangObject> items = new List<OtpErlangObject>();
 
@@ -86,7 +86,7 @@ namespace Erlang.NET
         public OtpErlangList(IEnumerable<OtpErlangObject> elems, OtpErlangObject lastTail)
         {
             if (elems.Count() == 0 && lastTail != null)
-                throw new OtpErlangException("Bad list, empty head, non-empty tail");
+                throw new OtpException("Bad list, empty head, non-empty tail");
             items.AddRange(elems);
             LastTail = lastTail;
         }
@@ -139,37 +139,37 @@ namespace Erlang.NET
         }
 
         /**
-         * Get the arity of the list.
-         * 
-         * @return the number of elements contained in the list.
-         */
-        public virtual int Arity => items.Count;
-
-        /**
          * Get all the elements from the list as an array.
          * 
          * @return an array containing all of the list's elements.
          */
-        public virtual IEnumerable<OtpErlangObject> Elements => items;
+        public IEnumerable<OtpErlangObject> Elements => items;
 
-        public virtual OtpErlangObject LastTail { get; protected set; }
+        /**
+         * Get the arity of the list.
+         * 
+         * @return the number of elements contained in the list.
+         */
+        public int Arity => items.Count;
+
+        public OtpErlangObject LastTail { get; protected set; }
 
         /**
          * @return true if the list is proper, i.e. the last tail is nil
          */
-        public virtual bool IsProper() => LastTail == null;
+        public bool IsProper => LastTail == null;
 
         // Get head object
-        public virtual OtpErlangObject Head => ElementAt(0);
+        public OtpErlangObject Head => ElementAt(0);
 
         // Get tail (list minus head)
-        public virtual OtpErlangObject Tail => GetTail(1);
+        public OtpErlangObject Tail => GetTail(1);
 
         // Get element from list (throws)
         public OtpErlangObject this[int i]
         {
-            get { return items[i]; }
-            set { items[i] = value; }
+            get => items[i];
+            set => items[i] = value;
         }
 
         /**
@@ -181,7 +181,7 @@ namespace Erlang.NET
          * 
          * @return the requested element, of null if i is not a valid element index.
          */
-        public virtual OtpErlangObject ElementAt(int i)
+        public OtpErlangObject ElementAt(int i)
         {
             if (i >= Arity || i < 0)
                 return null;
@@ -189,14 +189,44 @@ namespace Erlang.NET
         }
 
         // Get tail of list 'from' index specified.
-        public virtual OtpErlangObject GetTail(int from)
+        public OtpErlangObject GetTail(int from)
         {
             if (Arity < from)
                 return null;
             if (Arity == from && LastTail != null)
                 return LastTail;
             return new OtpErlangList(items.Skip(from), LastTail);
-            //            return new SubList(this, from);
+        }
+
+        /**
+         * Convert a list of integers into a Unicode string,
+         * interpreting each integer as a Unicode code point value.
+         * 
+         * @return A java.lang.string object created through its
+         *         constructor string(int[], int, int).
+         *
+         * @exception OtpErlangException
+         *                    for non-proper and non-integer lists.
+         *
+         * @exception OtpErlangRangeException
+         *                    if any integer does not fit into a Java int.
+         *
+         * @exception java.security.InvalidParameterException
+         *                    if any integer is not within the Unicode range.
+         *
+         * @see string#string(int[], int, int)
+         *
+         */
+        public string StringValue()
+        {
+            if (!IsProper)
+                throw new OtpException("Non-proper list: " + this);
+
+            OtpErlangObject o = items.FirstOrDefault((e) => !(e is OtpErlangLong));
+            if (o != null)
+                throw new OtpException("Non-integer term: " + o);
+
+            return OtpErlangString.FromCodePoints(items.Select((e) => ((OtpErlangLong)e).IntValue()));
         }
 
         /**
@@ -233,7 +263,7 @@ namespace Erlang.NET
             if (arity > 0)
             {
                 buf.WriteListHead(arity);
-                foreach (var item in items.Skip(start))
+                foreach (OtpErlangObject item in items.Skip(start))
                     buf.WriteAny(item);
             }
 
@@ -257,10 +287,6 @@ namespace Erlang.NET
 
         public bool Equals(OtpErlangList o)
         {
-            /*
-             * Be careful to use methods even for "this", so that equals work also
-             * for sublists
-             */
             if (o == null)
                 return false;
             if (ReferenceEquals(this, o))
@@ -278,13 +304,13 @@ namespace Erlang.NET
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
             Hash hash = new Hash(4);
             if (Arity == 0)
                 return unchecked((int)3468870702L);
 
-            foreach (var item in items)
+            foreach (OtpErlangObject item in items)
                 hash.Combine(item.GetHashCode());
 
             if (LastTail != null)
@@ -298,51 +324,13 @@ namespace Erlang.NET
 
         public override object Clone()
         {
-            try
-            {
-                return new OtpErlangList(Elements, LastTail);
-            }
-            catch (OtpErlangException)
-            {
-                throw new Exception("List clone failed");
-            }
+            return new OtpErlangList(Elements, LastTail);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public IEnumerator<OtpErlangObject> GetEnumerator() => Iterator(0);
 
-        protected virtual IEnumerator<OtpErlangObject> Iterator(int start) => items.Skip(start).GetEnumerator();
-
-        /**
-         * Convert a list of integers into a Unicode string,
-         * interpreting each integer as a Unicode code point value.
-         * 
-         * @return A java.lang.string object created through its
-         *         constructor string(int[], int, int).
-         *
-         * @exception OtpErlangException
-         *                    for non-proper and non-integer lists.
-         *
-         * @exception OtpErlangRangeException
-         *                    if any integer does not fit into a Java int.
-         *
-         * @exception java.security.InvalidParameterException
-         *                    if any integer is not within the Unicode range.
-         *
-         * @see string#string(int[], int, int)
-         *
-         */
-        public string StringValue()
-        {
-            if (!IsProper())
-                throw new OtpErlangException("Non-proper list: " + this);
-
-            var o = items.FirstOrDefault((e) => !(e is OtpErlangLong));
-            if (o != null)
-                throw new OtpErlangException("Non-integer term: " + o);
-
-            return OtpErlangString.FromCodePoints(items.Select((e) => ((OtpErlangLong)e).IntValue()));
-        }
+        protected IEnumerator<OtpErlangObject> Iterator(int start) => items.Skip(start).GetEnumerator();
     }
 }

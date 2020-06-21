@@ -29,13 +29,10 @@ namespace Erlang.NET
     public class OtpLocalNode : AbstractNode
     {
         private readonly object lockObj = new object();
+        private readonly int[] refId = new int[3] { 1, 0, 0 };
         private int serial = 0;
         private int pidCount = 1;
         private int portCount = 1;
-        private int[] refId;
-
-        protected int port;
-        protected OtpTransport epmd;
 
         public OtpInputStream.StreamFlags Flags { get; set; } = 0;
 
@@ -46,7 +43,6 @@ namespace Erlang.NET
         protected OtpLocalNode(string node)
             : base(node)
         {
-            init();
         }
 
         /**
@@ -55,7 +51,6 @@ namespace Erlang.NET
         protected OtpLocalNode(string node, OtpTransportFactory transportFactory)
             : base(node, transportFactory)
         {
-            init();
         }
 
         /**
@@ -64,7 +59,6 @@ namespace Erlang.NET
         protected OtpLocalNode(string node, string cookie)
             : base(node, cookie)
         {
-            init();
         }
 
         /**
@@ -73,50 +67,9 @@ namespace Erlang.NET
         protected OtpLocalNode(string node, string cookie, OtpTransportFactory transportFactory)
             : base(node, cookie, transportFactory)
         {
-            init();
         }
 
-        private void init()
-        {
-            serial = 0;
-            pidCount = 1;
-            portCount = 1;
-            refId = new int[3];
-            refId[0] = 1;
-            refId[1] = 0;
-            refId[2] = 0;
-        }
-
-        /**
-         * Get the port number used by this node.
-         * 
-         * @return the port number this server node is accepting connections on.
-         */
-        public int Port
-        {
-            get { return port; }
-        }
-
-        /**
-         * Set the Epmd socket after publishing this nodes listen port to Epmd.
-         * 
-         * @param s
-         *                The socket connecting this node to Epmd.
-         */
-        public void setEpmd(OtpTransport s)
-        {
-            epmd = s;
-        }
-
-        /**
-         * Get the Epmd socket.
-         * 
-         * @return The socket connecting this node to Epmd.
-         */
-        public OtpTransport getEpmd()
-        {
-            return epmd;
-        }
+        public OtpTransport Epmd { get; set; }
 
         /**
          * Close the Epmd socket.
@@ -124,18 +77,18 @@ namespace Erlang.NET
          * @param s
          *                The socket connecting this node to Epmd.
          */
-        public void closeEpmd()
+        public void CloseEpmd()
         {
-            if (epmd != null)
+            if (Epmd != null)
             {
                 try
                 {
-                    epmd.Close();
-                    epmd = null;
+                    Epmd.Close();
+                    Epmd = null;
                 }
                 catch (Exception e)
                 {
-                    epmd = null;
+                    Epmd = null;
                     throw new IOException(e.Message);
                 }
             }
@@ -148,7 +101,7 @@ namespace Erlang.NET
          * 
          * @return an Erlang pid.
          */
-        public OtpErlangPid createPid()
+        public OtpErlangPid CreatePid()
         {
             lock (lockObj)
             {
@@ -177,11 +130,11 @@ namespace Erlang.NET
          * 
          * @return an Erlang port.
          */
-        public OtpErlangPort createPort()
+        public OtpErlangPort CreatePort()
         {
             lock (lockObj)
             {
-                OtpErlangPort p = new OtpErlangPort(base.Node, portCount, base.Creation);
+                OtpErlangPort p = new OtpErlangPort(OtpExternal.newPortTag, Node, portCount, Creation);
 
                 portCount++;
                 if (portCount > 0xfffffff) /* 28 bits */
@@ -199,11 +152,11 @@ namespace Erlang.NET
          * 
          * @return an Erlang reference.
          */
-        public OtpErlangRef createRef()
+        public OtpErlangRef CreateRef()
         {
             lock (lockObj)
             {
-                OtpErlangRef r = new OtpErlangRef(base.Node, refId, base.Creation);
+                OtpErlangRef r = new OtpErlangRef(OtpExternal.newerRefTag, Node, refId, Creation);
 
                 // increment ref ids (3 ints: 18 + 32 + 32 bits)
                 refId[0]++;

@@ -146,9 +146,9 @@ namespace Erlang.NET
         {
             try
             {
-                return ReceiveMsg().getMsg();
+                return ReceiveMsg().GetMsg();
             }
-            catch (OtpErlangDecodeException e)
+            catch (OtpDecodeException e)
             {
                 Close();
                 throw new IOException("Receive failed", e);
@@ -190,9 +190,9 @@ namespace Erlang.NET
         {
             try
             {
-                return ReceiveMsg(timeout).getMsg();
+                return ReceiveMsg(timeout).GetMsg();
             }
-            catch (OtpErlangDecodeException e)
+            catch (OtpDecodeException e)
             {
                 Close();
                 throw new IOException("Receive failed", e);
@@ -222,7 +222,7 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpInputStream ReceiveBuf() => ReceiveMsg().getMsgBuf();
+        public OtpInputStream ReceiveBuf() => ReceiveMsg().GetMsgBuf();
 
         /**
          * Receive a raw (still encoded) message from a remote process. This message
@@ -256,7 +256,7 @@ namespace Erlang.NET
          *                    if no message if the method times out before a message
          *                    becomes available.
          */
-        public OtpInputStream ReceiveBuf(long timeout) => ReceiveMsg(timeout).getMsgBuf();
+        public OtpInputStream ReceiveBuf(long timeout) => ReceiveMsg(timeout).GetMsgBuf();
 
         /**
          * Receive a messge complete with sender and recipient information.
@@ -284,7 +284,7 @@ namespace Erlang.NET
                 return msg;
             if (o is IOException ioex)
                 throw ioex;
-            if (o is OtpErlangExit exit)
+            if (o is OtpExit exit)
                 throw exit;
             if (o is OtpAuthException ex)
                 throw ex;
@@ -326,7 +326,7 @@ namespace Erlang.NET
                 return msg;
             if (o is IOException ioex)
                 throw ioex;
-            if (o is OtpErlangExit exit)
+            if (o is OtpExit exit)
                 throw exit;
             if (o is OtpAuthException ex)
                 throw ex;
@@ -495,7 +495,7 @@ namespace Erlang.NET
             {
                 OtpErlangTuple t = (OtpErlangTuple)msg;
                 if (t.Arity == 2)
-                    return t.elementAt(1); // obs: second element
+                    return t.ElementAt(1); // obs: second element
             }
 
             return null;

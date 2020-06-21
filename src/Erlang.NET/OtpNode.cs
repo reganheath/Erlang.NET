@@ -172,7 +172,7 @@ namespace Erlang.NET
             lock (lockObj)
             {
                 acceptor.Quit();
-                mboxes.clear();
+                mboxes.Clear();
 
                 lock (Connections)
                 {
@@ -195,10 +195,7 @@ namespace Erlang.NET
          * 
          * @return a mailbox.
          */
-        public OtpMbox CreateMbox(bool sync)
-        {
-            return mboxes.create(sync);
-        }
+        public OtpMbox CreateMbox(bool sync) => mboxes.Create(sync);
 
         /**
          * Close the specified mailbox with reason 'normal'.
@@ -220,10 +217,7 @@ namespace Erlang.NET
          *            </p>
          * 
          */
-        public void CloseMbox(OtpMbox mbox)
-        {
-            CloseMbox(mbox, new OtpErlangAtom("normal"));
-        }
+        public void CloseMbox(OtpMbox mbox) => CloseMbox(mbox, new OtpErlangAtom("normal"));
 
         /**
          * Close the specified mailbox with the given reason.
@@ -251,7 +245,7 @@ namespace Erlang.NET
         {
             if (mbox != null)
             {
-                mboxes.remove(mbox);
+                mboxes.Remove(mbox);
                 mbox.Name = null;
                 mbox.BreakLinks(reason);
             }
@@ -270,10 +264,7 @@ namespace Erlang.NET
          * @return a mailbox, or null if the name was already in use.
          * 
          */
-        public OtpMbox CreateMbox(string name, bool sync)
-        {
-            return mboxes.create(name, sync);
-        }
+        public OtpMbox CreateMbox(string name, bool sync) => mboxes.Create(name, sync);
 
         /**
          * <p>
@@ -293,10 +284,7 @@ namespace Erlang.NET
          * 
          * @return true if the name was available, or false otherwise.
          */
-        public bool RegisterName(string name, OtpMbox mbox)
-        {
-            return mboxes.register(name, mbox);
-        }
+        public bool RegisterName(string name, OtpMbox mbox) => mboxes.Register(name, mbox);
 
         /**
          * Get a list of all known registered names on this node.
@@ -304,7 +292,7 @@ namespace Erlang.NET
          * @return an array of Strings, containins all known registered names on
          *         this node.
          */
-        public string[] Names() => mboxes.names();
+        public string[] Names() => mboxes.Names();
 
         /**
          * Determine the {@link OtpErlangPid pid} corresponding to a registered name
@@ -315,7 +303,7 @@ namespace Erlang.NET
          */
         public OtpErlangPid WhereIs(string name)
         {
-            OtpMbox m = mboxes.get(name);
+            OtpMbox m = mboxes.Get(name);
             if (m != null)
                 return m.Self;
             return null;
@@ -395,8 +383,8 @@ namespace Erlang.NET
                 mbox.Send("net_kernel", node, GetPingTuple(mbox));
                 OtpErlangObject reply = mbox.Receive(timeout);
                 OtpErlangTuple t = (OtpErlangTuple)reply;
-                OtpErlangAtom a = (OtpErlangAtom)t.elementAt(1);
-                return "yes".Equals(a.atomValue());
+                OtpErlangAtom a = (OtpErlangAtom)t.ElementAt(1);
+                return "yes".Equals(a.Value);
             }
             catch (Exception)
             {
@@ -416,7 +404,7 @@ namespace Erlang.NET
             OtpErlangObject[] node = new OtpErlangObject[2];
 
             pid[0] = mbox.Self;
-            pid[1] = createRef();
+            pid[1] = CreateRef();
 
             node[0] = new OtpErlangAtom("is_auth");
             node[1] = new OtpErlangAtom(Node);
@@ -437,15 +425,15 @@ namespace Erlang.NET
             OtpMbox mbox = null;
             try
             {
-                OtpErlangTuple t = (OtpErlangTuple)m.getMsg();
-                OtpErlangTuple req = (OtpErlangTuple)t.elementAt(1); // actual
+                OtpErlangTuple t = (OtpErlangTuple)m.GetMsg();
+                OtpErlangTuple req = (OtpErlangTuple)t.ElementAt(1); // actual
                 // request
 
-                OtpErlangPid pid = (OtpErlangPid)req.elementAt(0); // originating
+                OtpErlangPid pid = (OtpErlangPid)req.ElementAt(0); // originating
                 // pid
 
                 OtpErlangObject[] pong = new OtpErlangObject[2];
-                pong[0] = req.elementAt(1); // his #Ref
+                pong[0] = req.ElementAt(1); // his #Ref
                 pong[1] = new OtpErlangAtom("yes");
 
                 mbox = CreateMbox(true);
@@ -468,34 +456,28 @@ namespace Erlang.NET
          */
         public bool Deliver(OtpMsg m)
         {
-            OtpMbox mbox = null;
-
             try
             {
-                int t = m.type();
+                int t = m.Type();
 
+                OtpMbox mbox;
                 if (t == OtpMsg.regSendTag)
                 {
-                    string name = m.getRecipientName();
+                    string name = m.GetRecipientName();
                     /* special case for netKernel requests */
                     if (name.Equals("net_kernel"))
-                    {
                         return NetKernel(m);
-                    }
                     else
-                    {
-                        mbox = mboxes.get(name);
-                    }
+                        mbox = mboxes.Get(name);
                 }
                 else
                 {
-                    mbox = mboxes.get(m.getRecipientPid());
+                    mbox = mboxes.Get(m.GetRecipientPid());
                 }
 
                 if (mbox == null)
-                {
                     return false;
-                }
+
                 mbox.Deliver(m);
             }
             catch (Exception)
@@ -556,7 +538,7 @@ namespace Erlang.NET
             }
         }
 
-        void AddConnection(OtpCookedConnection conn)
+        private void AddConnection(OtpCookedConnection conn)
         {
             if (conn != null && conn.Name != null)
             {
@@ -631,17 +613,16 @@ namespace Erlang.NET
                 byName = new Dictionary<string, WeakReference>();
             }
 
-            public OtpMbox create(string name, bool sync)
+            public OtpMbox Create(string name, bool sync)
             {
                 OtpMbox m = null;
 
                 lock (lockObj)
                 {
-                    if (get(name) != null)
-                    {
+                    if (Get(name) != null)
                         return null;
-                    }
-                    OtpErlangPid pid = node.createPid();
+
+                    OtpErlangPid pid = node.CreatePid();
                     m = sync ? new OtpMbox(node, pid, name) : new OtpActorMbox(sched, node, pid, name);
                     byPid.Add(pid, new WeakReference(m));
                     byName.Add(name, new WeakReference(m));
@@ -649,18 +630,16 @@ namespace Erlang.NET
                 return m;
             }
 
-            public OtpMbox create(bool sync)
+            public OtpMbox Create(bool sync)
             {
-                OtpErlangPid pid = node.createPid();
+                OtpErlangPid pid = node.CreatePid();
                 OtpMbox m = sync ? new OtpMbox(node, pid) : new OtpActorMbox(sched, node, pid);
                 lock (lockObj)
-                {
                     byPid.Add(pid, new WeakReference(m));
-                }
                 return m;
             }
 
-            public void clear()
+            public void Clear()
             {
                 lock (lockObj)
                 {
@@ -669,7 +648,7 @@ namespace Erlang.NET
                 }
             }
 
-            public string[] names()
+            public string[] Names()
             {
                 string[] allnames = null;
 
@@ -687,7 +666,7 @@ namespace Erlang.NET
                 return allnames;
             }
 
-            public bool register(string name, OtpMbox mbox)
+            public bool Register(string name, OtpMbox mbox)
             {
                 lock (lockObj)
                 {
@@ -701,10 +680,8 @@ namespace Erlang.NET
                     }
                     else
                     {
-                        if (get(name) != null)
-                        {
+                        if (Get(name) != null)
                             return false;
-                        }
                         byName.Add(name, new WeakReference(mbox));
                         mbox.Name = name;
                     }
@@ -717,7 +694,7 @@ namespace Erlang.NET
              * scope we also remove the reference from the hashtable so we don't
              * find it again.
              */
-            public OtpMbox get(string name)
+            public OtpMbox Get(string name)
             {
                 lock (lockObj)
                 {
@@ -727,9 +704,7 @@ namespace Erlang.NET
                         OtpMbox m = (OtpMbox)wr.Target;
 
                         if (m != null)
-                        {
                             return m;
-                        }
                         byName.Remove(name);
                     }
                     return null;
@@ -741,7 +716,7 @@ namespace Erlang.NET
              * scope we also remove the reference from the hashtable so we don't
              * find it again.
              */
-            public OtpMbox get(OtpErlangPid pid)
+            public OtpMbox Get(OtpErlangPid pid)
             {
                 lock (lockObj)
                 {
@@ -751,24 +726,20 @@ namespace Erlang.NET
                         OtpMbox m = (OtpMbox)wr.Target;
 
                         if (m != null)
-                        {
                             return m;
-                        }
                         byPid.Remove(pid);
                     }
                     return null;
                 }
             }
 
-            public void remove(OtpMbox mbox)
+            public void Remove(OtpMbox mbox)
             {
                 lock (lockObj)
                 {
                     byPid.Remove(mbox.Self);
                     if (mbox.Name != null)
-                    {
                         byName.Remove(mbox.Name);
-                    }
                 }
             }
         }
@@ -790,15 +761,16 @@ namespace Erlang.NET
 
                 sock = node.CreateServerTransport(port);
                 Port = sock.GetLocalPort();
-                node.port = Port;
+                node.Port = Port;
                 PublishPort();
                 base.Start();
             }
 
             private bool PublishPort()
             {
-                if (node.getEpmd() != null)
+                if (node.Epmd != null)
                     return false; // already published
+
                 OtpEpmd.PublishPort(node);
                 return true;
             }
@@ -809,8 +781,8 @@ namespace Erlang.NET
                 OtpEpmd.UnPublishPort(node);
 
                 // close the local descriptor (if we have one)
-                CloseSock(node.getEpmd());
-                node.setEpmd(null);
+                CloseSock(node.Epmd);
+                node.Epmd = null;
             }
 
             public void Quit()

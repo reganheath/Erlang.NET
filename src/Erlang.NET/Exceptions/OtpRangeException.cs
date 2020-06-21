@@ -18,29 +18,27 @@
  * %CopyrightEnd%
  */
 
-using System;
-
 namespace Erlang.NET
 {
     /**
-     * Exception raised when an attempt is made to create an Erlang term by decoding
-     * a sequence of bytes that does not represent the type of term that was
-     * requested.
+     * Exception raised when an attempt is made to create an Erlang term with data
+     * that is out of range for the term in question.
      * 
-     * @see OtpInputStream
+     * @see OtpErlangByte
+     * @see OtpErlangChar
+     * @see OtpErlangInt
+     * @see OtpErlangUInt
+     * @see OtpErlangShort
+     * @see OtpErlangUShort
+     * @see OtpErlangLong
      */
-    public class OtpErlangDecodeException : OtpErlangException
+    public class OtpRangeException : OtpException
     {
         /**
          * Provides a detailed message.
          */
-        public OtpErlangDecodeException(string msg)
+        public OtpRangeException(string msg)
             : base(msg)
-        {
-        }
-
-        public OtpErlangDecodeException(string msg, Exception inner)
-            : base(msg, inner)
         {
         }
     }

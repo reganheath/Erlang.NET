@@ -169,13 +169,13 @@ namespace Erlang.NET
         {
             try
             {
-                return ReceiveMsg().getMsg();
+                return ReceiveMsg().GetMsg();
             }
-            catch (OtpErlangExit e)
+            catch (OtpExit e)
             {
                 throw e;
             }
-            catch (OtpErlangDecodeException f)
+            catch (OtpDecodeException f)
             {
                 throw f;
             }
@@ -204,13 +204,13 @@ namespace Erlang.NET
             {
                 OtpMsg m = ReceiveMsg(timeout);
                 if (m != null)
-                    return m.getMsg();
+                    return m.GetMsg();
             }
-            catch (OtpErlangExit e)
+            catch (OtpExit e)
             {
                 throw e;
             }
-            catch (OtpErlangDecodeException f)
+            catch (OtpDecodeException f)
             {
                 throw f;
             }
@@ -231,10 +231,7 @@ namespace Erlang.NET
          *                    sent an exit signal to this mailbox.
          * 
          */
-        public OtpInputStream ReceiveBuf()
-        {
-            return ReceiveMsg().getMsgBuf();
-        }
+        public OtpInputStream ReceiveBuf() => ReceiveMsg().GetMsgBuf();
 
         /**
          * Wait for a message to arrive for this mailbox.
@@ -258,8 +255,7 @@ namespace Erlang.NET
         {
             OtpMsg m = ReceiveMsg(timeout);
             if (m != null)
-                return m.getMsgBuf();
-
+                return m.GetMsgBuf();
             return null;
         }
 
@@ -278,18 +274,18 @@ namespace Erlang.NET
         {
             OtpMsg m = (OtpMsg)Queue.Get();
 
-            switch (m.type())
+            switch (m.Type())
             {
                 case OtpMsg.exitTag:
                 case OtpMsg.exit2Tag:
                     try
                     {
-                        OtpErlangObject o = m.getMsg();
-                        throw new OtpErlangExit(o, m.getSenderPid());
+                        OtpErlangObject o = m.GetMsg();
+                        throw new OtpExit(o, m.GetSenderPid());
                     }
-                    catch (OtpErlangDecodeException)
+                    catch (OtpDecodeException)
                     {
-                        throw new OtpErlangExit("unknown", m.getSenderPid());
+                        throw new OtpExit("unknown", m.GetSenderPid());
                     }
 
                 default:
@@ -321,18 +317,18 @@ namespace Erlang.NET
             if (m == null)
                 return null;
 
-            switch (m.type())
+            switch (m.Type())
             {
                 case OtpMsg.exitTag:
                 case OtpMsg.exit2Tag:
                     try
                     {
-                        OtpErlangObject o = m.getMsg();
-                        throw new OtpErlangExit(o, m.getSenderPid());
+                        OtpErlangObject o = m.GetMsg();
+                        throw new OtpExit(o, m.GetSenderPid());
                     }
-                    catch (OtpErlangDecodeException)
+                    catch (OtpDecodeException)
                     {
-                        throw new OtpErlangExit("unknown", m.getSenderPid());
+                        throw new OtpExit("unknown", m.GetSenderPid());
                     }
 
                 default:
@@ -445,10 +441,7 @@ namespace Erlang.NET
          * @param reason
          *                an Erlang term describing the reason for the exit.
          */
-        public void Exit(OtpErlangObject reason)
-        {
-            home.CloseMbox(this, reason);
-        }
+        public void Exit(OtpErlangObject reason) => home.CloseMbox(this, reason);
 
         /**
          * Equivalent to <code>exit(new OtpErlangAtom(reason))</code>.
@@ -456,10 +449,7 @@ namespace Erlang.NET
          * 
          * @see #exit(OtpErlangObject)
          */
-        public void Exit(string reason)
-        {
-            Exit(new OtpErlangAtom(reason));
-        }
+        public void Exit(string reason) => Exit(new OtpErlangAtom(reason));
 
         /**
          * <p>
@@ -476,10 +466,7 @@ namespace Erlang.NET
          *                an Erlang term indicating the reason for the exit.
          */
         // it's called exit, but it sends exit2
-        public void Exit(OtpErlangPid to, OtpErlangObject reason)
-        {
-            Exit(2, to, reason);
-        }
+        public void Exit(OtpErlangPid to, OtpErlangObject reason) => Exit(2, to, reason);
 
         /**
          * <p>
@@ -489,10 +476,7 @@ namespace Erlang.NET
          * 
          * @see #exit(OtpErlangPid, OtpErlangObject)
          */
-        public void Exit(OtpErlangPid to, string reason)
-        {
-            Exit(to, new OtpErlangAtom(reason));
-        }
+        public void Exit(OtpErlangPid to, string reason) => Exit(to, new OtpErlangAtom(reason));
 
         // this function used internally when "process" dies
         // since Erlang discerns between exit and exit/2.
@@ -504,24 +488,21 @@ namespace Erlang.NET
                 if (node.Equals(home.Node))
                 {
                     home.Deliver(new OtpMsg(OtpMsg.exitTag, Self, to, reason));
+                    return;
                 }
-                else
-                {
-                    OtpCookedConnection conn = home.GetConnection(node);
-                    if (conn == null)
-                    {
-                        return;
-                    }
-                    switch (arity)
-                    {
-                        case 1:
-                            conn.Exit(Self, to, reason);
-                            break;
 
-                        case 2:
-                            conn.Exit2(Self, to, reason);
-                            break;
-                    }
+                OtpCookedConnection conn = home.GetConnection(node);
+                if (conn == null)
+                    return;
+
+                switch (arity)
+                {
+                    case 1:
+                        conn.Exit(Self, to, reason);
+                        break;
+                    case 2:
+                        conn.Exit2(Self, to, reason);
+                        break;
                 }
             }
             catch (Exception)
@@ -566,7 +547,7 @@ namespace Erlang.NET
                 if (node.Equals(home.Node))
                 {
                     if (!home.Deliver(new OtpMsg(OtpMsg.linkTag, Self, to)))
-                        throw new OtpErlangExit("noproc", to);
+                        throw new OtpExit("noproc", to);
                 }
                 else
                 {
@@ -574,10 +555,10 @@ namespace Erlang.NET
                     if (conn != null)
                         conn.Link(Self, to);
                     else
-                        throw new OtpErlangExit("noproc", to);
+                        throw new OtpExit("noproc", to);
                 }
             }
-            catch (OtpErlangExit)
+            catch (OtpExit)
             {
                 throw;
             }
@@ -651,10 +632,7 @@ namespace Erlang.NET
          * @param timeout
          *                the time, in milliseconds, before reporting failure.
          */
-        public bool Ping(string node, long timeout)
-        {
-            return home.Ping(node, timeout);
-        }
+        public bool Ping(string node, long timeout) => home.Ping(node, timeout);
 
         /**
          * <p>
@@ -670,10 +648,7 @@ namespace Erlang.NET
          * @return an array of Strings containing all registered names on this
          *         {@link OtpNode node}.
          */
-        public string[] GetNames()
-        {
-            return home.Names();
-        }
+        public string[] GetNames() => home.Names();
 
         /**
          * Determine the {@link OtpErlangPid pid} corresponding to a registered name
@@ -687,10 +662,7 @@ namespace Erlang.NET
          * @return the {@link OtpErlangPid pid} corresponding to the registered
          *         name, or null if the name is not known on this node.
          */
-        public OtpErlangPid WhereIs(string name)
-        {
-            return home.WhereIs(name);
-        }
+        public OtpErlangPid WhereIs(string name) => home.WhereIs(name);
 
         /**
          * Close this mailbox.
@@ -711,10 +683,7 @@ namespace Erlang.NET
          * This is equivalent to {@link #exit(string) exit("normal")}.
          * </p>
          */
-        public virtual void Close()
-        {
-            home.CloseMbox(this);
-        }
+        public virtual void Close() => home.CloseMbox(this);
 
         public void Dispose()
         {
@@ -748,18 +717,18 @@ namespace Erlang.NET
          */
         public virtual void Deliver(OtpMsg m)
         {
-            switch (m.type())
+            switch (m.Type())
             {
                 case OtpMsg.linkTag:
-                    links.AddLink(Self, m.getSenderPid());
+                    links.AddLink(Self, m.GetSenderPid());
                     break;
 
                 case OtpMsg.unlinkTag:
-                    links.RemoveLink(Self, m.getSenderPid());
+                    links.RemoveLink(Self, m.GetSenderPid());
                     break;
 
                 case OtpMsg.exitTag:
-                    links.RemoveLink(Self, m.getSenderPid());
+                    links.RemoveLink(Self, m.GetSenderPid());
                     Queue.Put(m);
                     break;
 
@@ -773,17 +742,8 @@ namespace Erlang.NET
         // used to break all known links to this mbox
         public void BreakLinks(OtpErlangObject reason)
         {
-            Link[] l = links.ClearLinks();
-
-            if (l != null)
-            {
-                int len = l.Length;
-
-                for (int i = 0; i < len; i++)
-                {
-                    Exit(1, l[i].Remote, reason);
-                }
-            }
+            foreach (var link in links.ClearLinks())
+                Exit(1, link.Remote, reason);
         }
     }
 }

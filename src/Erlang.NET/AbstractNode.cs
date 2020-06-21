@@ -18,7 +18,6 @@
  * %CopyrightEnd% 
  */
 using System;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -221,6 +220,8 @@ namespace Erlang.NET
          * @return the authorization cookie used by this node.
          */
         public string Cookie { get; set; }
+
+        public virtual int Port { get; protected set; } = 0;
 
         // package scope
         internal int Type { get; set; } = NTYPE_R6;

@@ -24,13 +24,8 @@ namespace Erlang.NET
      * Provides a collection of constants used when encoding and decoding Erlang
      * terms.
      */
-    public class OtpExternal
+    public static class OtpExternal
     {
-        // no constructor
-        private OtpExternal()
-        {
-        }
-
         /** The tag used for small integers */
         public const int smallIntTag = 97;
 
@@ -117,6 +112,6 @@ namespace Erlang.NET
         public const int erlMin = -(1 << 27);
 
         /** The longest allowed Erlang atom */
-        public const int maxAtomLength = 255;
+        public const int MAX_ATOM_LENGTH = 255;
     }
 }

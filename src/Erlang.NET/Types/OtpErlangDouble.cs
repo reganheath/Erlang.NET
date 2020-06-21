@@ -30,15 +30,12 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangDouble : OtpErlangObject, IEquatable<OtpErlangDouble>
     {
-        private readonly double value;
+        public double Value { get; private set; }
 
         /**
          * Create an Erlang float from the given double value.
          */
-        public OtpErlangDouble(double d)
-        {
-            value = d;
-        }
+        public OtpErlangDouble(double d) => Value = d;
 
         /**
          * Create an Erlang float from a stream containing a double encoded in
@@ -51,20 +48,7 @@ namespace Erlang.NET
          *                    if the buffer does not contain a valid external
          *                    representation of an Erlang float.
          */
-        public OtpErlangDouble(OtpInputStream buf)
-        {
-            value = buf.ReadDouble();
-        }
-
-        /**
-         * Get the value, as a double.
-         * 
-         * @return the value of this object, as a double.
-         */
-        public double DoubleValue()
-        {
-            return value;
-        }
+        public OtpErlangDouble(OtpInputStream buf) => Value = buf.ReadDouble();
 
         /**
          * Get the value, as a float.
@@ -76,11 +60,9 @@ namespace Erlang.NET
          */
         public float FloatValue()
         {
-            float f = (float)value;
-
-            if (f != value)
-                throw new OtpErlangRangeException("Value too large for float: " + value);
-
+            float f = (float)Value;
+            if (f != Value)
+                throw new OtpRangeException("Value too large for float: " + Value);
             return f;
         }
 
@@ -89,10 +71,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of this double.
          */
-        public override string ToString()
-        {
-            return "" + value;
-        }
+        public override string ToString() => Value.ToString();
 
         /**
          * Convert this double to the equivalent Erlang external representation.
@@ -101,10 +80,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded value should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WriteDouble(value);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WriteDouble(Value);
 
         /**
          * Determine if two floats are equal. Floats are equal if they contain the
@@ -123,14 +99,11 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return value == o.value;
+            return Value == o.Value;
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
-        {
-            return value.GetHashCode();
-        }
+        protected override int HashCode() => Value.GetHashCode();
     }
 }

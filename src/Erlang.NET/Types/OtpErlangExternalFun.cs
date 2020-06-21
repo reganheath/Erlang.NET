@@ -24,29 +24,29 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangExternalFun : OtpErlangObject, IEquatable<OtpErlangExternalFun>
     {
-        private readonly string module;
-        private readonly string function;
-        private readonly int arity;
+        public string Module { get; private set; }
+        public string Function { get; private set; }
+        public int Arity { get; private set; }
 
         public OtpErlangExternalFun(string module, string function, int arity)
             : base()
         {
-            this.module = module;
-            this.function = function;
-            this.arity = arity;
+            Module = module;
+            Function = function;
+            Arity = arity;
         }
 
         public OtpErlangExternalFun(OtpInputStream buf)
         {
             OtpErlangExternalFun f = buf.ReadExternalFun();
-            module = f.module;
-            function = f.function;
-            arity = f.arity;
+            Module = f.Module;
+            Function = f.Function;
+            Arity = f.Arity;
         }
 
         public override void Encode(OtpOutputStream buf)
         {
-            buf.WriteExternalFun(module, function, arity);
+            buf.WriteExternalFun(Module, Function, Arity);
         }
 
         public override bool Equals(object o) => Equals(o as OtpErlangExternalFun);
@@ -57,24 +57,21 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return module.Equals(o.module)
-                && function.Equals(o.function)
-                && arity == o.arity;
+            return Module.Equals(o.Module)
+                && Function.Equals(o.Function)
+                && Arity == o.Arity;
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(14);
-            hash.Combine(module.GetHashCode(), function.GetHashCode());
-            hash.Combine(arity);
+            Hash hash = new Hash(14);
+            hash.Combine(Module.GetHashCode(), Function.GetHashCode());
+            hash.Combine(Arity);
             return hash.ValueOf();
         }
 
-        public override string ToString()
-        {
-            return "#Fun<" + module + "." + function + "." + arity + ">";
-        }
+        public override string ToString() => "#Fun<" + Module + "." + Function + "." + Arity + ">";
     }
 }

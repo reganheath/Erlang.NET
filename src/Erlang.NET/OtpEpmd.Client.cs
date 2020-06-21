@@ -77,15 +77,15 @@ namespace Erlang.NET
         }
 
         // common values
-        private const byte stopReq = (byte)115;
+        private const byte stopReq = 115;
 
         // version specific value
-        private const byte port4req = (byte)122;
-        private const byte port4resp = (byte)119;
-        private const byte ALIVE2_REQ = (byte)120;
-        private const byte ALIVE2_RESP = (byte)121;
-        private const byte ALIVE2_X_RESP = (byte)118;
-        private const byte names4req = (byte)110;
+        private const byte port4req = 122;
+        private const byte port4resp = 119;
+        private const byte ALIVE2_REQ = 120;
+        private const byte ALIVE2_RESP = 121;
+        private const byte ALIVE2_X_RESP = 118;
+        private const byte names4req = 110;
 
         private static readonly int traceLevel = 0;
         private const int traceThreshold = 4;
@@ -98,9 +98,7 @@ namespace Erlang.NET
             try
             {
                 if (trace != null)
-                {
-                    traceLevel = Int32.Parse(trace);
-                }
+                    traceLevel = int.Parse(trace);
             }
             catch (FormatException)
             {
@@ -117,10 +115,7 @@ namespace Erlang.NET
          * @exception java.io.IOException
          *                if there was no response from the name server.
          */
-        public static int LookupPort(AbstractNode node)
-        {
-            return LookupPort_R4(node);
-        }
+        public static int LookupPort(AbstractNode node) => LookupPort_R4(node);
 
         /**
          * Register with Epmd, so that other nodes are able to find and connect to
@@ -137,9 +132,8 @@ namespace Erlang.NET
          */
         public static bool PublishPort(OtpLocalNode node)
         {
-            OtpTransport s = Publish_R4(node);
-            node.setEpmd(s);
-            return s != null;
+            node.Epmd = Publish_R4(node);
+            return node.Epmd != null;
         }
 
         // Ask epmd to close his end of the connection.
@@ -183,7 +177,7 @@ namespace Erlang.NET
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                using (var s = node.CreateTransport(node.Host, EpmdPort))
+                using (OtpTransport s = node.CreateTransport(node.Host, EpmdPort))
                 {
                     // build and send epmd request
                     // length[2], tag[1], alivename[n] (length = n+1)
@@ -242,7 +236,7 @@ namespace Erlang.NET
                     log.Debug("<- (no response)");
                 throw new IOException("Nameserver not responding on " + node.Host + " when looking up " + node.Alive, e);
             }
-            catch (OtpErlangDecodeException e)
+            catch (OtpDecodeException e)
             {
                 if (traceLevel >= traceThreshold)
                     log.Debug("<- (invalid response)");
@@ -339,7 +333,7 @@ namespace Erlang.NET
                     log.Debug("<- (no response)");
                 throw new IOException("Nameserver not responding on " + node.Host + " when publishing " + node.Alive, e);
             }
-            catch (OtpErlangDecodeException e)
+            catch (OtpDecodeException e)
             {
                 s.Close();
                 if (traceLevel >= traceThreshold)
@@ -410,7 +404,7 @@ namespace Erlang.NET
                     log.Debug("<- (no response)");
                 throw new IOException("Nameserver not responding when requesting names", e);
             }
-            catch (OtpErlangDecodeException e)
+            catch (OtpDecodeException e)
             {
                 if (traceLevel >= traceThreshold)
                     log.Debug("<- (invalid response)");

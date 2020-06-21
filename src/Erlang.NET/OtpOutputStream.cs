@@ -126,7 +126,7 @@ namespace Erlang.NET
          */
         public void Write(byte[] buf)
         {
-            base.Write(buf, 0, (int)buf.Length);
+            base.Write(buf, 0, buf.Length);
         }
 
         public override void WriteTo(Stream stream)
@@ -318,8 +318,8 @@ namespace Erlang.NET
          */
         public void WriteAtom(string atom)
         {
-            if (atom.Length > OtpExternal.maxAtomLength)
-                atom = atom.Substring(0, OtpExternal.maxAtomLength);
+            if (atom.Length > OtpExternal.MAX_ATOM_LENGTH)
+                atom = atom.Substring(0, OtpExternal.MAX_ATOM_LENGTH);
 
             byte[] bytes = Encoding.GetEncoding("UTF-8", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(atom);
             if (bytes.Length < 256)
@@ -437,7 +437,7 @@ namespace Erlang.NET
                 return;
             }
 
-            int signum = (v > (BigInteger)0) ? 1 : (v < (BigInteger)0) ? -1 : 0;
+            int signum = (v > 0) ? 1 : (v < 0) ? -1 : 0;
             if (signum < 0)
                 v = -v;
 
@@ -463,7 +463,7 @@ namespace Erlang.NET
             WriteN(magnitude);
         }
 
-        void WriteLong(long v, bool unsigned)
+        private void WriteLong(long v, bool unsigned)
         {
             /*
              * If v<0 and unsigned==true the value

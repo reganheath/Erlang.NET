@@ -36,7 +36,7 @@ namespace Erlang.NET
          * @exception OtpErlangRangeException
          *                    if the value is negative.
          */
-        public OtpErlangUShort(short s)
+        public OtpErlangUShort(ushort s)
             : base(s)
         {
         }

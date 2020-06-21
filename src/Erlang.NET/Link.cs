@@ -50,21 +50,30 @@ namespace Erlang.NET
         {
             if (hashCodeValue == 0)
             {
-                OtpErlangObject.Hash hash = new OtpErlangObject.Hash(5);
+                Hash hash = new Hash(5);
                 hash.Combine(Local.GetHashCode() + Remote.GetHashCode());
                 hashCodeValue = hash.ValueOf();
             }
             return hashCodeValue;
         }
 
-        public override bool Equals(object o) => Equals(o as Link);
+        public override bool Equals(object o)
+        {
+            return Equals(o as Link);
+        }
 
         public bool Equals(Link o)
         {
             if (o == null)
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, o))
+            {
                 return true;
+            }
+
             return Local.Equals(o.Local)
                 && Remote.Equals(o.Remote);
         }
@@ -72,9 +81,15 @@ namespace Erlang.NET
         public int CompareTo(object other)
         {
             if (other == null)
+            {
                 return -1;
+            }
+
             if (!(other is Link))
+            {
                 return -1;
+            }
+
             return CompareTo(other as Link);
         }
 
@@ -82,7 +97,10 @@ namespace Erlang.NET
         {
             int res = Local.CompareTo(other.Local);
             if (res == 0)
+            {
                 res = Remote.CompareTo(other.Remote);
+            }
+
             return res;
         }
     }

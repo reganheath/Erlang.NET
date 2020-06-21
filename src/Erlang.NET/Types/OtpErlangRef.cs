@@ -30,7 +30,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangRef : OtpErlangObject, IEquatable<OtpErlangRef>
     {
-        public int Tag { get { return OtpExternal.newerRefTag; } }
         public string Node { get; private set; }
         public int Creation { get; private set; }
 
@@ -39,22 +38,19 @@ namespace Erlang.NET
         public int[] Ids { get; private set; }
 
         /**
-         * Create a unique Erlang ref belonging to the local node.
+         * Get the id number from the ref. Old style refs have only one id number.
+         * If this is a new style ref, the first id number is returned.
          * 
-         * @param self
-         *                the local node.
-         * 
-         * @deprecated use OtpLocalNode:createRef() instead
+         * @return the id number from the ref.
          */
-        [Obsolete]
-        public OtpErlangRef(OtpLocalNode self)
-        {
-            OtpErlangRef r = self.createRef();
+        public int Id => Ids[0];
 
-            Ids = r.Ids;
-            Creation = r.Creation;
-            Node = r.Node;
-        }
+        /**
+         * Determine whether this is a new style ref.
+         * 
+         * @return true if this ref is a new style ref, false otherwise.
+         */
+        public bool IsNewRef() => Ids.Length > 1;
 
         /**
          * Create an Erlang ref from a stream containing a ref encoded in Erlang
@@ -138,26 +134,6 @@ namespace Erlang.NET
             }
         }
 
-        /**
-         * Get the id number from the ref. Old style refs have only one id number.
-         * If this is a new style ref, the first id number is returned.
-         * 
-         * @return the id number from the ref.
-         */
-        public int Id
-        {
-            get { return Ids[0]; }
-        }
-
-        /**
-         * Determine whether this is a new style ref.
-         * 
-         * @return true if this ref is a new style ref, false otherwise.
-         */
-        public bool IsNewRef()
-        {
-            return Ids.Length > 1;
-        }
 
         /**
          * Get the string representation of the ref. Erlang refs are printed as
@@ -165,19 +141,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of the ref.
          */
-        public override string ToString()
-        {
-            string s = "#Ref<" + Node;
-
-            for (int i = 0; i < Ids.Length; i++)
-            {
-                s += "." + Ids[i];
-            }
-
-            s += ">";
-
-            return s;
-        }
+        public override string ToString() => "#Ref<" + Node + "." + string.Join(".", Ids) + ">";
 
         /**
          * Convert this ref to the equivalent Erlang external representation.
@@ -186,10 +150,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded ref should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WriteRef(this);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WriteRef(this);
 
         /**
          * Determine if two refs are equal. Refs are equal if their components are
@@ -224,9 +185,9 @@ namespace Erlang.NET
          *
          * @return the hashCode of the node.
          **/
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(7);
+            Hash hash = new Hash(7);
             hash.Combine(Creation, Ids[0]);
             if (IsNewRef())
                 hash.Combine(Ids[1], Ids[2]);

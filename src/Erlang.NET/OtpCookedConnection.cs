@@ -121,19 +121,19 @@ namespace Erlang.NET
         {
             bool delivered = self.Deliver(msg);
 
-            switch (msg.type())
+            switch (msg.Type())
             {
                 case OtpMsg.linkTag:
                     if (delivered)
                     {
-                        links.AddLink(msg.getRecipientPid(), msg.getSenderPid());
+                        links.AddLink(msg.GetRecipientPid(), msg.GetSenderPid());
                         break;
                     }
 
                     try
                     {
                         // no such pid - send exit to sender
-                        base.SendExit(msg.getRecipientPid(), msg.getSenderPid(), new OtpErlangAtom("noproc"));
+                        base.SendExit(msg.GetRecipientPid(), msg.GetSenderPid(), new OtpErlangAtom("noproc"));
                     }
                     catch (IOException)
                     {
@@ -142,7 +142,7 @@ namespace Erlang.NET
 
                 case OtpMsg.unlinkTag:
                 case OtpMsg.exitTag:
-                    links.RemoveLink(msg.getRecipientPid(), msg.getSenderPid());
+                    links.RemoveLink(msg.GetRecipientPid(), msg.GetSenderPid());
                     break;
 
                 case OtpMsg.exit2Tag:
@@ -225,7 +225,7 @@ namespace Erlang.NET
                 }
                 catch (IOException)
                 {
-                    throw new OtpErlangExit("noproc", to);
+                    throw new OtpExit("noproc", to);
                 }
             }
         }
@@ -252,11 +252,11 @@ namespace Erlang.NET
          * When the connection fails - send exit to all local pids with links
          * through this connection
          */
-        void BreakLinks()
+        private void BreakLinks()
         {
             lock (lockObj)
             {
-                foreach (var link in links.ClearLinks())
+                foreach (Link link in links.ClearLinks())
                 {
                     // send exit "from" remote pids to local ones
                     self.Deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));

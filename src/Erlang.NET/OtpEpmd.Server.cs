@@ -31,17 +31,10 @@ namespace Erlang.NET
          */
         public class OtpPublishedNode : AbstractNode
         {
-            private int port;
-
-            public int Port
-            {
-                get { return port; }
-                set { port = value; }
-            }
-
-            public OtpPublishedNode(string node)
+            public OtpPublishedNode(string node, int port)
                 : base(node, string.Empty)
             {
+                Port = port;
             }
         }
 
@@ -203,17 +196,16 @@ namespace Erlang.NET
                     byte[] extra = new byte[elen];
                     ibuf.ReadN(extra);
                     string name = OtpErlangString.FromEncoding(alive);
-                    OtpPublishedNode node = new OtpPublishedNode(name);
-                    node.Type = type;
-                    node.DistHigh = distHigh;
-                    node.DistLow = distLow;
-                    node.Proto = proto;
-                    node.Port = port;
+                    OtpPublishedNode node = new OtpPublishedNode(name, port)
+                    {
+                        Type = type,
+                        DistHigh = distHigh,
+                        DistLow = distLow,
+                        Proto = proto
+                    };
 
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("<- PUBLISH (r4) " + name + " port=" + node.Port);
-                    }
 
                     OtpOutputStream obuf = new OtpOutputStream();
                     obuf.Write1(ALIVE2_RESP);
@@ -222,9 +214,7 @@ namespace Erlang.NET
                     obuf.WriteTo(s.GetOutputStream());
 
                     lock (portmap)
-                    {
                         portmap.Add(name, node);
-                    }
                     publishedPort.Add(name);
                 }
                 catch (IOException e)
@@ -236,7 +226,7 @@ namespace Erlang.NET
                 return;
             }
 
-            private void r4_port(OtpTransport s, OtpInputStream ibuf)
+            private void Port_R4(OtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -247,16 +237,12 @@ namespace Erlang.NET
                     OtpPublishedNode node = null;
 
                     if (traceLevel >= traceThreshold)
-                    {
                         log.Debug("<- PORT (r4) " + name);
-                    }
 
                     lock (portmap)
                     {
                         if (portmap.ContainsKey(name))
-                        {
                             node = portmap[name];
-                        }
                     }
 
                     OtpOutputStream obuf = new OtpOutputStream();
@@ -289,7 +275,7 @@ namespace Erlang.NET
                 return;
             }
 
-            private void r4_names(OtpTransport s, OtpInputStream ibuf)
+            private void Names_R4(OtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -346,12 +332,12 @@ namespace Erlang.NET
                                 break;
 
                             case port4req:
-                                r4_port(sock, ibuf);
+                                Port_R4(sock, ibuf);
                                 Stop();
                                 break;
 
                             case names4req:
-                                r4_names(sock, ibuf);
+                                Names_R4(sock, ibuf);
                                 Stop();
                                 break;
 

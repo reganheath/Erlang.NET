@@ -31,15 +31,13 @@ namespace Erlang.NET
      * can be represented as a sequence of bytes can be made into an Erlang bitstr.
      */
     [Serializable]
-    public class OtpErlangBitstr : OtpErlangObject
+    public class OtpErlangBitstr : OtpErlangObject, IEquatable<OtpErlangBitstr>
     {
-        /**
-         * Get the byte array from a bitstr, padded with zero bits in the little end
-         * of the last byte.
-         * 
-         * @return the byte array containing the bytes for this bitstr.
-         */
         public byte[] Bin { get; protected set; }
+
+        public int PadBits { get; protected set; }
+
+        protected OtpErlangBitstr() { }
 
         /**
          * Create a bitstr from a byte array
@@ -61,10 +59,10 @@ namespace Erlang.NET
          * @param pad_bits
          *                the number of unused bits in the low end of the last byte.
          */
-        public OtpErlangBitstr(byte[] bin, int pad_bits)
+        public OtpErlangBitstr(byte[] bin, int padBits)
         {
             Bin = (byte[])bin.Clone();
-            PadBits = pad_bits;
+            PadBits = padBits;
             CheckBitstr(Bin, PadBits);
         }
 
@@ -81,9 +79,8 @@ namespace Erlang.NET
          */
         public OtpErlangBitstr(OtpInputStream buf)
         {
-            int pad_bits;
-            Bin = buf.ReadBitstr(out pad_bits);
-            PadBits = pad_bits;
+            Bin = buf.ReadBitstr(out int padBits);
+            PadBits = padBits;
             CheckBitstr(Bin, PadBits);
         }
 
@@ -179,14 +176,6 @@ namespace Erlang.NET
         }
 
         /**
-         * Get the number of pad bits in the last byte of the bitstr. The pad bits
-         * are zero and in the little end.
-         * 
-         * @return the number of pad bits in the bitstr.
-         */
-        public int PadBits { get; protected set; }
-
-        /**
          * Get the java Object from the bitstr. If the bitstr contains a serialized
          * Java object, then this method will recreate the object.
          * 
@@ -224,10 +213,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded bitstr should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WriteBitstr(Bin, PadBits);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WriteBitstr(Bin, PadBits);
 
         /**
          * Determine if two bitstrs are equal. Bitstrs are equal if they have the
@@ -255,20 +241,14 @@ namespace Erlang.NET
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(15);
+            Hash hash = new Hash(15);
             hash.Combine(Bin);
             hash.Combine(PadBits);
             return hash.ValueOf();
         }
 
-        public override object Clone()
-        {
-            OtpErlangBitstr that = (OtpErlangBitstr)base.Clone();
-            that.Bin = (byte[])Bin.Clone();
-            PadBits = PadBits;
-            return that;
-        }
+        public override object Clone() => new OtpErlangBitstr(Bin, PadBits);
     }
 }

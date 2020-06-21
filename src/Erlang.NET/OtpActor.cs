@@ -28,8 +28,8 @@ namespace Erlang.NET
 
         public OtpActorSched.OtpActorSchedTask Task
         {
-            get { return Mbox.Task; }
-            set { Mbox.Task = value; }
+            get => Mbox.Task;
+            set => Mbox.Task = value;
         }
 
         public OtpActor(OtpActorMbox mbox)

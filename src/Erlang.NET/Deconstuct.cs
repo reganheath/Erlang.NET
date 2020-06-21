@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Erlang.NET
+﻿namespace Erlang.NET
 {
     internal static class Deconstuct
     {

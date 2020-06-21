@@ -70,9 +70,14 @@ namespace Erlang.NET
          * 
          * @exception java.io.IOException if the port mapper could not be contacted.
          */
-        internal int Port()
+        public override int Port
         {
-            return OtpEpmd.LookupPort(this);
+            get
+            {
+                if (base.Port == 0)
+                    base.Port = OtpEpmd.LookupPort(this);
+                return base.Port;
+            }
         }
     }
 }

@@ -27,7 +27,6 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangPort : OtpErlangObject, IEquatable<OtpErlangPort>
     {
-        public int Tag { get { return OtpExternal.newPortTag; } }
         public string Node { get; private set; }
         public int Id { get; private set; }
         public int Creation { get; private set; }
@@ -88,7 +87,7 @@ namespace Erlang.NET
          * @param creation
          *            another arbitrary number.
          */
-        public OtpErlangPort(int tag, String node, int id, int creation)
+        public OtpErlangPort(int tag, string node, int id, int creation)
         {
             Node = node;
             if (tag == OtpExternal.portTag)
@@ -109,10 +108,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of the port.
          */
-        public override string ToString()
-        {
-            return "#Port<" + Node + "." + Id + ">";
-        }
+        public override string ToString() => "#Port<" + Node + "." + Id + ">";
 
         /**
          * Convert this port to the equivalent Erlang external representation.
@@ -121,10 +117,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded port should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WritePort(this);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WritePort(this);
 
         /**
          * Determine if two ports are equal. Ports are equal if their components are
@@ -150,9 +143,9 @@ namespace Erlang.NET
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(6);
+            Hash hash = new Hash(6);
             hash.Combine(Creation);
             hash.Combine(Id, Node.GetHashCode());
             return hash.ValueOf();

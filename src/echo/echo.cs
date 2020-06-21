@@ -47,10 +47,10 @@ namespace Erlang.NET.Test
                 while (true)
                 {
                     yield return (delegate (OtpMsg m) { msg = m; });
-                    log.Debug("-> ECHO " + msg.getMsg());
-                    OtpErlangTuple t = (OtpErlangTuple)msg.getMsg();
-                    OtpErlangPid sender = (OtpErlangPid)t.elementAt(0);
-                    OtpErlangObject[] v = { mbox.Self, t.elementAt(1) };
+                    log.Debug("-> ECHO " + msg.GetMsg());
+                    OtpErlangTuple t = (OtpErlangTuple)msg.GetMsg();
+                    OtpErlangPid sender = (OtpErlangPid)t.ElementAt(0);
+                    OtpErlangObject[] v = { mbox.Self, t.ElementAt(1) };
                     mbox.Send(sender, new OtpErlangTuple(v));
                 }
             }

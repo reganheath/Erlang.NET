@@ -51,7 +51,7 @@ namespace Erlang.NET
          *                    representation of an Erlang binary.
          */
         public OtpErlangBinary(OtpInputStream buf)
-            : base(new byte[0])
+            : base()
         {
             Bin = buf.ReadBinary();
             PadBits = 0;
@@ -76,15 +76,8 @@ namespace Erlang.NET
          *                an output stream to which the encoded binary should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WriteBinary(Bin);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WriteBinary(Bin);
 
-        public override object Clone()
-        {
-            OtpErlangBinary that = (OtpErlangBinary)base.Clone();
-            return that;
-        }
+        public override object Clone() => (OtpErlangBinary)base.Clone();
     }
 }

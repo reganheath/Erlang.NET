@@ -88,10 +88,8 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-
             if (!pid.Equals(o.pid) || !module.Equals(o.module) || arity != o.arity)
                 return false;
-
             if (md5 == null)
             {
                 if (o.md5 != null)
@@ -102,24 +100,22 @@ namespace Erlang.NET
                 if (!md5.SequenceEqual(o.md5))
                     return false;
             }
-
             if (index != o.index || uniq != o.uniq)
                 return false;
-
             if (freeVars == null)
                 return o.freeVars == null;
-
             return freeVars.SequenceEqual(o.freeVars);
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(1);
+            Hash hash = new Hash(1);
             hash.Combine(pid.GetHashCode(), module.GetHashCode());
             hash.Combine(arity);
-            if (md5 != null) hash.Combine(md5);
+            if (md5 != null)
+                hash.Combine(md5);
             hash.Combine(index);
             hash.Combine(uniq);
             if (freeVars != null)
@@ -130,9 +126,6 @@ namespace Erlang.NET
             return hash.ValueOf();
         }
 
-        public override string ToString()
-        {
-            return "#Fun<" + module + "." + old_index + "." + uniq + ">";
-        }
+        public override string ToString() => "#Fun<" + module + "." + old_index + "." + uniq + ">";
     }
 }

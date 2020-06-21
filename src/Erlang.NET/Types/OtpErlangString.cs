@@ -28,7 +28,7 @@ namespace Erlang.NET
      * Provides a Java representation of Erlang strings.
      */
     [Serializable]
-    public class OtpErlangString : OtpErlangObject
+    public class OtpErlangString : OtpErlangObject, IEquatable<OtpErlangString>
     {
         /**
          * Create an Erlang string from the given string.
@@ -113,14 +113,14 @@ namespace Erlang.NET
         {
             if (o is string s)
                 return Value.Equals(s);
-            if (o is OtpErlangString es)
-                return Value.Equals(es.Value);
-            return false;
+            return Equals(o as OtpErlangString);
         }
+
+        public bool Equals(OtpErlangString o) => Value.Equals(o.Value);
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode() => Value.GetHashCode();
+        protected override int HashCode() => Value.GetHashCode();
 
         /**
          * Create Unicode code points from a string.
@@ -133,7 +133,7 @@ namespace Erlang.NET
          */
         public static int[] ToCodePoints(string s)
         {
-            if (s == null)
+            if (string.IsNullOrEmpty(s))
                 return null;
 
             if (!s.IsNormalized())
@@ -141,7 +141,7 @@ namespace Erlang.NET
 
             List<int> cps = new List<int>((s.Length * 3) / 2);
 
-            var ee = StringInfo.GetTextElementEnumerator(s);
+            TextElementEnumerator ee = StringInfo.GetTextElementEnumerator(s);
             while (ee.MoveNext())
             {
                 string e = ee.GetTextElement();
@@ -164,10 +164,10 @@ namespace Erlang.NET
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (var cp in cps)
+            foreach (int cp in cps)
             {
                 if (!IsValidCodePoint(cp))
-                    throw new OtpErlangRangeException("Invalid CodePoint: " + cp);
+                    throw new OtpRangeException("Invalid CodePoint: " + cp);
                 sb.Append(char.ConvertFromUtf32(cp));
             }
 

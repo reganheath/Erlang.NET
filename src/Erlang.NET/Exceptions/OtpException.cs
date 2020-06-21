@@ -24,7 +24,7 @@ namespace Erlang.NET
     /**
      * Base class for the other OTP exception classes.
      */
-    public abstract class OtpException : Exception
+    public class OtpException : Exception
     {
         /**
          * Provides no message.

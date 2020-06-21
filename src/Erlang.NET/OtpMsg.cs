@@ -138,9 +138,7 @@ namespace Erlang.NET
         {
             // convert TT-tags to equiv non-TT versions
             if (tag > 10)
-            {
                 tag -= 10;
-            }
 
             this.tag = tag;
             this.from = from;
@@ -153,10 +151,7 @@ namespace Erlang.NET
          * @return the serialized Erlang term contained in this message.
          * 
          */
-        internal OtpInputStream getMsgBuf()
-        {
-            return paybuf;
-        }
+        internal OtpInputStream GetMsgBuf() => paybuf;
 
         /**
          * <p>
@@ -192,10 +187,7 @@ namespace Erlang.NET
          * {@link #getMsg getMsg()}. </li>
          * </ul>
          */
-        public int type()
-        {
-            return tag;
-        }
+        public int Type() => tag;
 
         /**
          * <p>
@@ -216,7 +208,7 @@ namespace Erlang.NET
          *                    if the byte stream could not be deserialized.
          * 
          */
-        public OtpErlangObject getMsg()
+        public OtpErlangObject GetMsg()
         {
             if (payload == null)
                 payload = paybuf.ReadAny();
@@ -236,10 +228,7 @@ namespace Erlang.NET
          * @return the name of the recipient, or null if the recipient was in fact a
          *         Pid.
          */
-        public string getRecipientName()
-        {
-            return toName;
-        }
+        public string GetRecipientName() => toName;
 
         /**
          * <p>
@@ -256,10 +245,7 @@ namespace Erlang.NET
          * @return the Pid of the recipient, or null if the recipient was in fact a
          *         name.
          */
-        public OtpErlangPid getRecipientPid()
-        {
-            return to;
-        }
+        public OtpErlangPid GetRecipientPid() => to;
 
         /**
          * <p>
@@ -295,10 +281,7 @@ namespace Erlang.NET
          * 
          * @return the Pid of the sender, or null if it was not available.
          */
-        public OtpErlangPid getSenderPid()
-        {
-            return from;
-        }
+        public OtpErlangPid GetSenderPid() => from;
     }
 }
 

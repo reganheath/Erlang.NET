@@ -102,10 +102,10 @@ namespace Erlang.NET
         {
             sock = CreateServerTransport(port);
             if (port != 0)
-                this.port = port;
+                this.Port = port;
             else
-                this.port = sock.GetLocalPort();
-            Pid = createPid();
+                this.Port = sock.GetLocalPort();
+            Pid = CreatePid();
         }
 
         public OtpSelf(string node, string cookie, int port, OtpTransportFactory transportFactory)
@@ -113,10 +113,10 @@ namespace Erlang.NET
         {
             sock = CreateServerTransport(port);
             if (port != 0)
-                this.port = port;
+                this.Port = port;
             else
-                this.port = sock.GetLocalPort();
-            Pid = createPid();
+                this.Port = sock.GetLocalPort();
+            Pid = CreatePid();
         }
 
         /**
@@ -155,11 +155,10 @@ namespace Erlang.NET
          */
         public bool PublishPort()
         {
-            if (getEpmd() != null)
+            if (Epmd != null)
                 return false; // already published
 
-            OtpEpmd.PublishPort(this);
-            return getEpmd() != null;
+            return OtpEpmd.PublishPort(this);
         }
 
         /**
@@ -174,8 +173,7 @@ namespace Erlang.NET
             // close the local descriptor (if we have one)
             try
             {
-                if (getEpmd() != null)
-                    closeEpmd();
+                CloseEpmd();
             }
             catch (IOException) /* ignore close errors */
             {

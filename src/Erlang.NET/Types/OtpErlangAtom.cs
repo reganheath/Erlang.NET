@@ -30,9 +30,7 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangAtom : OtpErlangObject, IEquatable<OtpErlangAtom>
     {
-        /** The maximun allowed length of an atom, in characters */
-        public static readonly int maxAtomLength = 0xff; // one byte length
-        private readonly string atom;
+        public string Value { get; private set; }
 
         /**
          * Create an atom from the given string.
@@ -47,10 +45,10 @@ namespace Erlang.NET
         public OtpErlangAtom(string atom)
         {
             if (atom == null)
-                throw new ArgumentException("null string value");
-            if (atom.Length > maxAtomLength)
-                throw new ArgumentException("Atom may not exceed " + maxAtomLength + " characters: " + atom);
-            this.atom = atom;
+                throw new ArgumentException("Atom cannot be null");
+            if (atom.Length > OtpExternal.MAX_ATOM_LENGTH)
+                throw new ArgumentException($"Atom may not exceed {OtpExternal.MAX_ATOM_LENGTH} characters: {atom}");
+            Value = atom;
         }
 
         /**
@@ -64,31 +62,12 @@ namespace Erlang.NET
          *                    if the buffer does not contain a valid external
          *                    representation of an Erlang atom.
          */
-        public OtpErlangAtom(OtpInputStream buf)
-        {
-            atom = buf.ReadAtom();
-        }
+        public OtpErlangAtom(OtpInputStream buf) => Value = buf.ReadAtom();
 
         /**
          * Create an atom whose value is "true" or "false".
          */
-        public OtpErlangAtom(bool t)
-        {
-            atom = t.ToString();
-        }
-
-        /**
-         * Get the actual string contained in this object.
-         * 
-         * @return the raw string contained in this object, without regard to Erlang
-         *         quoting rules.
-         * 
-         * @see #toString
-         */
-        public string atomValue()
-        {
-            return atom;
-        }
+        public OtpErlangAtom(bool t) => Value = t.ToString();
 
         /**
          * The boolean value of this atom.
@@ -98,10 +77,7 @@ namespace Erlang.NET
          *         will be true. For any other values, the value will be false.
          * 
          */
-        public bool boolValue()
-        {
-            return Boolean.Parse(atomValue());
-        }
+        public bool BoolValue() => bool.Parse(Value);
 
         /**
          * Get the printname of the atom represented by this object. The difference
@@ -113,12 +89,7 @@ namespace Erlang.NET
          * 
          * @see #atomValue
          */
-        public override string ToString()
-        {
-            if (atomNeedsQuoting(atom))
-                return "'" + escapeSpecialChars(atom) + "'";
-            return atom;
-        }
+        public override string ToString() => ShouldQuote(Value) ? "'" + Escape(Value) + "'" : Value;
 
         /**
          * Determine if two atoms are equal.
@@ -136,15 +107,12 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return atom.Equals(o.atom);
+            return Value.Equals(o.Value);
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
-        {
-            return atom.GetHashCode();
-        }
+        protected override int HashCode() => Value.GetHashCode();
 
         /**
          * Convert this atom to the equivalent Erlang external representation.
@@ -153,44 +121,27 @@ namespace Erlang.NET
          *                an output stream to which the encoded atom should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WriteAtom(atom);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WriteAtom(Value);
 
         /* the following four predicates are helpers for the toString() method */
-        private bool isErlangDigit(char c)
-        {
-            return c >= '0' && c <= '9';
-        }
+        private bool IsErlangUpper(char c) => (c >= 'A' && c <= 'Z') || c == '_';
 
-        private bool isErlangUpper(char c)
-        {
-            return c >= 'A' && c <= 'Z' || c == '_';
-        }
+        private bool IsErlangLower(char c) => c >= 'a' && c <= 'z';
 
-        private bool isErlangLower(char c)
-        {
-            return c >= 'a' && c <= 'z';
-        }
-
-        private bool isErlangLetter(char c)
-        {
-            return isErlangLower(c) || isErlangUpper(c);
-        }
+        private bool IsErlangLetter(char c) => IsErlangLower(c) || IsErlangUpper(c);
 
         // true if the atom should be displayed with quotation marks
-        private bool atomNeedsQuoting(string s)
+        private bool ShouldQuote(string s)
         {
             if (s.Length == 0)
                 return true;
 
-            if (!isErlangLower(s[0]))
+            if (!IsErlangLower(s[0]))
                 return true;
 
-            foreach (var c in s)
+            foreach (char c in s)
             {
-                if (!isErlangLetter(c) && !isErlangDigit(c) && c != '@')
+                if (!IsErlangLetter(c) && !char.IsDigit(c) && c != '@')
                     return true;
             }
 
@@ -202,90 +153,44 @@ namespace Erlang.NET
          * function currently does not consider any characters above 127 to be
          * printable.
          */
-        private string escapeSpecialChars(string s)
+        private string Escape(string s)
         {
-            char c;
             StringBuilder so = new StringBuilder();
-
-            int len = s.Length;
-            for (int i = 0; i < len; i++)
+            foreach(var c in s)
             {
-                c = s[i];
-
                 /*
                  * note that some of these escape sequences are unique to Erlang,
                  * which is why the corresponding 'case' values use octal. The
                  * resulting string is, of course, in Erlang format.
                  */
-
                 switch (c)
                 {
                     // some special escape sequences
-                    case '\b':
-                        so.Append("\\b");
+                    case '\b':      so.Append(@"\b"); break;
+                    case (char)127: so.Append(@"\d"); break;
+                    case (char)27:  so.Append(@"\e"); break;
+                    case '\f':      so.Append(@"\f"); break;
+                    case '\n':      so.Append(@"\n"); break;
+                    case '\r':      so.Append(@"\r"); break;
+                    case '\t':      so.Append(@"\t"); break;
+                    case (char)11:  so.Append(@"\v"); break;
+                    case '\\':      so.Append(@"\\"); break;
+                    case '\'':      so.Append(@"\'"); break;
+                    case '\"':      so.Append(@"\"""); break;
+                    case char n when n < 027:
+                        // control chars show as "\^@", "\^A" etc
+                        so.Append("\\^" + (char)('A' - 1 + n));
                         break;
-
-                    case (char)127:
-                        so.Append("\\d");
+                    case char m when m > 126:
+                        // 8-bit chars show as \345 \344 \366 etc
+                        so.Append("\\" + Convert.ToString(c, 8));
                         break;
-
-                    case (char)27:
-                        so.Append("\\e");
-                        break;
-
-                    case '\f':
-                        so.Append("\\f");
-                        break;
-
-                    case '\n':
-                        so.Append("\\n");
-                        break;
-
-                    case '\r':
-                        so.Append("\\r");
-                        break;
-
-                    case '\t':
-                        so.Append("\\t");
-                        break;
-
-                    case (char)11:
-                        so.Append("\\v");
-                        break;
-
-                    case '\\':
-                        so.Append("\\\\");
-                        break;
-
-                    case '\'':
-                        so.Append("\\'");
-                        break;
-
-                    case '\"':
-                        so.Append("\\\"");
-                        break;
-
                     default:
-                        // some other character classes
-                        if (c < 027)
-                        {
-                            // control chars show as "\^@", "\^A" etc
-                            so.Append("\\^" + (char)('A' - 1 + c));
-                        }
-                        else if (c > 126)
-                        {
-                            // 8-bit chars show as \345 \344 \366 etc
-                            so.Append("\\" + Convert.ToString(c, 8));
-                        }
-                        else
-                        {
-                            // character is printable without modification!
-                            so.Append(c);
-                        }
+                        // character is printable without modification!
+                        so.Append(c);
                         break;
                 }
             }
-
             return so.ToString();
         }
     }

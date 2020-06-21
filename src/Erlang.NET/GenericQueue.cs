@@ -113,7 +113,7 @@ namespace Erlang.NET
             if (status == QueueState.Closed)
                 return null;
 
-            var stopwatch = new Stopwatch();
+            Stopwatch stopwatch = new Stopwatch();
             lock (lockObj)
             {
                 object o = null;
@@ -144,7 +144,7 @@ namespace Erlang.NET
         {
             lock (lockObj)
             {
-                var o = queue.First;
+                LinkedListNode<object> o = queue.First;
                 if (o != null)
                     queue.RemoveFirst();
                 return o?.Value ?? null;

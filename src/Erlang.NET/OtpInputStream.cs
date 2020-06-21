@@ -68,7 +68,7 @@ namespace Erlang.NET
             Flags = flags;
         }
 
-        public void Mark() => mark = base.Position;
+        public void Mark() =>mark = base.Position;
 
         public void Reset() => base.Position = mark;
 
@@ -76,10 +76,7 @@ namespace Erlang.NET
          * Read an array of bytes from the stream. The method reads at most
          * buf.length bytes from the input stream.
          */
-        public int ReadN(byte[] buf)
-        {
-            return ReadN(buf, 0, buf.Length);
-        }
+        public int ReadN(byte[] buf) => ReadN(buf, 0, buf.Length);
 
         /**
          * Read an array of bytes from the stream. The method reads at most len
@@ -91,7 +88,7 @@ namespace Erlang.NET
                 return 0;
             int i = base.Read(buf, off, len);
             if (i < len)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
+                throw new OtpDecodeException("Cannot read from input stream");
             return i;
         }
 
@@ -110,7 +107,7 @@ namespace Erlang.NET
             int i = base.ReadByte();
             base.Position = cur;
             if (i == -1)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
+                throw new OtpDecodeException("Cannot read from input stream");
             return i;
         }
 
@@ -132,7 +129,7 @@ namespace Erlang.NET
         {
             int i = base.ReadByte();
             if (i == -1)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
+                throw new OtpDecodeException("Cannot read from input stream");
             return i;
         }
 
@@ -167,7 +164,7 @@ namespace Erlang.NET
             byte[] b = new byte[n];
 
             if (base.Read(b, 0, b.Length) < b.Length)
-                throw new OtpErlangDecodeException("Cannot read from input stream");
+                throw new OtpDecodeException("Cannot read from input stream");
 
             if (BitConverter.IsLittleEndian)
                 Array.Reverse(b, 0, b.Length);
@@ -220,12 +217,12 @@ namespace Erlang.NET
                     atom = OtpErlangString.FromEncoding(strbuf, "UTF-8");
                     break;
                 default:
-                    throw new OtpErlangDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag
+                    throw new OtpDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag
                         + ", or " + OtpExternal.atomUtf8Tag + ", got " + tag);
             }
 
-            if (atom.Length > OtpExternal.maxAtomLength)
-                atom = atom.Substring(0, OtpExternal.maxAtomLength);
+            if (atom.Length > OtpExternal.MAX_ATOM_LENGTH)
+                atom = atom.Substring(0, OtpExternal.MAX_ATOM_LENGTH);
 
             return atom;
         }
@@ -238,7 +235,7 @@ namespace Erlang.NET
             int tag = Read1SkipVersion();
 
             if (tag != OtpExternal.binTag)
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.binTag + ", got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.binTag + ", got " + tag);
 
             int len = Read4BE();
             byte[] bin = new byte[len];
@@ -255,15 +252,15 @@ namespace Erlang.NET
             int tag = Read1SkipVersion();
 
             if (tag != OtpExternal.bitBinTag)
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.bitBinTag + ", got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.bitBinTag + ", got " + tag);
 
             int len = Read4BE();
             byte[] bin = new byte[len];
             int tail_bits = Read1();
             if (tail_bits < 0 || 7 < tail_bits)
-                throw new OtpErlangDecodeException("Wrong tail bit count in bitstr: " + tail_bits);
+                throw new OtpDecodeException("Wrong tail bit count in bitstr: " + tail_bits);
             if (len == 0 && tail_bits != 0)
-                throw new OtpErlangDecodeException("Length 0 on bitstr with tail bit count: " + tail_bits);
+                throw new OtpDecodeException("Length 0 on bitstr with tail bit count: " + tail_bits);
             ReadN(bin);
 
             pad_bits = 8 - tail_bits;
@@ -302,11 +299,11 @@ namespace Erlang.NET
                     ReadN(strbuf);
                     string str = OtpErlangString.FromEncoding(strbuf);
                     if (!double.TryParse(str, out val))
-                        throw new OtpErlangDecodeException("Invalid float format: '" + str + "'");
+                        throw new OtpDecodeException("Invalid float format: '" + str + "'");
                     break;
 
                 default:
-                    throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.newFloatTag + ", got " + tag);
+                    throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.newFloatTag + ", got " + tag);
             }
 
             return val;
@@ -319,7 +316,7 @@ namespace Erlang.NET
         {
             long l = ReadLong(false);
             if (l > byte.MaxValue)
-                throw new OtpErlangDecodeException("Value does not fit in byte: " + l);
+                throw new OtpDecodeException("Value does not fit in byte: " + l);
             return (byte)l;
         }
 
@@ -330,7 +327,7 @@ namespace Erlang.NET
         {
             long l = ReadLong(true);
             if (l > char.MaxValue)
-                throw new OtpErlangDecodeException("Value does not fit in char: " + l);
+                throw new OtpDecodeException("Value does not fit in char: " + l);
             return (char)l;
         }
 
@@ -341,7 +338,7 @@ namespace Erlang.NET
         {
             long l = ReadLong(true);
             if (l > uint.MaxValue)
-                throw new OtpErlangDecodeException("Value does not fit in uint: " + l);
+                throw new OtpDecodeException("Value does not fit in uint: " + l);
             return (uint)l;
         }
 
@@ -352,7 +349,7 @@ namespace Erlang.NET
         {
             long l = ReadLong(false);
             if (l > int.MaxValue)
-                throw new OtpErlangDecodeException("Value does not fit in int: " + l);
+                throw new OtpDecodeException("Value does not fit in int: " + l);
             return (int)l;
         }
 
@@ -363,7 +360,7 @@ namespace Erlang.NET
         {
             long l = ReadLong(true);
             if (l > ushort.MaxValue)
-                throw new OtpErlangDecodeException("Value does not fit in ushort: " + l);
+                throw new OtpDecodeException("Value does not fit in ushort: " + l);
             return (ushort)l;
         }
 
@@ -374,7 +371,7 @@ namespace Erlang.NET
         {
             long l = ReadLong(false);
             if (l > short.MaxValue)
-                throw new OtpErlangDecodeException("Value does not fit in short: " + l);
+                throw new OtpDecodeException("Value does not fit in short: " + l);
             return (short)l;
         }
 
@@ -415,7 +412,7 @@ namespace Erlang.NET
                 case OtpExternal.intTag:
                     nb = new byte[4];
                     if (ReadN(nb) != 4) // Big endian
-                        throw new OtpErlangDecodeException("Cannot read from intput stream");
+                        throw new OtpDecodeException("Cannot read from intput stream");
                     break;
 
                 case OtpExternal.smallBigTag:
@@ -432,13 +429,13 @@ namespace Erlang.NET
                         arity = Read4BE();
                         sign = Read1();
                         if (arity + 1 < 0)
-                            throw new OtpErlangDecodeException("Value of largeBig does not fit in BigInteger, arity " + arity + " sign " + sign);
+                            throw new OtpDecodeException("Value of largeBig does not fit in BigInteger, arity " + arity + " sign " + sign);
                     }
                     nb = new byte[arity + 1];
                     // Value is read as little endian. The big end is augumented
                     // with one zero byte to make the value 2's complement positive.
                     if (ReadN(nb, 0, arity) != arity)
-                        throw new OtpErlangDecodeException("Cannot read from intput stream");
+                        throw new OtpDecodeException("Cannot read from intput stream");
 
                     // Reverse the array to make it big endian.
                     Array.Reverse(nb, 0, nb.Length);
@@ -457,7 +454,7 @@ namespace Erlang.NET
                     break;
 
                 default:
-                    throw new OtpErlangDecodeException("Not valid integer tag: " + tag);
+                    throw new OtpDecodeException("Not valid integer tag: " + tag);
             }
 
             return nb;
@@ -475,13 +472,13 @@ namespace Erlang.NET
                     v = ((b[0] & 0xFF) << 8) + (b[1] & 0xFF);
                     v = (short)v; // Sign extend
                     if (v < 0 && unsigned)
-                        throw new OtpErlangDecodeException("Value not unsigned: " + v);
+                        throw new OtpDecodeException("Value not unsigned: " + v);
                     break;
                 case 4:
                     v = ((b[0] & 0xFF) << 24) + ((b[1] & 0xFF) << 16) + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
                     v = (int)v; // Sign extend
                     if (v < 0 && unsigned)
-                        throw new OtpErlangDecodeException("Value not unsigned: " + v);
+                        throw new OtpDecodeException("Value not unsigned: " + v);
                     break;
                 default:
                     int i = 0;
@@ -490,7 +487,7 @@ namespace Erlang.NET
                     if (unsigned)
                     {
                         if (c < 0)
-                            throw new OtpErlangDecodeException("Value not unsigned: " + b);
+                            throw new OtpDecodeException("Value not unsigned: " + b);
                         while (b[i] == 0)
                             i++; // Skip leading zero sign bytes
                     }
@@ -514,11 +511,8 @@ namespace Erlang.NET
                             }
                         }
                     }
-                    if (b.Length - i > 8)
-                    {
-                        // More than 64 bits of value
-                        throw new OtpErlangDecodeException("Value does not fit in long: " + b);
-                    }
+                    if (b.Length - i > 8) // More than 64 bits of value
+                        throw new OtpDecodeException("Value does not fit in long: " + b);
                     // Convert the necessary bytes
                     for (v = c < 0 ? -1 : 0; i < b.Length; i++)
                         v = (v << 8) | (uint)(b[i] & 0xFF);
@@ -550,7 +544,7 @@ namespace Erlang.NET
                     break;
 
                 default:
-                    throw new OtpErlangDecodeException("Not valid list tag: " + tag);
+                    throw new OtpDecodeException("Not valid list tag: " + tag);
             }
 
             return arity;
@@ -575,7 +569,7 @@ namespace Erlang.NET
                     break;
 
                 default:
-                    throw new OtpErlangDecodeException("Not valid tuple tag: " + tag);
+                    throw new OtpDecodeException("Not valid tuple tag: " + tag);
             }
 
             return arity;
@@ -596,7 +590,7 @@ namespace Erlang.NET
                     break;
 
                 default:
-                    throw new OtpErlangDecodeException("Not valid map tag: " + tag);
+                    throw new OtpDecodeException("Not valid map tag: " + tag);
             }
 
             return arity;
@@ -617,7 +611,7 @@ namespace Erlang.NET
                     break;
 
                 default:
-                    throw new OtpErlangDecodeException("Not valid nil tag: " + tag);
+                    throw new OtpDecodeException("Not valid nil tag: " + tag);
             }
 
             return arity;
@@ -630,7 +624,7 @@ namespace Erlang.NET
         {
             int tag = Read1SkipVersion();
             if (tag != OtpExternal.pidTag && tag != OtpExternal.newPidTag)
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.pidTag + " or " + OtpExternal.newPidTag + ", got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.pidTag + " or " + OtpExternal.newPidTag + ", got " + tag);
 
             string node = ReadAtom();
             int id = Read4BE();
@@ -651,7 +645,7 @@ namespace Erlang.NET
         {
             int tag = Read1SkipVersion();
             if (tag != OtpExternal.portTag && tag != OtpExternal.newPortTag)
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.portTag + " or " + OtpExternal.newPortTag + ", got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.portTag + " or " + OtpExternal.newPortTag + ", got " + tag);
 
             string node = ReadAtom();
             int id = Read4BE();
@@ -685,7 +679,7 @@ namespace Erlang.NET
                 case OtpExternal.newerRefTag:
                     int arity = Read2BE();
                     if (arity > 3)
-                        throw new OtpErlangDecodeException("Ref arity " + arity + " too large");
+                        throw new OtpDecodeException("Ref arity " + arity + " too large");
                     node = ReadAtom();
                     if (tag == OtpExternal.newRefTag)
                         creation = Read1();
@@ -699,7 +693,7 @@ namespace Erlang.NET
                     return new OtpErlangRef(tag, node, ids, creation);
 
                 default:
-                    throw new OtpErlangDecodeException("Wrong tag encountered, expected ref, got " + tag);
+                    throw new OtpDecodeException("Wrong tag encountered, expected ref, got " + tag);
             }
         }
 
@@ -739,7 +733,7 @@ namespace Erlang.NET
             }
             else
             {
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected fun, got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected fun, got " + tag);
             }
         }
 
@@ -747,7 +741,7 @@ namespace Erlang.NET
         {
             int tag = Read1SkipVersion();
             if (tag != OtpExternal.externalFunTag)
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected external fun, got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected external fun, got " + tag);
             string module = ReadAtom();
             string function = ReadAtom();
             int arity = (int)ReadLong();
@@ -775,11 +769,11 @@ namespace Erlang.NET
                     int[] cps = new int[len];
                     for (int i = 0; i < len; i++)
                         cps[i] = ReadInt();
-                    var s = OtpErlangString.FromCodePoints(cps);
+                    string s = OtpErlangString.FromCodePoints(cps);
                     ReadNil();
                     return s;
                 default:
-                    throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.stringTag + " or " + OtpExternal.listTag + ", got " + tag);
+                    throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.stringTag + " or " + OtpExternal.listTag + ", got " + tag);
             }
         }
 
@@ -791,7 +785,7 @@ namespace Erlang.NET
             int tag = Read1SkipVersion();
 
             if (tag != OtpExternal.compressedTag)
-                throw new OtpErlangDecodeException("Wrong tag encountered, expected " + OtpExternal.compressedTag + ", got " + tag);
+                throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.compressedTag + ", got " + tag);
 
             int size = Read4BE();
             byte[] buf = new byte[size];
@@ -800,15 +794,15 @@ namespace Erlang.NET
             {
                 int dsize = dos.Read(buf, 0, size);
                 if (dsize != size)
-                    throw new OtpErlangDecodeException("Decompression gave " + dsize + " bytes, not " + size);
+                    throw new OtpDecodeException("Decompression gave " + dsize + " bytes, not " + size);
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpDecodeException)
             {
                 throw;
             }
             catch (InvalidDataException e)
             {
-                throw new OtpErlangDecodeException("Failed to decode compressed", e);
+                throw new OtpDecodeException("Failed to decode compressed", e);
             }
 
             OtpInputStream ois = new OtpInputStream(buf, Flags);
@@ -865,7 +859,7 @@ namespace Erlang.NET
                     {
                         long savePos = Position;
                         try { return new OtpErlangString(this); }
-                        catch (OtpErlangDecodeException) { }
+                        catch (OtpDecodeException) { }
                         Position = savePos;
                     }
                     return new OtpErlangList(this);
@@ -891,7 +885,7 @@ namespace Erlang.NET
                     return new OtpErlangExternalFun(this);
 
                 default:
-                    throw new OtpErlangDecodeException("Uknown data type: " + tag);
+                    throw new OtpDecodeException("Uknown data type: " + tag);
             }
         }
     }

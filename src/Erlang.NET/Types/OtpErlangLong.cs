@@ -82,7 +82,7 @@ namespace Erlang.NET
             {
                 value = OtpInputStream.ByteArrayToLong(b, false);
             }
-            catch (OtpErlangDecodeException)
+            catch (OtpDecodeException)
             {
                 bigVal = new BigInteger(b);
             }
@@ -93,12 +93,7 @@ namespace Erlang.NET
          * 
          * @return the value of this number, as a BigInteger.
          */
-        public BigInteger BigIntegerValue()
-        {
-            if (bigVal != null)
-                return bigVal;
-            return new BigInteger(value);
-        }
+        public BigInteger BigIntegerValue() => bigVal ?? new BigInteger(value);
 
         /**
          * Get this number as a long, or rather truncate all but the least
@@ -107,12 +102,7 @@ namespace Erlang.NET
          * 
          * @return the value of this number, as a long.
          */
-        public long LongValue()
-        {
-            if (bigVal != null)
-                return bigVal.LongValue();
-            return value;
-        }
+        public long LongValue() => (bigVal != null ? bigVal.LongValue() : value);
 
         /**
          * Determine if this value can be represented as a long without truncation.
@@ -121,12 +111,10 @@ namespace Erlang.NET
          */
         public bool IsLong()
         {
-            // To just chech this.bigVal is a wee bit to simple, since
+            // To just check this.bigVal is a wee bit to simple, since
             // there just might have be a mean bignum that arrived on
             // a stream, and was a long disguised as more than 8 byte integer.
-            if (bigVal != null)
-                return bigVal.bitCount() < 64;
-            return true;
+            return (bigVal == null || bigVal.bitCount() < 64);
         }
 
         /**
@@ -142,7 +130,7 @@ namespace Erlang.NET
             // Here we have the same problem as for isLong(), plus
             // the whole range 1<<63 .. (1<<64-1) is allowed.
             if (bigVal != null)
-                return bigVal >= ((BigInteger)0) && bigVal.bitCount() <= 64;
+                return bigVal >= 0 && bigVal.bitCount() <= 64;
             return value >= 0;
         }
 
@@ -217,7 +205,7 @@ namespace Erlang.NET
         public int Signum()
         {
             if (bigVal != null)
-                return (bigVal > (BigInteger)0) ? 1 : (bigVal < (BigInteger)0) ? -1 : 0;
+                return (bigVal > 0) ? 1 : (bigVal < 0) ? -1 : 0;
             return Math.Sign(value);
         }
 
@@ -232,8 +220,8 @@ namespace Erlang.NET
         public int IntValue()
         {
             long l = LongValue();
-            if (l > Int32.MaxValue)
-                throw new OtpErlangRangeException("Value too large for int: " + value);
+            if (l > int.MaxValue)
+                throw new OtpRangeException("Value too large for int: " + value);
             return (int)l;
         }
 
@@ -250,9 +238,9 @@ namespace Erlang.NET
         {
             long l = LongValue();
             if (l < 0)
-                throw new OtpErlangRangeException("Value not positive: " + value);
-            if (l > UInt32.MaxValue)
-                throw new OtpErlangRangeException("Value too large for uint: " + value);
+                throw new OtpRangeException("Value not positive: " + value);
+            if (l > uint.MaxValue)
+                throw new OtpRangeException("Value too large for uint: " + value);
             return (uint)l;
         }
 
@@ -268,8 +256,8 @@ namespace Erlang.NET
         public short ShortValue()
         {
             long l = LongValue();
-            if (l > Int16.MaxValue)
-                throw new OtpErlangRangeException("Value too large for short: " + value);
+            if (l > short.MaxValue)
+                throw new OtpRangeException("Value too large for short: " + value);
             return (short)l;
         }
 
@@ -286,9 +274,9 @@ namespace Erlang.NET
         {
             long l = LongValue();
             if (l < 0)
-                throw new OtpErlangRangeException("Value not positive: " + value);
-            if (l > UInt16.MaxValue)
-                throw new OtpErlangRangeException("Value too large for ushort: " + value);
+                throw new OtpRangeException("Value not positive: " + value);
+            if (l > ushort.MaxValue)
+                throw new OtpRangeException("Value too large for ushort: " + value);
             return (ushort)l;
         }
 
@@ -303,8 +291,8 @@ namespace Erlang.NET
         public char CharValue()
         {
             long l = LongValue();
-            if (l > Char.MaxValue)
-                throw new OtpErlangRangeException("Value too large for char: " + value);
+            if (l > char.MaxValue)
+                throw new OtpRangeException("Value too large for char: " + value);
             return (char)l;
         }
 
@@ -319,9 +307,27 @@ namespace Erlang.NET
         public byte ByteValue()
         {
             long l = LongValue();
+            if (l < 0)
+                throw new OtpRangeException("Value not positive: " + value);
             if (l > byte.MaxValue)
-                throw new OtpErlangRangeException("Value too large for byte: " + value);
+                throw new OtpRangeException("Value too large for byte: " + value);
             return (byte)l;
+        }
+
+        /**
+         * Get this number as a sbyte.
+         * 
+         * @return the sbyte value of this number.
+         * 
+         * @exception OtpErlangRangeException
+         *                    if the value is too large to be represented as a byte.
+         */
+        public sbyte SByteValue()
+        {
+            long l = LongValue();
+            if (l > sbyte.MaxValue)
+                throw new OtpRangeException("Value too large for sbyte: " + value);
+            return (sbyte)l;
         }
 
         /**
@@ -364,18 +370,13 @@ namespace Erlang.NET
                 return true;
             if (bigVal != null && o.bigVal != null)
                 return bigVal.Equals(o.bigVal);
-            else if (bigVal == null && o.bigVal == null)
+            if (bigVal == null && o.bigVal == null)
                 return value == o.value;
             return false;
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
-        {
-            if (bigVal != null)
-                return bigVal.GetHashCode();
-            return ((BigInteger)value).GetHashCode();
-        }
+        protected override int HashCode() => return bigVal?.GetHashCode() ?? ((BigInteger)value).GetHashCode();
     }
 }

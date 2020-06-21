@@ -28,30 +28,11 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangPid : OtpErlangObject, IEquatable<OtpErlangPid>, IComparable<OtpErlangPid>, IComparable
     {
-        public int Tag { get { return OtpExternal.newPidTag; } }
         public string Node { get; private set; }
         public int Id { get; private set; }
         public int Serial { get; private set; }
         public int Creation { get; private set; }
 
-        /**
-         * Create a unique Erlang PID belonging to the local node.
-         * 
-         * @param self
-         *                the local node.
-         * 
-         * @deprecated use OtpLocalNode:createPid() instead
-         */
-        [Obsolete]
-        public OtpErlangPid(OtpLocalNode self)
-        {
-            OtpErlangPid p = self.createPid();
-
-            Id = p.Id;
-            Serial = p.Serial;
-            Creation = p.Creation;
-            Node = p.Node;
-        }
 
         /**
          * Create an Erlang PID from a stream containing a PID encoded in Erlang
@@ -117,7 +98,7 @@ namespace Erlang.NET
          * @param creation
          *            yet another arbitrary number.
          */
-        public OtpErlangPid(int tag, String node, int id, int serial, int creation)
+        public OtpErlangPid(int tag, string node, int id, int serial, int creation)
         {
             Node = node;
             if (tag == OtpExternal.pidTag)
@@ -140,10 +121,7 @@ namespace Erlang.NET
          * 
          * @return the string representation of the PID.
          */
-        public override string ToString()
-        {
-            return "#Pid<" + Node.ToString() + "." + Id + "." + Serial + ">";
-        }
+        public override string ToString() => "#Pid<" + Node.ToString() + "." + Id + "." + Serial + ">";
 
         /**
          * Convert this PID to the equivalent Erlang external representation.
@@ -152,10 +130,7 @@ namespace Erlang.NET
          *                an output stream to which the encoded PID should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf)
-        {
-            buf.WritePid(this);
-        }
+        public override void Encode(OtpOutputStream buf) => buf.WritePid(this);
 
         /**
          * Determine if two PIDs are equal. PIDs are equal if their components are
@@ -182,9 +157,9 @@ namespace Erlang.NET
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int DoHashCode()
+        protected override int HashCode()
         {
-            OtpErlangObject.Hash hash = new OtpErlangObject.Hash(5);
+            Hash hash = new Hash(5);
             hash.Combine(Creation, Serial);
             hash.Combine(Id, Node.GetHashCode());
             return hash.ValueOf();
@@ -209,13 +184,10 @@ namespace Erlang.NET
                 {
                     if (Id == o.Id)
                         return Node.CompareTo(o.Node);
-
                     return Id - o.Id;
                 }
-
                 return Serial - o.Serial;
             }
-
             return Creation - o.Creation;
         }
     }
