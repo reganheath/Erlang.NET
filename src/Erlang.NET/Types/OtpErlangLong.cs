@@ -377,6 +377,6 @@ namespace Erlang.NET
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int HashCode() => return bigVal?.GetHashCode() ?? ((BigInteger)value).GetHashCode();
+        protected override int HashCode() => bigVal?.GetHashCode() ?? ((BigInteger)value).GetHashCode();
     }
 }
