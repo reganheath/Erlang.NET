@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace Erlang.NET
 {
     // package scope
-    public class Link : IEquatable<Link>, IComparable<Link>, IComparable
+    public class Link : IEquatable<Link>, IComparable, IComparable<Link>
     {
         public OtpErlangPid Local { get; private set; }
         public OtpErlangPid Remote { get; private set; }
-
-        private int hashCodeValue = 0;
 
         public Link(OtpErlangPid local, OtpErlangPid remote)
         {
@@ -31,10 +30,7 @@ namespace Erlang.NET
             Remote = remote;
         }
 
-        public bool Contains(OtpErlangPid pid)
-        {
-            return Local.Equals(pid) || Remote.Equals(pid);
-        }
+        public bool Contains(OtpErlangPid pid) => Local.Equals(pid) || Remote.Equals(pid);
 
         public bool Equals(OtpErlangPid local, OtpErlangPid remote)
         {
@@ -44,19 +40,13 @@ namespace Erlang.NET
 
         public override int GetHashCode()
         {
-            if (hashCodeValue == 0)
-            {
-                Hash hash = new Hash(5);
-                hash.Combine(Local.GetHashCode() + Remote.GetHashCode());
-                hashCodeValue = hash.ValueOf();
-            }
-            return hashCodeValue;
+            int hashCode = -691572389;
+            hashCode = hashCode * -1521134295 + EqualityComparer<OtpErlangPid>.Default.GetHashCode(Local);
+            hashCode = hashCode * -1521134295 + EqualityComparer<OtpErlangPid>.Default.GetHashCode(Remote);
+            return hashCode;
         }
 
-        public override bool Equals(object o)
-        {
-            return Equals(o as Link);
-        }
+        public override bool Equals(object obj) => Equals(obj as Link);
 
         public bool Equals(Link o)
         {
