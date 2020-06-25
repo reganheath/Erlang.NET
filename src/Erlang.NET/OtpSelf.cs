@@ -44,7 +44,7 @@ namespace Erlang.NET
      */
     public class OtpSelf : OtpLocalNode
     {
-        private readonly OtpServerTransport sock;
+        private readonly IOtpServerTransport sock;
 
         /**
          * <p>
@@ -192,7 +192,7 @@ namespace Erlang.NET
          */
         public OtpConnection Accept()
         {
-            OtpTransport newsock = null;
+            IOtpTransport newsock = null;
 
             while (true)
             {

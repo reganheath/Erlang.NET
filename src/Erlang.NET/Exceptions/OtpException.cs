@@ -25,22 +25,16 @@ namespace Erlang.NET
         /**
          * Provides no message.
          */
-        public OtpException()
-            : base()
-        {
-        }
+        public OtpException() : base() { }
 
         /**
          * Provides a detailed message.
          */
-        public OtpException(string msg)
-            : base(msg)
-        {
-        }
+        public OtpException(string msg) : base(msg) { }
 
-        public OtpException(string msg, Exception inner)
-            : base(msg, inner)
-        {
-        }
+        /*
+         * Provides a detailed message and cause
+         */
+        public OtpException(string msg, Exception inner) : base(msg, inner) { }
     }
 }

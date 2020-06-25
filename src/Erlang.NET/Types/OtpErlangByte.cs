@@ -18,39 +18,22 @@ using System;
 namespace Erlang.NET
 {
     /**
-     * Provides a Java representation of Erlang integral types.
+     * Provides a representation of Erlang integral types.
      */
     [Serializable]
     public class OtpErlangByte : OtpErlangLong
     {
+        public byte Value { get => ByteValue(); }
+
         /**
          * Create an Erlang integer from the given value.
-         * 
-         * @param b
-         *                the byte value to use.
          */
-        public OtpErlangByte(byte b)
-            : base(b)
-        {
-        }
+        public OtpErlangByte(byte b) : base(b) { }
 
         /**
          * Create an Erlang integer from a stream containing an integer encoded in
          * Erlang external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang integer.
-         * 
-         * @exception OtpErlangRangeException
-         *                    if the value is too large to be represented as a byte.
          */
-        public OtpErlangByte(OtpInputStream buf)
-            : base(buf)
-        {
-        }
+        public OtpErlangByte(OtpInputStream buf) : base(buf) { }
     }
 }

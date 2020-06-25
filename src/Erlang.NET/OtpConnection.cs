@@ -60,7 +60,7 @@ namespace Erlang.NET
          * error
          */
         // package scope
-        internal OtpConnection(OtpSelf self, OtpTransport s)
+        internal OtpConnection(OtpSelf self, IOtpTransport s)
             : base(self, s)
         {
             Self = self;
@@ -138,7 +138,7 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpErlangObject Receive()
+        public IOtpErlangObject Receive()
         {
             try
             {
@@ -182,7 +182,7 @@ namespace Erlang.NET
          *                    if no message if the method times out before a message
          *                    becomes available.
          */
-        public OtpErlangObject Receive(long timeout)
+        public IOtpErlangObject Receive(long timeout)
         {
             try
             {
@@ -341,7 +341,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void Send(OtpErlangPid dest, OtpErlangObject msg) => SendBuf(Self.Pid, dest, new OtpOutputStream(msg));
+        public void Send(OtpErlangPid dest, IOtpErlangObject msg) => SendBuf(Self.Pid, dest, new OtpOutputStream(msg));
 
         /**
          * Send a message to a named process on a remote node.
@@ -355,7 +355,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void Send(string dest, OtpErlangObject msg) => SendBuf(Self.Pid, dest, new OtpOutputStream(msg));
+        public void Send(string dest, IOtpErlangObject msg) => SendBuf(Self.Pid, dest, new OtpOutputStream(msg));
 
         /**
          * Send a pre-encoded message to a named process on a remote node.
@@ -411,7 +411,7 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void SendRPC(string mod, string fun, OtpErlangObject[] args) => SendRPC(mod, fun, new OtpErlangList(args));
+        public void SendRPC(string mod, string fun, IOtpErlangObject[] args) => SendRPC(mod, fun, new OtpErlangList(args));
 
         /**
          * Send an RPC request to the remote Erlang node. This convenience function
@@ -441,8 +441,8 @@ namespace Erlang.NET
          */
         public void SendRPC(string mod, string fun, OtpErlangList args)
         {
-            OtpErlangObject[] rpc = new OtpErlangObject[2];
-            OtpErlangObject[] call = new OtpErlangObject[5];
+            IOtpErlangObject[] rpc = new IOtpErlangObject[2];
+            IOtpErlangObject[] call = new IOtpErlangObject[5];
 
             /* {self, { call, Mod, Fun, Args, user}} */
 
@@ -483,13 +483,12 @@ namespace Erlang.NET
          *                    if the remote node sends a message containing an
          *                    invalid cookie.
          */
-        public OtpErlangObject ReceiveRPC()
+        public IOtpErlangObject ReceiveRPC()
         {
-            OtpErlangObject msg = Receive();
+            IOtpErlangObject msg = Receive();
 
-            if (msg is OtpErlangTuple)
+            if (msg is OtpErlangTuple t)
             {
-                OtpErlangTuple t = (OtpErlangTuple)msg;
                 if (t.Arity == 2)
                     return t.ElementAt(1); // obs: second element
             }
@@ -538,6 +537,6 @@ namespace Erlang.NET
          *                    if the connection is not active or a communication
          *                    error occurs.
          */
-        public void Exit(OtpErlangPid dest, OtpErlangObject reason) => SendExit2(Self.Pid, dest, reason);
+        public void Exit(OtpErlangPid dest, IOtpErlangObject reason) => SendExit2(Self.Pid, dest, reason);
     }
 }

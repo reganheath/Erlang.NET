@@ -18,7 +18,7 @@ using System.Net.Sockets;
 
 namespace Erlang.NET
 {
-    public class OtpServerSocketTransport : OtpServerTransport
+    public class OtpServerSocketTransport : IOtpServerTransport
     {
         private readonly TcpListener socket;
 
@@ -29,26 +29,17 @@ namespace Erlang.NET
                 socket.Start();
         }
 
-        public void Start()
-        {
-            socket.Start();
-        }
+        public void Start() => socket.Start();
 
-        public int GetLocalPort()
-        {
-            return ((IPEndPoint)socket.LocalEndpoint).Port;
-        }
+        public int GetLocalPort() => ((IPEndPoint)socket.LocalEndpoint).Port;
 
-        public OtpTransport Accept()
+        public IOtpTransport Accept()
         {
             TcpClient sock = socket.AcceptTcpClient();
             sock.NoDelay = true;
             return new OtpSocketTransport(sock);
         }
 
-        public void Close()
-        {
-            socket.Stop();
-        }
+        public void Close() => socket.Stop();
     }
 }

@@ -243,7 +243,7 @@ namespace Erlang.NET
         /**
          * Read an Erlang bitstr from the stream.
          */
-        public byte[] ReadBitstr(out int pad_bits)
+        public byte[] ReadBitstr(out int padBits)
         {
             int tag = Read1SkipVersion();
 
@@ -252,14 +252,14 @@ namespace Erlang.NET
 
             int len = Read4BE();
             byte[] bin = new byte[len];
-            int tail_bits = Read1();
-            if (tail_bits < 0 || 7 < tail_bits)
-                throw new OtpDecodeException("Wrong tail bit count in bitstr: " + tail_bits);
-            if (len == 0 && tail_bits != 0)
-                throw new OtpDecodeException("Length 0 on bitstr with tail bit count: " + tail_bits);
+            int tailBits = Read1();
+            if (tailBits < 0 || 7 < tailBits)
+                throw new OtpDecodeException("Wrong tail bit count in bitstr: " + tailBits);
+            if (len == 0 && tailBits != 0)
+                throw new OtpDecodeException("Length 0 on bitstr with tail bit count: " + tailBits);
             ReadN(bin);
 
-            pad_bits = 8 - tail_bits;
+            padBits = 8 - tailBits;
             return bin;
         }
 
@@ -703,7 +703,7 @@ namespace Erlang.NET
                 string module = ReadAtom();
                 long index = ReadLong();
                 long uniq = ReadLong();
-                OtpErlangObject[] freeVars = new OtpErlangObject[nFreeVars];
+                IOtpErlangObject[] freeVars = new IOtpErlangObject[nFreeVars];
                 for (int i = 0; i < nFreeVars; ++i)
                     freeVars[i] = ReadAny();
 
@@ -721,7 +721,7 @@ namespace Erlang.NET
                 long oldIndex = ReadLong();
                 long uniq = ReadLong();
                 OtpErlangPid pid = ReadPid();
-                OtpErlangObject[] freeVars = new OtpErlangObject[nFreeVars];
+                IOtpErlangObject[] freeVars = new IOtpErlangObject[nFreeVars];
                 for (int i = 0; i < nFreeVars; ++i)
                     freeVars[i] = ReadAny();
 
@@ -776,7 +776,7 @@ namespace Erlang.NET
         /**
          * Read a compressed term from the stream
          */
-        public OtpErlangObject ReadCompressed()
+        public IOtpErlangObject ReadCompressed()
         {
             int tag = Read1SkipVersion();
 
@@ -808,7 +808,7 @@ namespace Erlang.NET
         /**
          * Read an arbitrary Erlang term from the stream.
          */
-        public OtpErlangObject ReadAny()
+        public IOtpErlangObject ReadAny()
         {
             // calls one of the above functions, depending on o
             int tag = Peek1SkipVersion();

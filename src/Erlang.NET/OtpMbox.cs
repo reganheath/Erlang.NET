@@ -44,7 +44,7 @@ namespace Erlang.NET
      * 
      * <p>
      * Since this class was intended for communication with Erlang, all of the send
-     * methods take {@link OtpErlangObject OtpErlangObject} arguments. However this
+     * methods take {@link IOtpErlangObject IOtpErlangObject} arguments. However this
      * class can also be used to transmit arbitrary Java objects (as long as they
      * implement one of java.io.Serializable or java.io.Externalizable) by
      * encapsulating the object in a {@link OtpErlangBinary OtpErlangBinary}.
@@ -151,7 +151,7 @@ namespace Erlang.NET
         /**
          * Block until a message arrives for this mailbox.
          * 
-         * @return an {@link OtpErlangObject OtpErlangObject} representing the body
+         * @return an {@link IOtpErlangObject IOtpErlangObject} representing the body
          *         of the next message waiting in this mailbox.
          * 
          * @exception OtpErlangDecodeException
@@ -161,7 +161,7 @@ namespace Erlang.NET
          *                    if a linked {@link OtpErlangPid pid} has exited or has
          *                    sent an exit signal to this mailbox.
          */
-        public OtpErlangObject Receive()
+        public IOtpErlangObject Receive()
         {
             try
             {
@@ -184,7 +184,7 @@ namespace Erlang.NET
          *                the time, in milliseconds, to wait for a message before
          *                returning null.
          * 
-         * @return an {@link OtpErlangObject OtpErlangObject} representing the body
+         * @return an {@link IOtpErlangObject IOtpErlangObject} representing the body
          *         of the next message waiting in this mailbox.
          * 
          * @exception OtpErlangDecodeException
@@ -194,7 +194,7 @@ namespace Erlang.NET
          *                    if a linked {@link OtpErlangPid pid} has exited or has
          *                    sent an exit signal to this mailbox.
          */
-        public OtpErlangObject Receive(long timeout)
+        public IOtpErlangObject Receive(long timeout)
         {
             try
             {
@@ -276,7 +276,7 @@ namespace Erlang.NET
                 case OtpMsg.exit2Tag:
                     try
                     {
-                        OtpErlangObject o = m.GetMsg();
+                        IOtpErlangObject o = m.GetMsg();
                         throw new OtpExit(o, m.GetSenderPid());
                     }
                     catch (OtpDecodeException)
@@ -319,7 +319,7 @@ namespace Erlang.NET
                 case OtpMsg.exit2Tag:
                     try
                     {
-                        OtpErlangObject o = m.GetMsg();
+                        IOtpErlangObject o = m.GetMsg();
                         throw new OtpExit(o, m.GetSenderPid());
                     }
                     catch (OtpDecodeException)
@@ -344,14 +344,14 @@ namespace Erlang.NET
          *                the body of the message to send.
          * 
          */
-        public void Send(OtpErlangPid to, OtpErlangObject msg)
+        public void Send(OtpErlangPid to, IOtpErlangObject msg)
         {
             try
             {
                 string node = to.Node;
                 if (node.Equals(home.Node))
                 {
-                    home.Deliver(new OtpMsg(to, (OtpErlangObject)msg.Clone()));
+                    home.Deliver(new OtpMsg(to, (IOtpErlangObject)msg.Clone()));
                     return;
                 }
 
@@ -378,9 +378,9 @@ namespace Erlang.NET
          *                the body of the message to send.
          * 
          */
-        public void Send(string name, OtpErlangObject msg)
+        public void Send(string name, IOtpErlangObject msg)
         {
-            home.Deliver(new OtpMsg(Self, name, (OtpErlangObject)msg.Clone()));
+            home.Deliver(new OtpMsg(Self, name, (IOtpErlangObject)msg.Clone()));
         }
 
         /**
@@ -397,7 +397,7 @@ namespace Erlang.NET
          *                the body of the message to send.
          * 
          */
-        public void Send(string name, string node, OtpErlangObject msg)
+        public void Send(string name, string node, IOtpErlangObject msg)
         {
             try
             {
@@ -437,13 +437,13 @@ namespace Erlang.NET
          * @param reason
          *                an Erlang term describing the reason for the exit.
          */
-        public void Exit(OtpErlangObject reason) => home.CloseMbox(this, reason);
+        public void Exit(IOtpErlangObject reason) => home.CloseMbox(this, reason);
 
         /**
          * Equivalent to <code>exit(new OtpErlangAtom(reason))</code>.
          * </p>
          * 
-         * @see #exit(OtpErlangObject)
+         * @see #exit(IOtpErlangObject)
          */
         public void Exit(string reason) => Exit(new OtpErlangAtom(reason));
 
@@ -462,7 +462,7 @@ namespace Erlang.NET
          *                an Erlang term indicating the reason for the exit.
          */
         // it's called exit, but it sends exit2
-        public void Exit(OtpErlangPid to, OtpErlangObject reason) => Exit(2, to, reason);
+        public void Exit(OtpErlangPid to, IOtpErlangObject reason) => Exit(2, to, reason);
 
         /**
          * <p>
@@ -470,13 +470,13 @@ namespace Erlang.NET
          * OtpErlangAtom(reason))</code>.
          * </p>
          * 
-         * @see #exit(OtpErlangPid, OtpErlangObject)
+         * @see #exit(OtpErlangPid, IOtpErlangObject)
          */
         public void Exit(OtpErlangPid to, string reason) => Exit(to, new OtpErlangAtom(reason));
 
         // this function used internally when "process" dies
         // since Erlang discerns between exit and exit/2.
-        private void Exit(int arity, OtpErlangPid to, OtpErlangObject reason)
+        private void Exit(int arity, OtpErlangPid to, IOtpErlangObject reason)
         {
             try
             {
@@ -697,8 +697,10 @@ namespace Erlang.NET
 
         public bool Equals(OtpMbox o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
+            if (ReferenceEquals(this, o))
+                return true;
             return Self.Equals(o.Self);
         }
 
@@ -736,7 +738,7 @@ namespace Erlang.NET
         }
 
         // used to break all known links to this mbox
-        public void BreakLinks(OtpErlangObject reason)
+        public void BreakLinks(IOtpErlangObject reason)
         {
             foreach (var link in links.ClearLinks())
                 Exit(1, link.Remote, reason);

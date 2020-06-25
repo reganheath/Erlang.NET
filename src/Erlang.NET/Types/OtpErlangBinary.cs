@@ -18,7 +18,7 @@ using System;
 namespace Erlang.NET
 {
     /**
-     * Provides a Java representation of Erlang binaries. Anything that can be
+     * Provides a representation of Erlang binaries. Anything that can be
      * represented as a sequence of bytes can be made into an Erlang binary.
      */
     [Serializable]
@@ -26,54 +26,23 @@ namespace Erlang.NET
     {
         /**
          * Create a binary from a byte array
-         * 
-         * @param bin
-         *                the array of bytes from which to create the binary.
          */
-        public OtpErlangBinary(byte[] bin)
-            : base(bin)
-        {
-        }
+        public OtpErlangBinary(byte[] bin) : base(bin) { }
 
         /**
          * Create a binary from a stream containing a binary encoded in Erlang
          * external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded binary.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang binary.
          */
-        public OtpErlangBinary(OtpInputStream buf)
-            : base()
-        {
-            Bin = buf.ReadBinary();
-            PadBits = 0;
-        }
+        public OtpErlangBinary(OtpInputStream buf) : base() => Bin = buf.ReadBinary();
 
         /**
-         * Create a binary from an arbitrary Java Object. The object must implement
-         * java.io.Serializable or java.io.Externalizable.
-         * 
-         * @param o
-         *                the object to serialize and create this binary from.
+         * Create a binary from an arbitrary Object. The object must implement
          */
-        public OtpErlangBinary(object o)
-            : base(o)
-        {
-        }
+        public OtpErlangBinary(object o) : base(o) { }
 
         /**
          * Convert this binary to the equivalent Erlang external representation.
-         * 
-         * @param buf
-         *                an output stream to which the encoded binary should be
-         *                written.
          */
         public override void Encode(OtpOutputStream buf) => buf.WriteBinary(Bin);
-
-        public override object Clone() => (OtpErlangBinary)base.Clone();
     }
 }

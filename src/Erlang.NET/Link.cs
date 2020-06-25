@@ -60,43 +60,23 @@ namespace Erlang.NET
 
         public bool Equals(Link o)
         {
-            if (o == null)
-            {
+            if (o is null)
                 return false;
-            }
-
             if (ReferenceEquals(this, o))
-            {
                 return true;
-            }
-
             return Local.Equals(o.Local)
                 && Remote.Equals(o.Remote);
         }
 
-        public int CompareTo(object other)
-        {
-            if (other == null)
-            {
-                return -1;
-            }
-
-            if (!(other is Link))
-            {
-                return -1;
-            }
-
-            return CompareTo(other as Link);
-        }
+        public int CompareTo(object obj) => CompareTo(obj as Link);
 
         public int CompareTo(Link other)
         {
+            if (other is null)
+                return 1;
             int res = Local.CompareTo(other.Local);
             if (res == 0)
-            {
                 res = Remote.CompareTo(other.Remote);
-            }
-
             return res;
         }
     }

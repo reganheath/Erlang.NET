@@ -30,41 +30,30 @@ namespace Erlang.NET
      * 
      */
     [Serializable]
-    public class OtpErlangMap : OtpErlangObject, IEquatable<OtpErlangMap>
+    public class OtpErlangMap : Dictionary<IOtpErlangObject, IOtpErlangObject>, IOtpErlangObject, IEquatable<OtpErlangMap>, IComparable<OtpErlangMap>
     {
-        private Dictionary<OtpErlangObject, OtpErlangObject> map = new Dictionary<OtpErlangObject, OtpErlangObject>();
+        public int Arity => Count;
 
-        public OtpErlangMap(OtpErlangObject[] keys, OtpErlangObject[] values)
+        public OtpErlangMap() : base() { }
+        public OtpErlangMap(int capacity) : base(capacity) { }
+        public OtpErlangMap(IEqualityComparer<IOtpErlangObject> comparer) : base(comparer) { }
+        public OtpErlangMap(IDictionary<IOtpErlangObject, IOtpErlangObject> dictionary) : base(dictionary) { }
+        public OtpErlangMap(int capacity, IEqualityComparer<IOtpErlangObject> comparer) : base(capacity, comparer) { }
+        public OtpErlangMap(IDictionary<IOtpErlangObject, IOtpErlangObject> dictionary, IEqualityComparer<IOtpErlangObject> comparer) : base(dictionary, comparer) { }
+
+        public OtpErlangMap(IEnumerable<IOtpErlangObject> keys, IEnumerable<IOtpErlangObject> values)
         {
             if (keys == null)
-                throw new ArgumentNullException("keys");
+                throw new ArgumentNullException(nameof(keys));
             if (values == null)
-                throw new ArgumentNullException("values");
-            if (keys.Length != values.Length)
-                throw new ArgumentException("keys and values must be the same length");
-            keys.Zip(values, (k, v) => { map.Add(k, v); return false; });
-        }
-
-        public OtpErlangMap(OtpErlangObject[] keys, int kstart, int kcount, OtpErlangObject[] values, int vstart, int vcount)
-        {
-            if (keys == null)
-                throw new ArgumentNullException("keys");
-            if (values == null)
-                throw new ArgumentNullException("values");
-
-            OtpErlangObject[] theKeys = keys.Skip(kstart).Take(kcount).ToArray();
-            OtpErlangObject[] theValues = values.Skip(vstart).Take(vcount).ToArray();
-
-            if (theKeys.Length != theValues.Length)
-                throw new ArgumentException("keys and values must be the same length");
-
-            theKeys.Zip(theValues, (k, v) => (k, v)).Select((o, i) =>
+                throw new ArgumentNullException(nameof(values));
+            keys.Zip(values, (k, v) => (k, v)).Select((o, i) =>
             {
                 if (o.k == null)
-                    throw new ArgumentException("Map key cannot be null (element" + i + ")");
+                    throw new ArgumentException($"Map key {i} cannot be null");
                 if (o.v == null)
-                    throw new ArgumentException("Map value cannot be null (element" + i + ")");
-                map.Add(o.k, o.v);
+                    throw new ArgumentException($"Map value {i} cannot be null");
+                Add(o.k, o.v);
                 return false;
             });
         }
@@ -76,106 +65,77 @@ namespace Erlang.NET
                 return;
             for (int i = 0; i < arity; i++)
             {
-                OtpErlangObject key = buf.ReadAny();
-                OtpErlangObject value = buf.ReadAny();
-                map.Add(key, value);
+                IOtpErlangObject key = buf.ReadAny();
+                IOtpErlangObject value = buf.ReadAny();
+                Add(key, value);
             }
         }
 
-        public int Arity => map.Count;
+        public override string ToString() => "#{" + string.Join(",", this.Select((p) => p.Key + " => " + p.Value)) + "}";
 
-        public IEnumerable<OtpErlangObject> Keys => map.Keys;
-
-        public IEnumerable<OtpErlangObject> Values => map.Values;
-
-        public OtpErlangObject Put(OtpErlangObject key, OtpErlangObject value)
-        {
-            if (!map.TryGetValue(key, out OtpErlangObject oldValue))
-                oldValue = null;
-            map.Add(key, value);
-            return oldValue;
-        }
-
-        public OtpErlangObject Remove(OtpErlangObject key)
-        {
-            if (!map.TryGetValue(key, out OtpErlangObject oldValue))
-                oldValue = null;
-            map.Remove(key);
-            return oldValue;
-        }
-
-        public OtpErlangObject Get(OtpErlangObject key)
-        {
-            if (key == null)
-                return null;
-
-            if (map.TryGetValue(key, out OtpErlangObject value))
-                return value;
-
-            return null;
-        }
-
-        public override string ToString() => "#{" + string.Join(",", map.Select((p) => p.Key + " => " + p.Value)) + "}";
-
-        public override void Encode(OtpOutputStream buf)
+        public void Encode(OtpOutputStream buf)
         {
             buf.WriteMapHead(Arity);
-            foreach (var pair in map)
+            foreach (var pair in this)
             {
                 buf.WriteAny(pair.Key);
                 buf.WriteAny(pair.Value);
             }
         }
 
-        public override bool Equals(object o) => Equals(o as OtpErlangMap);
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangMap);
+
+        public int CompareTo(OtpErlangMap other)
+        {
+            if (other is null)
+                return 1;
+            return OtpErlangObject.CompareTo(this.OrderBy(kvp => kvp.Key), other.OrderBy(kvp => kvp.Key), new KeyValueComparer());
+        }
+
+        public override bool Equals(object obj) => Equals(obj as OtpErlangMap);
 
         public bool Equals(OtpErlangMap o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            if (Arity != o.Arity)
-                return false;
-            if (Arity == 0)
-                return true;
-            //if (GetHashCode() != map.GetHashCode())
-            //    return false;
-            return map.OrderBy(kvp => kvp.Key).SequenceEqual(o.map.OrderBy(kvp => kvp.Key), new KeyValuePairComparer());
+            return Arity == o.Arity &&
+                this.OrderBy(kvp => kvp.Key).SequenceEqual(o.OrderBy(kvp => kvp.Key), new KeyValueEquality());
         }
 
         public override int GetHashCode() => base.GetHashCode();
 
-        protected override int HashCode()
-        {
-            Hash hash = new Hash(9);
-            hash.Combine(Arity);
-            foreach (var pair in map)
-                hash.Combine(pair.Key.GetHashCode(), pair.Value.GetHashCode());
-            return hash.ValueOf();
-        }
+        public object Clone() => new OtpErlangMap(this);
 
-        public override object Clone()
+        #region Private comparers
+        private class KeyValueEquality : IEqualityComparer<KeyValuePair<IOtpErlangObject, IOtpErlangObject>>
         {
-            OtpErlangMap newMap = (OtpErlangMap)base.Clone();
-            newMap.map = new Dictionary<OtpErlangObject, OtpErlangObject>(map);
-            return newMap;
-        }
-
-        private class KeyValuePairComparer : IEqualityComparer<KeyValuePair<OtpErlangObject, OtpErlangObject>>
-        {
-            public bool Equals(KeyValuePair<OtpErlangObject, OtpErlangObject> x, KeyValuePair<OtpErlangObject, OtpErlangObject> y)
+            public bool Equals(KeyValuePair<IOtpErlangObject, IOtpErlangObject> x, KeyValuePair<IOtpErlangObject, IOtpErlangObject> y)
             {
                 return x.Key == y.Key && x.Value == y.Value;
             }
 
-            public int GetHashCode(KeyValuePair<OtpErlangObject, OtpErlangObject> obj)
+            public int GetHashCode(KeyValuePair<IOtpErlangObject, IOtpErlangObject> obj)
             {
-                Hash hash = new Hash(9);
-                hash.Combine(obj.Key.GetHashCode(), obj.Value.GetHashCode());
-                return hash.ValueOf();
+                int hashCode = 444177069;
+                hashCode = hashCode * -1521134295 + obj.Key.GetHashCode();
+                hashCode = hashCode * -1521134295 + obj.Value.GetHashCode();
+                return hashCode;
             }
         }
+
+        private class KeyValueComparer : IComparer<KeyValuePair<IOtpErlangObject, IOtpErlangObject>>
+        {
+            public int Compare(KeyValuePair<IOtpErlangObject, IOtpErlangObject> x, KeyValuePair<IOtpErlangObject, IOtpErlangObject> y)
+            {
+                int res = x.Key.CompareTo(y.Key);
+                if (res == 0)
+                    res = x.Value.CompareTo(y.Value);
+                return res;
+            }
+        }
+        #endregion
     }
 }
 

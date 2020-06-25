@@ -18,13 +18,13 @@ using System;
 namespace Erlang.NET
 {
     /**
-     * Provides a Java representation of Erlang floats and doubles. Erlang defines
+     * Provides a representation of Erlang floats and doubles. Erlang defines
      * only one floating point numeric type, however this class and its subclass
      * {@link OtpErlangFloat} are used to provide representations corresponding to
-     * the Java types Double and Float.
+     * the types Double and Float.
      */
     [Serializable]
-    public class OtpErlangDouble : OtpErlangObject, IEquatable<OtpErlangDouble>
+    public class OtpErlangDouble : IOtpErlangObject, IEquatable<OtpErlangDouble>, IComparable<OtpErlangDouble>
     {
         public double Value { get; private set; }
 
@@ -36,25 +36,13 @@ namespace Erlang.NET
         /**
          * Create an Erlang float from a stream containing a double encoded in
          * Erlang external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang float.
          */
         public OtpErlangDouble(OtpInputStream buf) => Value = buf.ReadDouble();
 
         /**
          * Get the value, as a float.
-         * 
-         * @return the value of this object, as a float.
-         * 
-         * @exception OtpErlangRangeException
-         *                    if the value cannot be represented as a float.
          */
-        public float FloatValue()
+        public float ToFloat()
         {
             float f = (float)Value;
             if (f != Value)
@@ -63,43 +51,43 @@ namespace Erlang.NET
         }
 
         /**
+         * Convert this double to the equivalent Erlang external representation.
+         */
+        public void Encode(OtpOutputStream buf) => buf.WriteDouble(Value);
+
+        /**
          * Get the string representation of this double.
          * 
          * @return the string representation of this double.
          */
         public override string ToString() => Value.ToString();
 
-        /**
-         * Convert this double to the equivalent Erlang external representation.
-         * 
-         * @param buf
-         *                an output stream to which the encoded value should be
-         *                written.
-         */
-        public override void Encode(OtpOutputStream buf) => buf.WriteDouble(Value);
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangDouble);
+
+        public int CompareTo(OtpErlangDouble other)
+        {
+            if (other is null)
+                return 1;
+            return Value.CompareTo(other.Value);
+        }
 
         /**
          * Determine if two floats are equal. Floats are equal if they contain the
          * same value.
-         * 
-         * @param o
-         *                the float to compare to.
-         * 
-         * @return true if the floats have the same value.
          */
         public override bool Equals(object o) => Equals(o as OtpErlangDouble);
 
         public bool Equals(OtpErlangDouble o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
             return Value == o.Value;
         }
 
-        public override int GetHashCode() => base.GetHashCode();
+        public override int GetHashCode() => Value.GetHashCode();
 
-        protected override int HashCode() => Value.GetHashCode();
+        public object Clone() => new OtpErlangDouble(Value);
     }
 }

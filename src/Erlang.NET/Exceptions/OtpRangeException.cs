@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System;
+
 namespace Erlang.NET
 {
     /**
@@ -32,9 +34,11 @@ namespace Erlang.NET
         /**
          * Provides a detailed message.
          */
-        public OtpRangeException(string msg)
-            : base(msg)
-        {
-        }
+        public OtpRangeException(string msg) : base(msg) { }
+
+        /*
+         * Provides a detailed message and cause
+         */
+        public OtpRangeException(string msg, Exception inner) : base(msg, inner) { }
     }
 }

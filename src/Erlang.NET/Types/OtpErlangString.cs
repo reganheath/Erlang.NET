@@ -24,108 +24,40 @@ namespace Erlang.NET
      * Provides a Java representation of Erlang strings.
      */
     [Serializable]
-    public class OtpErlangString : OtpErlangObject, IEquatable<OtpErlangString>
+    public class OtpErlangString : IOtpErlangObject, IComparable<OtpErlangString>, IEquatable<OtpErlangString>
     {
+        public string Value { get; private set; }
+
+        public static implicit operator string(OtpErlangString s) => s.Value;
+
         /**
          * Create an Erlang string from the given string.
          */
-        public OtpErlangString(string str)
-        {
-            Value = str;
-        }
+        public OtpErlangString(string str) => Value = str;
 
         /**
          * Create an Erlang string from a list of integers.
-         * 
-         * @return an Erlang string with Unicode code units.
-         *
-         * @throws OtpErlangException
-         *                for non-proper and non-integer lists.
-         * @throws OtpErlangRangeException
-         *                if an integer in the list is not
-         *                a valid Unicode code point according to Erlang.
          */
-        public OtpErlangString(OtpErlangList list)
-        {
-            Value = list.StringValue();
-        }
+        public OtpErlangString(OtpErlangList list) => Value = list.StringValue();
 
         /**
          * Create an Erlang string from a stream containing a string encoded in
          * Erlang external format.
-         * 
-         * @param buf
-         *            the stream containing the encoded string.
-         * 
-         * @exception OtpErlangDecodeException
-         *                if the buffer does not contain a valid external
-         *                representation of an Erlang string.
          */
-        public OtpErlangString(OtpInputStream buf)
-        {
-            Value = buf.ReadString();
-        }
-
-        /**
-         * Get the actual string contained in this object.
-         * 
-         * @return the raw string contained in this object, without regard to Erlang
-         *         quoting rules.
-         * 
-         * @see #toString
-         */
-        public string Value { get; private set; }
+        public OtpErlangString(OtpInputStream buf) => Value = buf.ReadString();
 
         /**
          * Get the printable version of the string contained in this object.
-         * 
-         * @return the string contained in this object, quoted.
-         * 
-         * @see #stringValue
          */
-        public override string ToString() => "\"" + Value + "\"";
+        public override string ToString() => $"\"{Value}\"";
 
         /**
          * Convert this string to the equivalent Erlang external representation.
-         * 
-         * @param buf
-         *            an output stream to which the encoded string should be
-         *            written.
          */
-        public override void Encode(OtpOutputStream buf) => buf.WriteString(Value);
-
-        /**
-         * Determine if two strings are equal. They are equal if they represent the
-         * same sequence of characters. This method can be used to compare
-         * OtpErlangStrings with each other and with Strings.
-         * 
-         * @param o
-         *            the OtpErlangString or string to compare to.
-         * 
-         * @return true if the strings consist of the same sequence of characters,
-         *         false otherwise.
-         */
-        public override bool Equals(object o)
-        {
-            if (o is string s)
-                return Value.Equals(s);
-            return Equals(o as OtpErlangString);
-        }
-
-        public bool Equals(OtpErlangString o) => Value.Equals(o.Value);
-
-        public override int GetHashCode() => base.GetHashCode();
-
-        protected override int HashCode() => Value.GetHashCode();
+        public void Encode(OtpOutputStream buf) => buf.WriteString(Value);
 
         /**
          * Create Unicode code points from a string.
-         * 
-         * @param  s
-         *             a string to convert to an Unicode code point array
-         *
-         * @return the corresponding array of integers representing
-         *         Unicode code points
          */
         public static int[] ToCodePoints(string s)
         {
@@ -149,12 +81,6 @@ namespace Erlang.NET
 
         /**
          * Create Unicode code points into a string.
-         * 
-         * @param  cps
-         *             a Unicode code point array
-         *
-         * @return the corresponding string equivalent to the
-         *         Unicode code points
          */
         public static string FromCodePoints(IEnumerable<int> cps)
         {
@@ -174,35 +100,42 @@ namespace Erlang.NET
          * Validate a code point according to Erlang definition; Unicode 3.0.
          * That is; valid in the range U+0..U+10FFFF, but not in the range
          * U+D800..U+DFFF (surrogat pairs)
-         *
-         * @param  cp
-         *             the code point value to validate
-         *
-         * @return true if the code point is valid,
-         *         false otherwise.
          */
         private static bool IsValidCodePoint(int cp)
         {
-            // Erlang definition of valid Unicode code points; 
-            // Unicode 3.0, XML, et.al.
             return (((uint)cp) >> 16) <= 0x10 // in 0..10FFFF; Unicode range
                 && (cp & ~0x7FF) != 0xD800;   // not in D800..DFFF; surrogate range
         }
 
         /**
          * Construct a string from encoded byte array
-         *
          */
         public static string FromEncoding(byte[] bytes, string encoding = "ISO-8859-1")
         {
-            try
-            {
-                return Encoding.GetEncoding(encoding).GetString(bytes);
-            }
-            catch (ArgumentException)
-            {
-            }
+            try { return Encoding.GetEncoding(encoding).GetString(bytes); }
+            catch (ArgumentException) { }
             return Encoding.ASCII.GetString(bytes);
         }
+
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangString);
+
+        public int CompareTo(OtpErlangString other)
+        {
+            if (other is null)
+                return 1;
+            return Value.CompareTo(other.Value);
+        }
+
+        public override bool Equals(object obj) => Equals(obj as OtpErlangString);
+
+        public bool Equals(OtpErlangString other) => string.Equals(Value, other?.Value);
+
+        public static bool operator ==(OtpErlangString s1, OtpErlangString s2) => s1?.Value == s2?.Value;
+
+        public static bool operator !=(OtpErlangString s1, OtpErlangString s2) => s1?.Value != s2?.Value;
+
+        public override int GetHashCode() => Value.GetHashCode();
+
+        public object Clone() => new OtpErlangString(Value);
     }
 }

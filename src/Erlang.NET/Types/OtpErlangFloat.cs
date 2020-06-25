@@ -23,13 +23,12 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangFloat : OtpErlangDouble
     {
+        public new float Value { get => ToFloat(); }
+
         /**
          * Create an Erlang float from the given float value.
          */
-        public OtpErlangFloat(float f)
-            : base(f)
-        {
-        }
+        public OtpErlangFloat(float f) : base(f) { }
 
         /**
          * Create an Erlang float from a stream containing a float encoded in Erlang
@@ -45,9 +44,6 @@ namespace Erlang.NET
          * @exception OtpErlangRangeException
          *                    if the value cannot be represented as a Java float.
          */
-        public OtpErlangFloat(OtpInputStream buf)
-            : base(buf)
-        {
-        }
+        public OtpErlangFloat(OtpInputStream buf) : base(buf) { }
     }
 }

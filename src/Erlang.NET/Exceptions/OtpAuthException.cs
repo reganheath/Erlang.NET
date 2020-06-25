@@ -29,13 +29,11 @@ namespace Erlang.NET
         /**
          * Provides a detailed message.
          */
-        public OtpAuthException(string s)
-            : base(s)
-        {
-        }
-        public OtpAuthException(string s, Exception inner)
-            : base(s, inner)
-        {
-        }
+        public OtpAuthException(string s) : base(s) { }
+
+        /**
+         * Provides a detailed message and cause.
+         */
+        public OtpAuthException(string s, Exception inner) : base(s, inner) { }
     }
 }

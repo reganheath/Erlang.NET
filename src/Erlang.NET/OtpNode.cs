@@ -237,7 +237,7 @@ namespace Erlang.NET
          *            </p>
          * 
          */
-        public void CloseMbox(OtpMbox mbox, OtpErlangObject reason)
+        public void CloseMbox(OtpMbox mbox, IOtpErlangObject reason)
         {
             if (mbox != null)
             {
@@ -377,7 +377,7 @@ namespace Erlang.NET
             {
                 mbox = CreateMbox(true);
                 mbox.Send("net_kernel", node, GetPingTuple(mbox));
-                OtpErlangObject reply = mbox.Receive(timeout);
+                IOtpErlangObject reply = mbox.Receive(timeout);
                 OtpErlangTuple t = (OtpErlangTuple)reply;
                 OtpErlangAtom a = (OtpErlangAtom)t.ElementAt(1);
                 return "yes".Equals(a.Value);
@@ -395,9 +395,9 @@ namespace Erlang.NET
         /* create the outgoing ping message */
         private OtpErlangTuple GetPingTuple(OtpMbox mbox)
         {
-            OtpErlangObject[] ping = new OtpErlangObject[3];
-            OtpErlangObject[] pid = new OtpErlangObject[2];
-            OtpErlangObject[] node = new OtpErlangObject[2];
+            IOtpErlangObject[] ping = new IOtpErlangObject[3];
+            IOtpErlangObject[] pid = new IOtpErlangObject[2];
+            IOtpErlangObject[] node = new IOtpErlangObject[2];
 
             pid[0] = mbox.Self;
             pid[1] = CreateRef();
@@ -428,7 +428,7 @@ namespace Erlang.NET
                 OtpErlangPid pid = (OtpErlangPid)req.ElementAt(0); // originating
                 // pid
 
-                OtpErlangObject[] pong = new OtpErlangObject[2];
+                IOtpErlangObject[] pong = new IOtpErlangObject[2];
                 pong[0] = req.ElementAt(1); // his #Ref
                 pong[1] = new OtpErlangAtom("yes");
 
@@ -746,7 +746,7 @@ namespace Erlang.NET
         public class Acceptor : ThreadBase
         {
             private readonly OtpNode node;
-            private readonly OtpServerTransport sock;
+            private readonly IOtpServerTransport sock;
 
             public int Port { get; }
 
@@ -789,7 +789,7 @@ namespace Erlang.NET
                 node.LocalStatus(node.Node, false, null);
             }
 
-            private void CloseSock(OtpTransport s)
+            private void CloseSock(IOtpTransport s)
             {
                 try
                 {
@@ -801,7 +801,7 @@ namespace Erlang.NET
                 }
             }
 
-            private void CloseSock(OtpServerTransport s)
+            private void CloseSock(IOtpServerTransport s)
             {
                 try
                 {
@@ -820,7 +820,7 @@ namespace Erlang.NET
                 while (!Stopping)
                 {
                     OtpCookedConnection conn = null;
-                    OtpTransport newsock;
+                    IOtpTransport newsock;
 
                     try
                     {

@@ -32,7 +32,7 @@ namespace Erlang.NET
         /**
          * Get the reason associated with this exit signal.
          */
-        public OtpErlangObject Reason { get; } = null;
+        public IOtpErlangObject Reason { get; } = null;
 
         /**
          * Get the pid that sent this exit.
@@ -41,42 +41,18 @@ namespace Erlang.NET
 
         /**
          * Create an OtpErlangExit exception with the given reason.
-         * 
-         * @param reason
-         *                the reason this exit signal has been sent.
          */
-        public OtpExit(OtpErlangObject reason)
-            : base(reason.ToString())
-        {
-            Reason = reason;
-        }
+        public OtpExit(IOtpErlangObject reason) : base(reason.ToString()) => Reason = reason;
 
         /**
-         * <p>
-         * Equivalent to <code>OtpErlangExit(new
-         * OtpErlangAtom(reason)</code>.
-         * </p>
-         * 
-         * @param reason
-         *                the reason this exit signal has been sent.
-         * 
-         * @see #OtpErlangExit(OtpErlangObject)
+         * Equivalent to <code>OtpErlangExit(new OtpErlangAtom(reason)</code>.
          */
-        public OtpExit(string reason)
-            : this(new OtpErlangAtom(reason))
-        {
-        }
+        public OtpExit(string reason) : this(new OtpErlangAtom(reason)) { }
 
         /**
          * Create an OtpErlangExit exception with the given reason and sender pid.
-         * 
-         * @param reason
-         *                the reason this exit signal has been sent.
-         * 
-         * @param pid
-         *                the pid that sent this exit.
          */
-        public OtpExit(OtpErlangObject reason, OtpErlangPid pid)
+        public OtpExit(IOtpErlangObject reason, OtpErlangPid pid)
             : base(reason.ToString())
         {
             Reason = reason;
@@ -84,22 +60,8 @@ namespace Erlang.NET
         }
 
         /**
-         * <p>
-         * Equivalent to <code>OtpErlangExit(new OtpErlangAtom(reason),
-         * pid)</code>.
-         * </p>
-         * 
-         * @param reason
-         *                the reason this exit signal has been sent.
-         * 
-         * @param pid
-         *                the pid that sent this exit.
-         * 
-         * @see #OtpErlangExit(OtpErlangObject, OtpErlangPid)
+         * Equivalent to <code>OtpErlangExit(new OtpErlangAtom(reason), pid)</code>.
          */
-        public OtpExit(string reason, OtpErlangPid pid)
-            : this(new OtpErlangAtom(reason), pid)
-        {
-        }
+        public OtpExit(string reason, OtpErlangPid pid) : this(new OtpErlangAtom(reason), pid) { }
     }
 }

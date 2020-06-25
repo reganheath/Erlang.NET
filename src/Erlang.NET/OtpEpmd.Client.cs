@@ -146,7 +146,7 @@ namespace Erlang.NET
         {
             try
             {
-                using (OtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort))
+                using (IOtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort))
                 {
                     OtpOutputStream obuf = new OtpOutputStream();
                     obuf.Write2BE(node.Alive.Length + 1);
@@ -173,7 +173,7 @@ namespace Erlang.NET
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
-                using (OtpTransport s = node.CreateTransport(node.Host, EpmdPort))
+                using (IOtpTransport s = node.CreateTransport(node.Host, EpmdPort))
                 {
                     // build and send epmd request
                     // length[2], tag[1], alivename[n] (length = n+1)
@@ -258,9 +258,9 @@ namespace Erlang.NET
          * successfully communicate with an r4 epmd, we return either the
          * socket, or null, depending on the result.
          */
-        private static OtpTransport Publish_R4(OtpLocalNode node)
+        private static IOtpTransport Publish_R4(OtpLocalNode node)
         {
-            OtpTransport s = null;
+            IOtpTransport s = null;
 
             try
             {
@@ -353,7 +353,7 @@ namespace Erlang.NET
             {
                 OtpOutputStream obuf = new OtpOutputStream();
 
-                using (OtpTransport s = transportFactory.CreateTransport(address.ToString(), EpmdPort))
+                using (IOtpTransport s = transportFactory.CreateTransport(address.ToString(), EpmdPort))
                 {
                     obuf.Write2BE(1);
                     obuf.Write1(names4req);

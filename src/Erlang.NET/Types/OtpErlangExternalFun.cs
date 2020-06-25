@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace Erlang.NET
 {
     [Serializable]
-    public class OtpErlangExternalFun : OtpErlangObject, IEquatable<OtpErlangExternalFun>
+    public class OtpErlangExternalFun : IOtpErlangObject, IEquatable<OtpErlangExternalFun>, IComparable<OtpErlangExternalFun>
     {
         public string Module { get; private set; }
         public string Function { get; private set; }
@@ -35,39 +36,52 @@ namespace Erlang.NET
         public OtpErlangExternalFun(OtpInputStream buf)
         {
             OtpErlangExternalFun f = buf.ReadExternalFun();
+
             Module = f.Module;
             Function = f.Function;
             Arity = f.Arity;
         }
 
-        public override void Encode(OtpOutputStream buf)
+        public void Encode(OtpOutputStream buf) => buf.WriteExternalFun(Module, Function, Arity);
+
+        public override string ToString() => $"#Fun<{Module}.{Function}.{Arity}>";
+
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangExternalFun);
+
+        public int CompareTo(OtpErlangExternalFun other)
         {
-            buf.WriteExternalFun(Module, Function, Arity);
+            if (other is null)
+                return 1;
+            int res = Module.CompareTo(other.Module);
+            if (res == 0)
+                res = Function.CompareTo(other.Function);
+            if (res == 0)
+                res = Arity.CompareTo(other.Arity);
+            return res;
         }
 
-        public override bool Equals(object o) => Equals(o as OtpErlangExternalFun);
+        public override bool Equals(object obj) => Equals(obj as OtpErlangExternalFun);
 
         public bool Equals(OtpErlangExternalFun o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            return Module.Equals(o.Module)
-                && Function.Equals(o.Function)
-                && Arity == o.Arity;
+            return Module == o.Module &&
+                   Function == o.Function &&
+                   Arity == o.Arity;
         }
 
-        public override int GetHashCode() => base.GetHashCode();
-
-        protected override int HashCode()
+        public override int GetHashCode()
         {
-            Hash hash = new Hash(14);
-            hash.Combine(Module.GetHashCode(), Function.GetHashCode());
-            hash.Combine(Arity);
-            return hash.ValueOf();
+            int hashCode = -479099400;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Module);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Function);
+            hashCode = hashCode * -1521134295 + Arity.GetHashCode();
+            return hashCode;
         }
 
-        public override string ToString() => "#Fun<" + Module + "." + Function + "." + Arity + ">";
+        public object Clone() => new OtpErlangExternalFun(Module, Function, Arity);
     }
 }

@@ -53,7 +53,7 @@ namespace Erlang.NET
         /**
          * Create a stream containing the encoded version of the given Erlang term.
          */
-        public OtpOutputStream(OtpErlangObject o)
+        public OtpOutputStream(IOtpErlangObject o)
             : base()
         {
             WriteAny(o);
@@ -353,16 +353,16 @@ namespace Erlang.NET
          * @param pad_bits
          *            the number of zero pad bits at the low end of the last byte
          */
-        public void WriteBitstr(byte[] bin, int pad_bits)
+        public void WriteBitstr(byte[] bin, int padBits)
         {
-            if (pad_bits == 0)
+            if (padBits == 0)
             {
                 WriteBinary(bin);
                 return;
             }
             Write1(OtpExternal.bitBinTag);
             Write4BE(bin.Length);
-            Write1(8 - pad_bits);
+            Write1(8 - padBits);
             WriteN(bin);
         }
 
@@ -839,12 +839,12 @@ namespace Erlang.NET
          * @param o
          *            the Erlang tem to write.
          */
-        public void WriteCompressed(OtpErlangObject o)
+        public void WriteCompressed(IOtpErlangObject o)
         {
             WriteCompressed(o, CompressionLevel.Optimal);
         }
 
-        public void WriteCompressed(OtpErlangObject o, CompressionLevel level)
+        public void WriteCompressed(IOtpErlangObject o, CompressionLevel level)
         {
             try
             {
@@ -878,7 +878,7 @@ namespace Erlang.NET
          * @param o
          *            the Erlang term to write.
          */
-        public void WriteAny(OtpErlangObject o)
+        public void WriteAny(IOtpErlangObject o)
         {
             // calls one of the above functions, depending on o
             o.Encode(this);
@@ -886,7 +886,7 @@ namespace Erlang.NET
 
         public void WriteFun(OtpErlangPid pid, string module,
                       long old_index, int arity, byte[] md5,
-                      long index, long uniq, OtpErlangObject[] freeVars)
+                      long index, long uniq, IOtpErlangObject[] freeVars)
         {
             if (arity == -1)
             {
@@ -896,7 +896,7 @@ namespace Erlang.NET
                 WriteAtom(module);
                 WriteLong(index);
                 WriteLong(uniq);
-                foreach (OtpErlangObject fv in freeVars)
+                foreach (IOtpErlangObject fv in freeVars)
                 {
                     fv.Encode(this);
                 }
@@ -914,7 +914,7 @@ namespace Erlang.NET
                 WriteLong(old_index);
                 WriteLong(uniq);
                 pid.Encode(this);
-                foreach (OtpErlangObject fv in freeVars)
+                foreach (IOtpErlangObject fv in freeVars)
                 {
                     fv.Encode(this);
                 }

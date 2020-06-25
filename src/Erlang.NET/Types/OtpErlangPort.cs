@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace Erlang.NET
 {
@@ -21,7 +22,7 @@ namespace Erlang.NET
      * Provides a Java representation of Erlang ports.
      */
     [Serializable]
-    public class OtpErlangPort : OtpErlangObject, IEquatable<OtpErlangPort>
+    public class OtpErlangPort : IOtpErlangObject, IEquatable<OtpErlangPort>, IComparable<OtpErlangPid>
     {
         public string Node { get; private set; }
         public int Id { get; private set; }
@@ -30,13 +31,6 @@ namespace Erlang.NET
         /**
          * Create an Erlang port from a stream containing a port encoded in Erlang
          * external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded port.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang port.
          */
         public OtpErlangPort(OtpInputStream buf)
         {
@@ -49,17 +43,6 @@ namespace Erlang.NET
 
         /**
          * Create an Erlang port from its components.
-         * 
-         * @param node
-         *                the nodename.
-         * 
-         * @param id
-         *                an arbitrary number. Only the low order 28 bits will be
-         *                used.
-         * 
-         * @param creation
-         *                another arbitrary number. Only the low order 2 bits will
-         *                be used.
          */
         public OtpErlangPort(string node, int id, int creation)
             : this(OtpExternal.portTag, node, id, creation)
@@ -68,20 +51,6 @@ namespace Erlang.NET
 
         /**
          * Create an Erlang port from its components.
-         *
-         * @param tag
-         *            the external format to be compliant with.
-         *            OtpExternal.portTag where only a subset of the bits are used (see other constructor)
-         *            OtpExternal.newPortTag where all 32 bits of id and creation are significant.
-         *            newPortTag can only be decoded by OTP-19 and newer.
-         * @param node
-         *            the nodename.
-         *
-         * @param id
-         *            an arbitrary number. Only the low order 28 bits will be used.
-         *
-         * @param creation
-         *            another arbitrary number.
          */
         public OtpErlangPort(int tag, string node, int id, int creation)
         {
@@ -99,30 +68,32 @@ namespace Erlang.NET
         }
 
         /**
-         * Get the string representation of the port. Erlang ports are printed as
-         * #Port&lt;node.id&gt;.
-         * 
-         * @return the string representation of the port.
+         * Convert this port to the equivalent Erlang external representation.
          */
-        public override string ToString() => "#Port<" + Node + "." + Id + ">";
+        public void Encode(OtpOutputStream buf) => buf.WritePort(this);
 
         /**
-         * Convert this port to the equivalent Erlang external representation.
-         * 
-         * @param buf
-         *                an output stream to which the encoded port should be
-         *                written.
+         * Get the string representation of the port. 
          */
-        public override void Encode(OtpOutputStream buf) => buf.WritePort(this);
+        public override string ToString() => $"#Port<{Node}.{Id}>";
+
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangPort);
+
+        public int CompareTo(OtpErlangPid other)
+        {
+            if (other is null)
+                return 1;
+            int res = Node.CompareTo(other.Node);
+            if (res == 0)
+                res = Id.CompareTo(other.Id);
+            if (res == 0)
+                res = Node.CompareTo(other.Node);
+            return res;
+        }
 
         /**
          * Determine if two ports are equal. Ports are equal if their components are
          * equal.
-         * 
-         * @param o
-         *                the other port to compare to.
-         * 
-         * @return true if the ports are equal, false otherwise.
          */
         public override bool Equals(object o) => Equals(o as OtpErlangPort);
 
@@ -137,14 +108,15 @@ namespace Erlang.NET
                 && Node.Equals(o.Node);
         }
 
-        public override int GetHashCode() => base.GetHashCode();
-
-        protected override int HashCode()
+        public override int GetHashCode()
         {
-            Hash hash = new Hash(6);
-            hash.Combine(Creation);
-            hash.Combine(Id, Node.GetHashCode());
-            return hash.ValueOf();
+            int hashCode = 2047075521;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Node);
+            hashCode = hashCode * -1521134295 + Id.GetHashCode();
+            hashCode = hashCode * -1521134295 + Creation.GetHashCode();
+            return hashCode;
         }
+
+        public object Clone() => new OtpErlangPort(OtpExternal.newPortTag, Node, Id, Creation);
     }
 }

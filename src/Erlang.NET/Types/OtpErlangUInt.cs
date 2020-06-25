@@ -23,38 +23,17 @@ namespace Erlang.NET
     [Serializable]
     public class OtpErlangUInt : OtpErlangLong
     {
+        public uint Value { get => UIntValue(); }
+
         /**
          * Create an Erlang integer from the given value.
-         * 
-         * @param i
-         *                the non-negative int value to use.
-         * 
-         * @exception OtpErlangRangeException
-         *                    if the value is negative.
          */
-        public OtpErlangUInt(uint i)
-            : base(i)
-        {
-        }
+        public OtpErlangUInt(uint i) : base(i) { }
 
         /**
          * Create an Erlang integer from a stream containing an integer encoded in
          * Erlang external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded value.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang integer.
-         * 
-         * @exception OtpErlangRangeException
-         *                    if the value is too large to be represented as an int,
-         *                    or the value is negative.
          */
-        public OtpErlangUInt(OtpInputStream buf)
-            : base(buf)
-        {
-        }
+        public OtpErlangUInt(OtpInputStream buf) : base(buf) { }
     }
 }

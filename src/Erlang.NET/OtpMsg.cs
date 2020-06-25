@@ -58,7 +58,7 @@ namespace Erlang.NET
 
         protected int tag; // what type of message is this (send, link, exit etc)
         protected OtpInputStream paybuf;
-        protected OtpErlangObject payload;
+        protected IOtpErlangObject payload;
 
         protected OtpErlangPid from;
         protected OtpErlangPid to;
@@ -76,7 +76,7 @@ namespace Erlang.NET
         }
 
         // send has receiver pid but no sender information
-        internal OtpMsg(OtpErlangPid to, OtpErlangObject payload)
+        internal OtpMsg(OtpErlangPid to, IOtpErlangObject payload)
         {
             tag = sendTag;
             from = null;
@@ -98,7 +98,7 @@ namespace Erlang.NET
         }
 
         // send_reg has sender pid and receiver name
-        internal OtpMsg(OtpErlangPid from, string toName, OtpErlangObject payload)
+        internal OtpMsg(OtpErlangPid from, string toName, IOtpErlangObject payload)
         {
             tag = regSendTag;
             this.from = from;
@@ -109,7 +109,7 @@ namespace Erlang.NET
         }
 
         // exit (etc) has from, to, reason
-        internal OtpMsg(int tag, OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
+        internal OtpMsg(int tag, OtpErlangPid from, OtpErlangPid to, IOtpErlangObject reason)
         {
             this.tag = tag;
             this.from = from;
@@ -203,7 +203,7 @@ namespace Erlang.NET
          *                    if the byte stream could not be deserialized.
          * 
          */
-        public OtpErlangObject GetMsg()
+        public IOtpErlangObject GetMsg()
         {
             if (payload == null)
                 payload = paybuf.ReadAny();

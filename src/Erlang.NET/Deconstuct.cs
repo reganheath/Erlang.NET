@@ -13,34 +13,134 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System.Collections;
+using System.Collections.Generic;
+
 namespace Erlang.NET
 {
-    internal static class Deconstuct
+    public static class Deconstuct
     {
-        public static void Deconstruct<T>(this T[] array, out T o1)
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1)
         {
-            o1 = (array.Length > 0 ? array[0] : default);
+            using (var i = obj.GetEnumerator())
+                o1 = i.MoveNext() ? (T)i.Current : default;
         }
 
-        public static void Deconstruct<T>(this T[] array, out T o1, out T o2)
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2)
         {
-            o1 = (array.Length > 0 ? array[0] : default);
-            o2 = (array.Length > 1 ? array[1] : default);
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+            }
         }
 
-        public static void Deconstruct<T>(this T[] array, out T o1, out T o2, out T o3)
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3)
         {
-            o1 = (array.Length > 0 ? array[0] : default);
-            o2 = (array.Length > 1 ? array[1] : default);
-            o3 = (array.Length > 2 ? array[2] : default);
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+            }
         }
 
-        public static void Deconstruct<T>(this T[] array, out T o1, out T o2, out T o3, out T o4)
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4)
         {
-            o1 = (array.Length > 0 ? array[0] : default);
-            o2 = (array.Length > 1 ? array[1] : default);
-            o3 = (array.Length > 2 ? array[2] : default);
-            o4 = (array.Length > 3 ? array[3] : default);
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+            }
+        }
+
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4, out T o5)
+        {
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+                o5 = i.MoveNext() ? (T)i.Current : default;
+            }
+        }
+
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4, out T o5, out T o6)
+        {
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+                o5 = i.MoveNext() ? (T)i.Current : default;
+                o6 = i.MoveNext() ? (T)i.Current : default;
+            }
+        }
+
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4, out T o5, out T o6, out T o7)
+        {
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+                o5 = i.MoveNext() ? (T)i.Current : default;
+                o6 = i.MoveNext() ? (T)i.Current : default;
+                o7 = i.MoveNext() ? (T)i.Current : default;
+            }
+        }
+
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4, out T o5, out T o6, out T o7, out T o8)
+        {
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+                o5 = i.MoveNext() ? (T)i.Current : default;
+                o6 = i.MoveNext() ? (T)i.Current : default;
+                o7 = i.MoveNext() ? (T)i.Current : default;
+                o8 = i.MoveNext() ? (T)i.Current : default;
+            }
+        }
+
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4, out T o5, out T o6, out T o7, out T o8, out T o9)
+        {
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+                o5 = i.MoveNext() ? (T)i.Current : default;
+                o6 = i.MoveNext() ? (T)i.Current : default;
+                o7 = i.MoveNext() ? (T)i.Current : default;
+                o8 = i.MoveNext() ? (T)i.Current : default;
+                o9 = i.MoveNext() ? (T)i.Current : default;
+            }
+        }
+
+        public static void Deconstruct<T>(this IEnumerable<T> obj, out T o1, out T o2, out T o3, out T o4, out T o5, out T o6, out T o7, out T o8, out T o9, out T o10)
+        {
+            using (var i = obj.GetEnumerator())
+            {
+                o1 = i.MoveNext() ? (T)i.Current : default;
+                o2 = i.MoveNext() ? (T)i.Current : default;
+                o3 = i.MoveNext() ? (T)i.Current : default;
+                o4 = i.MoveNext() ? (T)i.Current : default;
+                o5 = i.MoveNext() ? (T)i.Current : default;
+                o6 = i.MoveNext() ? (T)i.Current : default;
+                o7 = i.MoveNext() ? (T)i.Current : default;
+                o8 = i.MoveNext() ? (T)i.Current : default;
+                o9 = i.MoveNext() ? (T)i.Current : default;
+                o10 = i.MoveNext() ? (T)i.Current : default;
+            }
         }
     }
 }

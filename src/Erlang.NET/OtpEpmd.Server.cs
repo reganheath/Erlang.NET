@@ -35,7 +35,7 @@ namespace Erlang.NET
         }
 
         private readonly object lockObj = new object();
-        private readonly OtpServerTransport sock;
+        private readonly IOtpServerTransport sock;
         private int creation = 0;
 
         public Dictionary<string, OtpPublishedNode> Portmap { get; } = new Dictionary<string, OtpPublishedNode>();
@@ -65,7 +65,7 @@ namespace Erlang.NET
             base.Start();
         }
 
-        private void CloseSock(OtpServerTransport s)
+        private void CloseSock(IOtpServerTransport s)
         {
             try
             {
@@ -91,7 +91,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    OtpTransport newsock = sock.Accept();
+                    IOtpTransport newsock = sock.Accept();
                     OtpEpmdConnection conn = new OtpEpmdConnection(this, newsock);
                     conn.Start();
                 }
@@ -107,9 +107,9 @@ namespace Erlang.NET
             private readonly OtpEpmd epmd;
             private readonly Dictionary<string, OtpPublishedNode> portmap;
             private readonly List<string> publishedPort = new List<string>();
-            private readonly OtpTransport sock;
+            private readonly IOtpTransport sock;
 
-            public OtpEpmdConnection(OtpEpmd epmd, OtpTransport sock)
+            public OtpEpmdConnection(OtpEpmd epmd, IOtpTransport sock)
                 : base("OtpEpmd.OtpEpmdConnection", true)
             {
                 this.epmd = epmd;
@@ -117,7 +117,7 @@ namespace Erlang.NET
                 this.sock = sock;
             }
 
-            private void CloseSock(OtpTransport s)
+            private void CloseSock(IOtpTransport s)
             {
                 try
                 {
@@ -129,7 +129,7 @@ namespace Erlang.NET
                 }
             }
 
-            private int ReadSock(OtpTransport s, byte[] b)
+            private int ReadSock(IOtpTransport s, byte[] b)
             {
                 int got = 0;
                 int len = b.Length;
@@ -176,7 +176,7 @@ namespace Erlang.NET
                 publishedPort.Clear();
             }
 
-            private void Publish_R4(OtpTransport s, OtpInputStream ibuf)
+            private void Publish_R4(IOtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -222,7 +222,7 @@ namespace Erlang.NET
                 return;
             }
 
-            private void Port_R4(OtpTransport s, OtpInputStream ibuf)
+            private void Port_R4(IOtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {
@@ -271,7 +271,7 @@ namespace Erlang.NET
                 return;
             }
 
-            private void Names_R4(OtpTransport s, OtpInputStream ibuf)
+            private void Names_R4(IOtpTransport s, OtpInputStream ibuf)
             {
                 try
                 {

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace Erlang.NET
 {
@@ -22,7 +23,7 @@ namespace Erlang.NET
      * processes and consist of a nodename and a number of integers.
      */
     [Serializable]
-    public class OtpErlangPid : OtpErlangObject, IEquatable<OtpErlangPid>, IComparable<OtpErlangPid>, IComparable
+    public class OtpErlangPid : IOtpErlangObject, IEquatable<OtpErlangPid>, IComparable<OtpErlangPid>
     {
         public string Node { get; private set; }
         public int Id { get; private set; }
@@ -33,13 +34,6 @@ namespace Erlang.NET
         /**
          * Create an Erlang PID from a stream containing a PID encoded in Erlang
          * external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded PID.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang PID.
          */
         public OtpErlangPid(OtpInputStream buf)
         {
@@ -53,21 +47,6 @@ namespace Erlang.NET
 
         /**
          * Create an Erlang pid from its components.
-         * 
-         * @param node
-         *                the nodename.
-         * 
-         * @param id
-         *                an arbitrary number. Only the low order 15 bits will be
-         *                used.
-         * 
-         * @param serial
-         *                another arbitrary number. Only the low order 13 bits will
-         *                be used.
-         * 
-         * @param creation
-         *                yet another arbitrary number. Only the low order 2 bits
-         *                will be used.
          */
         public OtpErlangPid(string node, int id, int serial, int creation)
             : this(OtpExternal.pidTag, node, id, serial, creation)
@@ -76,23 +55,6 @@ namespace Erlang.NET
 
         /**
          * Create an Erlang pid from its components.
-         *
-         * @param tag
-         *            the external format to be compliant with
-         *            OtpExternal.pidTag where only a subset of the bits are significant (see other constructor).
-         *            OtpExternal.newPidTag where all 32 bits of id,serial and creation are significant.
-         *            newPidTag can only be decoded by OTP-19 and newer.
-         * @param node
-         *            the nodename.
-         *
-         * @param id
-         *            an arbitrary number.
-         *
-         * @param serial
-         *            another arbitrary number.
-         *
-         * @param creation
-         *            yet another arbitrary number.
          */
         public OtpErlangPid(int tag, string node, int id, int serial, int creation)
         {
@@ -112,36 +74,41 @@ namespace Erlang.NET
         }
 
         /**
-         * Get the string representation of the PID. Erlang PIDs are printed as
-         * #Pid&lt;node.id.serial&gt;
-         * 
-         * @return the string representation of the PID.
+         * Convert this PID to the equivalent Erlang external representation.
+         */
+        public void Encode(OtpOutputStream buf) => buf.WritePid(this);
+
+        /**
+         * Get the string representation of the PID.
          */
         public override string ToString() => "#Pid<" + Node.ToString() + "." + Id + "." + Serial + ">";
 
-        /**
-         * Convert this PID to the equivalent Erlang external representation.
-         * 
-         * @param buf
-         *                an output stream to which the encoded PID should be
-         *                written.
-         */
-        public override void Encode(OtpOutputStream buf) => buf.WritePid(this);
+
+        public int CompareTo(object o) => CompareTo(o as OtpErlangPid);
+
+        public int CompareTo(OtpErlangPid other)
+        {
+            if (other is null)
+                return 1;
+            int res = Creation.CompareTo(other.Creation);
+            if (res == 0)
+                res = Serial.CompareTo(other.Serial);
+            if (res == 0)
+                res = Id.CompareTo(other.Id);
+            if (res == 0)
+                res = Node.CompareTo(other.Node);
+            return res;
+        }
 
         /**
          * Determine if two PIDs are equal. PIDs are equal if their components are
          * equal.
-         * 
-         * @param port
-         *                the other PID to compare to.
-         * 
-         * @return true if the PIDs are equal, false otherwise.
          */
         public override bool Equals(object o) => Equals(o as OtpErlangPid);
 
         public bool Equals(OtpErlangPid o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
@@ -150,41 +117,16 @@ namespace Erlang.NET
                 && Id == o.Id
                 && Node == o.Node;
         }
-
-        public override int GetHashCode() => base.GetHashCode();
-
-        protected override int HashCode()
+        public override int GetHashCode()
         {
-            Hash hash = new Hash(5);
-            hash.Combine(Creation, Serial);
-            hash.Combine(Id, Node.GetHashCode());
-            return hash.ValueOf();
+            int hashCode = 1695008970;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Node);
+            hashCode = hashCode * -1521134295 + Id.GetHashCode();
+            hashCode = hashCode * -1521134295 + Serial.GetHashCode();
+            hashCode = hashCode * -1521134295 + Creation.GetHashCode();
+            return hashCode;
         }
 
-        public int CompareTo(object o)
-        {
-            if (o == null)
-                return -1;
-            if (!(o is OtpErlangPid))
-                return -1;
-            return CompareTo(o as OtpErlangPid);
-        }
-
-        public int CompareTo(OtpErlangPid o)
-        {
-            if (o == null)
-                return -1;
-            if (Creation == o.Creation)
-            {
-                if (Serial == o.Serial)
-                {
-                    if (Id == o.Id)
-                        return Node.CompareTo(o.Node);
-                    return Id - o.Id;
-                }
-                return Serial - o.Serial;
-            }
-            return Creation - o.Creation;
-        }
+        public object Clone() => new OtpErlangPid(OtpExternal.newPidTag, Node, Id, Serial, Creation);
     }
 }

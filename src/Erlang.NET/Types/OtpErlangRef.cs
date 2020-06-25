@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Erlang.NET
@@ -24,40 +25,32 @@ namespace Erlang.NET
      * manages both types.
      */
     [Serializable]
-    public class OtpErlangRef : OtpErlangObject, IEquatable<OtpErlangRef>
+    public class OtpErlangRef : IOtpErlangObject, IEquatable<OtpErlangRef>, IComparable<OtpErlangRef>
     {
         public string Node { get; private set; }
         public int Creation { get; private set; }
 
-        // old style refs have one 18-bit id
-        // r6 "new" refs have array of ids, first one is only 18 bits however
+        /**
+         * Determine whether this is a new style ref.
+         */
+        public bool IsNewRef() => Ids.Length > 1;
+
+        /**
+         * old style refs have one 18-bit id
+         * r6 "new" refs have array of ids, first one is only 18 bits however
+         */
         public int[] Ids { get; private set; }
 
         /**
          * Get the id number from the ref. Old style refs have only one id number.
          * If this is a new style ref, the first id number is returned.
-         * 
-         * @return the id number from the ref.
          */
         public int Id => Ids[0];
 
-        /**
-         * Determine whether this is a new style ref.
-         * 
-         * @return true if this ref is a new style ref, false otherwise.
-         */
-        public bool IsNewRef() => Ids.Length > 1;
 
         /**
          * Create an Erlang ref from a stream containing a ref encoded in Erlang
          * external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded ref.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang ref.
          */
         public OtpErlangRef(OtpInputStream buf)
         {
@@ -70,17 +63,6 @@ namespace Erlang.NET
 
         /**
          * Create an old style Erlang ref from its components.
-         * 
-         * @param node
-         *                the nodename.
-         * 
-         * @param id
-         *                an arbitrary number. Only the low order 18 bits will be
-         *                used.
-         * 
-         * @param creation
-         *                another arbitrary number. Only the low order 2 bits will
-         *                be used.
          */
         public OtpErlangRef(string node, int id, int creation)
             : this(OtpExternal.newRefTag, node, new int[1] { id }, creation)
@@ -89,19 +71,6 @@ namespace Erlang.NET
 
         /**
          * Create a new style Erlang ref from its components.
-         * 
-         * @param node
-         *                the nodename.
-         * 
-         * @param ids
-         *                an array of arbitrary numbers. Only the low order 18 bits
-         *                of the first number will be used. If the array contains
-         *                only one number, an old style ref will be written instead.
-         *                At most three numbers will be read from the array.
-         * 
-         * @param creation
-         *                another arbitrary number. Only the low order 2 bits will
-         *                be used.
          */
         public OtpErlangRef(string node, int[] ids, int creation)
             : this(OtpExternal.newRefTag, node, ids, creation)
@@ -130,33 +99,34 @@ namespace Erlang.NET
             }
         }
 
-
-        /**
-         * Get the string representation of the ref. Erlang refs are printed as
-         * #Ref&lt;node.id&gt;
-         * 
-         * @return the string representation of the ref.
-         */
-        public override string ToString() => "#Ref<" + Node + "." + string.Join(".", Ids) + ">";
-
         /**
          * Convert this ref to the equivalent Erlang external representation.
-         * 
-         * @param buf
-         *                an output stream to which the encoded ref should be
-         *                written.
          */
-        public override void Encode(OtpOutputStream buf) => buf.WriteRef(this);
+        public void Encode(OtpOutputStream buf) => buf.WriteRef(this);
+
+        /**
+         * Get the string representation of the ref. 
+         */
+        public override string ToString() => $"#Ref<{Node}.{string.Join(".", Ids)}>";
+
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangPort);
+
+        public int CompareTo(OtpErlangRef other)
+        {
+            if (other is null)
+                return 1;
+            int res = Node.CompareTo(other.Node);
+            if (res == 0)
+                res = Ids.CompareTo(other.Ids);
+            if (res == 0)
+                res = Node.CompareTo(other.Node);
+            return res;
+        }
 
         /**
          * Determine if two refs are equal. Refs are equal if their components are
          * equal. New refs and old refs are considered equal if the node, creation
          * and first id numnber are equal.
-         * 
-         * @param o
-         *                the other ref to compare to.
-         * 
-         * @return true if the refs are equal, false otherwise.
          */
         public override bool Equals(object o) => Equals(o as OtpErlangRef);
 
@@ -166,35 +136,33 @@ namespace Erlang.NET
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            if (!(Node.Equals(o.Node) && Creation == o.Creation))
+            //This was the jinterface implementation .. but it just seems wrong?!
+            //if (!(Node.Equals(o.Node) && Creation == o.Creation))
+            //    return false;
+            //  replacement
+            if (!Node.Equals(o.Node))
                 return false;
+            if (Creation != o.Creation)
+                return false;
+            // /replacement
             if (IsNewRef() && o.IsNewRef())
                 return Ids.SequenceEqual(o.Ids);
             return Ids[0] == o.Ids[0];
         }
 
-        public override int GetHashCode() => base.GetHashCode();
-
         /**
          * Compute the hashCode value for a given ref. This function is compatible
          * with equal.
-         *
-         * @return the hashCode of the node.
          **/
-        protected override int HashCode()
+        public override int GetHashCode()
         {
-            Hash hash = new Hash(7);
-            hash.Combine(Creation, Ids[0]);
-            if (IsNewRef())
-                hash.Combine(Ids[1], Ids[2]);
-            return hash.ValueOf();
+            int hashCode = -1483511190;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Node);
+            hashCode = hashCode * -1521134295 + Creation.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<int[]>.Default.GetHashCode(Ids);
+            return hashCode;
         }
 
-        public override object Clone()
-        {
-            OtpErlangRef newRef = (OtpErlangRef)base.Clone();
-            newRef.Ids = (int[])Ids.Clone();
-            return newRef;
-        }
+        public object Clone() => new OtpErlangRef(OtpExternal.newerRefTag, Node, Ids, Creation);
     }
 }

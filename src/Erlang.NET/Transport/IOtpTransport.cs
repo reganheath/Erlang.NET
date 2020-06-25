@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2020 Regan Heath
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 using System;
+using System.IO;
 
 namespace Erlang.NET
 {
-    /**
-     * Exception raised when an attempt is made to create an Erlang term by decoding
-     * a sequence of bytes that does not represent the type of term that was
-     * requested.
-     * 
-     * @see OtpInputStream
-     */
-    public class OtpDecodeException : OtpException
+    public interface IOtpTransport : IDisposable
     {
-        /**
-         * Provides a detailed message.
-         */
-        public OtpDecodeException(string msg) : base(msg) { }
-
-        /**
-         * Provides a detailed message and cause.
-         */
-        public OtpDecodeException(string msg, Exception inner) : base(msg, inner) { }
+        Stream GetInputStream();
+        Stream GetOutputStream();
+        void Close();
     }
 }

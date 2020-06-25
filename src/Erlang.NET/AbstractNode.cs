@@ -236,10 +236,10 @@ namespace Erlang.NET
 
         public override string ToString() => Node;
 
-        public OtpTransport CreateTransport(string addr, int port) => transportFactory.CreateTransport(addr, port);
+        public IOtpTransport CreateTransport(string addr, int port) => transportFactory.CreateTransport(addr, port);
 
-        public OtpTransport CreateTransport(IPEndPoint addr) => transportFactory.CreateTransport(addr);
+        public IOtpTransport CreateTransport(IPEndPoint addr) => transportFactory.CreateTransport(addr);
 
-        public OtpServerTransport CreateServerTransport(int port) => transportFactory.CreateServerTransport(port);
+        public IOtpServerTransport CreateServerTransport(int port) => transportFactory.CreateServerTransport(port);
     }
 }

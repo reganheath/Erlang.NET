@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
-using System.IO;
-
 namespace Erlang.NET
 {
-    public interface OtpTransport : IDisposable
+    public interface IOtpServerTransport
     {
-        Stream GetInputStream();
-        Stream GetOutputStream();
+        void Start();
+        int GetLocalPort();
+        IOtpTransport Accept();
         void Close();
     }
 }

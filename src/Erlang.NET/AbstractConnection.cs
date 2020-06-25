@@ -90,7 +90,7 @@ namespace Erlang.NET
         private readonly object objLock = new object();
 
         protected bool connected = false; // connection status
-        protected OtpTransport socket; // communication channel
+        protected IOtpTransport socket; // communication channel
         protected OtpPeer peer; // who are we connected to
         protected OtpLocalNode localNode; // this nodes id
 
@@ -140,7 +140,7 @@ namespace Erlang.NET
          * @exception OtpAuthException if handshake resulted in an authentication
          * error
          */
-        protected AbstractConnection(OtpLocalNode self, OtpTransport s)
+        protected AbstractConnection(OtpLocalNode self, IOtpTransport s)
             : base("receive", true)
         {
             localNode = self;
@@ -317,8 +317,8 @@ namespace Erlang.NET
                 // (Erlang will crash)
                 // {$gen_cast, {print, "~n** Unauthorized cookie ~w **~n",
                 // [foo@aule]}}
-                OtpErlangObject[] msg = new OtpErlangObject[2];
-                OtpErlangObject[] msgbody = new OtpErlangObject[3];
+                IOtpErlangObject[] msg = new IOtpErlangObject[2];
+                IOtpErlangObject[] msgbody = new IOtpErlangObject[3];
 
                 msgbody[0] = new OtpErlangAtom("print");
                 msgbody[1] = new OtpErlangString("~n** Bad cookie sent to " + local + " **~n");
@@ -422,7 +422,7 @@ namespace Erlang.NET
         }
 
         /* used internally when "processes" terminate */
-        protected void SendExit(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
+        protected void SendExit(OtpErlangPid from, OtpErlangPid dest, IOtpErlangObject reason)
         {
             SendExit(exitTag, from, dest, reason);
         }
@@ -439,12 +439,12 @@ namespace Erlang.NET
          *                if the connection is not active or a communication error
          *                occurs.
          */
-        protected void SendExit2(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
+        protected void SendExit2(OtpErlangPid from, OtpErlangPid dest, IOtpErlangObject reason)
         {
             SendExit(exit2Tag, from, dest, reason);
         }
 
-        private void SendExit(int tag, OtpErlangPid from, OtpErlangPid dest, OtpErlangObject reason)
+        private void SendExit(int tag, OtpErlangPid from, OtpErlangPid dest, IOtpErlangObject reason)
         {
             if (!connected)
                 throw new IOException("Not connected");
@@ -479,7 +479,7 @@ namespace Erlang.NET
 
             byte[] lbuf = new byte[4];
             OtpInputStream ibuf;
-            OtpErlangObject traceobj;
+            IOtpErlangObject traceobj;
             byte[] tock = { 0, 0, 0, 0 };
             int len;
 
@@ -517,9 +517,9 @@ namespace Erlang.NET
                         continue;
 
                     // got a real message (really)
-                    OtpErlangObject reason = null;
+                    IOtpErlangObject reason = null;
                     OtpErlangAtom cookie = null;
-                    OtpErlangObject tmp = null;
+                    IOtpErlangObject tmp = null;
                     OtpErlangTuple head = null;
                     OtpErlangAtom toName;
                     OtpErlangPid to;
@@ -797,11 +797,11 @@ namespace Erlang.NET
                         // First make OtpInputStream, then decode.
                         try
                         {
-                            OtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
+                            IOtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
 
                             log.Debug("-> " + HeaderType(h) + " " + h);
 
-                            OtpErlangObject o = payload.GetOtpInputStream(0).ReadAny();
+                            IOtpErlangObject o = payload.GetOtpInputStream(0).ReadAny();
                             log.Debug("   " + o);
                             o = null;
                         }
@@ -833,7 +833,7 @@ namespace Erlang.NET
                     {
                         try
                         {
-                            OtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
+                            IOtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
                             log.Debug("-> " + HeaderType(h) + " " + h);
                         }
                         catch (OtpDecodeException e)
@@ -851,7 +851,7 @@ namespace Erlang.NET
             }
         }
 
-        protected string HeaderType(OtpErlangObject h)
+        protected string HeaderType(IOtpErlangObject h)
         {
             int tag = -1;
 
@@ -898,7 +898,7 @@ namespace Erlang.NET
         }
 
         /* this method now throws exception if we don't get full read */
-        protected int ReadSock(OtpTransport s, byte[] b)
+        protected int ReadSock(IOtpTransport s, byte[] b)
         {
             int got = 0;
             int len = b.Length;

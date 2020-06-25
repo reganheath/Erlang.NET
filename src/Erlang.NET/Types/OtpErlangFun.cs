@@ -14,114 +14,119 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Erlang.NET
 {
     [Serializable]
-    public class OtpErlangFun : OtpErlangObject, IEquatable<OtpErlangFun>
+    public class OtpErlangFun : IOtpErlangObject, IEquatable<OtpErlangFun>, IComparable<OtpErlangFun>
     {
-        private readonly OtpErlangPid pid;
-        private readonly string module;
-        private readonly long index;
-        private readonly long old_index;
-        private readonly long uniq;
-        private readonly OtpErlangObject[] freeVars;
-        private readonly int arity;
-        private readonly byte[] md5;
+        public OtpErlangPid Pid { get; private set; }
+        public string Module { get; private set; }
+        public long Index { get; private set; }
+        public long OldIndex { get; private set; }
+        public long Uniq { get; private set; }
+        public IOtpErlangObject[] FreeVars { get; private set; }
+        public int Arity { get; private set; }
+        public byte[] Md5 { get; private set; }
 
         public OtpErlangFun(OtpInputStream buf)
         {
             OtpErlangFun f = buf.ReadFun();
-            pid = f.pid;
-            module = f.module;
-            arity = f.arity;
-            md5 = f.md5;
-            index = f.index;
-            old_index = f.old_index;
-            uniq = f.uniq;
-            freeVars = f.freeVars;
+            Pid = f.Pid;
+            Module = f.Module;
+            Arity = f.Arity;
+            Md5 = f.Md5;
+            Index = f.Index;
+            OldIndex = f.OldIndex;
+            Uniq = f.Uniq;
+            FreeVars = f.FreeVars;
         }
 
-        public OtpErlangFun(OtpErlangPid pid, string module,
-                    long index, long uniq, OtpErlangObject[] freeVars)
+        public OtpErlangFun(OtpErlangPid pid, string module, long index, long uniq, IOtpErlangObject[] freeVars)
         {
-            this.pid = pid;
-            this.module = module;
-            arity = -1;
-            md5 = null;
-            this.index = index;
-            old_index = 0;
-            this.uniq = uniq;
-            this.freeVars = freeVars;
+            Pid = pid;
+            Module = module;
+            Arity = -1;
+            Md5 = null;
+            Index = index;
+            OldIndex = 0;
+            Uniq = uniq;
+            FreeVars = freeVars;
         }
 
-        public OtpErlangFun(OtpErlangPid pid, string module,
-                    int arity, byte[] md5, int index,
-                    long old_index, long uniq,
-                    OtpErlangObject[] freeVars)
+        public OtpErlangFun(OtpErlangPid pid, string module, int arity, byte[] md5, long index, long old_index, long uniq, IOtpErlangObject[] freeVars)
         {
-            this.pid = pid;
-            this.module = module;
-            this.arity = arity;
-            this.md5 = md5;
-            this.index = index;
-            this.old_index = old_index;
-            this.uniq = uniq;
-            this.freeVars = freeVars;
+            Pid = pid;
+            Module = module;
+            Arity = arity;
+            Md5 = md5;
+            Index = index;
+            OldIndex = old_index;
+            Uniq = uniq;
+            FreeVars = freeVars;
         }
 
-        public override void Encode(OtpOutputStream buf)
+        public void Encode(OtpOutputStream buf) => buf.WriteFun(Pid, Module, OldIndex, Arity, Md5, Index, Uniq, FreeVars);
+
+        public override string ToString() => $"#Fun<{Module}.{OldIndex}.{Uniq}>";
+
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangFun);
+
+        public int CompareTo(OtpErlangFun other)
         {
-            buf.WriteFun(pid, module, old_index, arity, md5, index, uniq, freeVars);
+            if (other is null)
+                return 1;
+            int res = Pid.CompareTo(other.Pid);
+            if (res == 0)
+                res = Module.CompareTo(other.Module);
+            if (res == 0)
+                res = Arity.CompareTo(other.Arity);
+            if (res == 0)
+                res = Md5.CompareTo(other.Md5);
+            if (res == 0)
+                res = Index.CompareTo(other.Index);
+            if (res == 0)
+                res = OldIndex.CompareTo(other.OldIndex);
+            if (res == 0)
+                res = Uniq.CompareTo(other.Uniq);
+            if (res == 0)
+                res = FreeVars.CompareTo(other.FreeVars);
+            return res;
         }
 
-        public override bool Equals(object o) => Equals(o as OtpErlangFun);
+        public override bool Equals(object obj) => Equals(obj as OtpErlangFun);
 
         public bool Equals(OtpErlangFun o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
-            if (!pid.Equals(o.pid) || !module.Equals(o.module) || arity != o.arity)
-                return false;
-            if (md5 == null)
-            {
-                if (o.md5 != null)
-                    return false;
-            }
-            else
-            {
-                if (!md5.SequenceEqual(o.md5))
-                    return false;
-            }
-            if (index != o.index || uniq != o.uniq)
-                return false;
-            if (freeVars == null)
-                return o.freeVars == null;
-            return freeVars.SequenceEqual(o.freeVars);
+            return Pid == o.Pid &&
+                   Module == o.Module &&
+                   Index == o.Index &&
+                   OldIndex == o.OldIndex &&
+                   Uniq == o.Uniq &&
+                   Arity == o.Arity &&
+                   OtpErlangObject.SequenceEqual(FreeVars, o.FreeVars) &&
+                   OtpErlangObject.SequenceEqual(Md5, o.Md5);
         }
-
-        public override int GetHashCode() => base.GetHashCode();
-
-        protected override int HashCode()
+        public override int GetHashCode()
         {
-            Hash hash = new Hash(1);
-            hash.Combine(pid.GetHashCode(), module.GetHashCode());
-            hash.Combine(arity);
-            if (md5 != null)
-                hash.Combine(md5);
-            hash.Combine(index);
-            hash.Combine(uniq);
-            if (freeVars != null)
-            {
-                foreach (OtpErlangObject o in freeVars)
-                    hash.Combine(o.GetHashCode(), 1);
-            }
-            return hash.ValueOf();
+            int hashCode = -1018114159;
+            hashCode = hashCode * -1521134295 + EqualityComparer<OtpErlangPid>.Default.GetHashCode(Pid);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Module);
+            hashCode = hashCode * -1521134295 + Index.GetHashCode();
+            hashCode = hashCode * -1521134295 + OldIndex.GetHashCode();
+            hashCode = hashCode * -1521134295 + Uniq.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<IOtpErlangObject[]>.Default.GetHashCode(FreeVars);
+            hashCode = hashCode * -1521134295 + Arity.GetHashCode();
+            hashCode = hashCode * -1521134295 + EqualityComparer<byte[]>.Default.GetHashCode(Md5);
+            return hashCode;
         }
 
-        public override string ToString() => "#Fun<" + module + "." + old_index + "." + uniq + ">";
+        public object Clone() => new OtpErlangFun(Pid, Module, Arity, Md5, Index, OldIndex, Uniq, FreeVars);
     }
 }

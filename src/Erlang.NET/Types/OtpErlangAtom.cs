@@ -14,29 +14,26 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Erlang.NET
 {
     /**
-     * Provides a Java representation of Erlang atoms. Atoms can be created from
+     * Provides a representation of Erlang atoms. Atoms can be created from
      * strings whose length is not more than {@link #maxAtomLength maxAtomLength}
      * characters.
      */
     [Serializable]
-    public class OtpErlangAtom : OtpErlangObject, IEquatable<OtpErlangAtom>
+    public class OtpErlangAtom : IOtpErlangObject, IComparable<OtpErlangAtom>, IEquatable<OtpErlangAtom>
     {
         public string Value { get; private set; }
 
+        public bool BoolValue => bool.Parse(Value);
+
         /**
          * Create an atom from the given string.
-         * 
-         * @param atom
-         *                the string to create the atom from.
-         * 
-         * @exception java.lang.IllegalArgumentException
-         *                    if the string is null or contains more than
-         *                    {@link #maxAtomLength maxAtomLength} characters.
          */
         public OtpErlangAtom(string atom)
         {
@@ -50,13 +47,6 @@ namespace Erlang.NET
         /**
          * Create an atom from a stream containing an atom encoded in Erlang
          * external format.
-         * 
-         * @param buf
-         *                the stream containing the encoded atom.
-         * 
-         * @exception OtpErlangDecodeException
-         *                    if the buffer does not contain a valid external
-         *                    representation of an Erlang atom.
          */
         public OtpErlangAtom(OtpInputStream buf) => Value = buf.ReadAtom();
 
@@ -66,60 +56,53 @@ namespace Erlang.NET
         public OtpErlangAtom(bool t) => Value = t.ToString();
 
         /**
-         * The boolean value of this atom.
-         * 
-         * @return the value of this atom expressed as a boolean value. If the atom
-         *         consists of the characters "true" (independent of case) the value
-         *         will be true. For any other values, the value will be false.
-         * 
-         */
-        public bool BoolValue() => bool.Parse(Value);
-
-        /**
-         * Get the printname of the atom represented by this object. The difference
-         * between this method and {link #atomValue atomValue()} is that the
-         * printname is quoted and escaped where necessary, according to the Erlang
-         * rules for atom naming.
-         * 
-         * @return the printname representation of this atom object.
-         * 
-         * @see #atomValue
-         */
-        public override string ToString() => ShouldQuote(Value) ? "'" + Escape(Value) + "'" : Value;
-
-        /**
-         * Determine if two atoms are equal.
-         * 
-         * @param o
-         *                the other object to compare to.
-         * 
-         * @return true if the atoms are equal, false otherwise.
-         */
-        public override bool Equals(object o) => Equals(o as OtpErlangAtom);
-
-        public bool Equals(OtpErlangAtom o)
-        {
-            if (o == null)
-                return false;
-            if (ReferenceEquals(this, o))
-                return true;
-            return Value.Equals(o.Value);
-        }
-
-        public override int GetHashCode() => base.GetHashCode();
-
-        protected override int HashCode() => Value.GetHashCode();
-
-        /**
          * Convert this atom to the equivalent Erlang external representation.
          * 
          * @param buf
          *                an output stream to which the encoded atom should be
          *                written.
          */
-        public override void Encode(OtpOutputStream buf) => buf.WriteAtom(Value);
+        public void Encode(OtpOutputStream buf) => buf.WriteAtom(Value);
 
-        /* the following four predicates are helpers for the toString() method */
+        /**
+         * Get the printname of the atom represented by this object. The difference
+         * between this method and {link #atomValue atomValue()} is that the
+         * printname is quoted and escaped where necessary, according to the Erlang
+         * rules for atom naming.
+         */
+        public override string ToString() => ShouldQuote(Value) ? $"'{Escape(Value)}'" : Value;
+
+        public int CompareTo(object obj) => CompareTo(obj as OtpErlangAtom);
+
+        public int CompareTo(OtpErlangAtom other)
+        {
+            if (other is null)
+                return 1;
+            return Value.CompareTo(other.Value);
+        }
+
+        public override bool Equals(object obj) => Equals(obj as OtpErlangAtom);
+
+        public bool Equals(OtpErlangAtom o)
+        {
+            if (o is null)
+                return false;
+            if (ReferenceEquals(this, o))
+                return true;
+            return Value == o.Value;
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = -1406514820;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Value);
+            return hashCode;
+        }
+
+        public object Clone() => new OtpErlangAtom(Value);
+
+        #region ToString Helper Functions
+        /* the following three predicates are helpers for the toString() method */
         private bool IsErlangUpper(char c) => (c >= 'A' && c <= 'Z') || c == '_';
 
         private bool IsErlangLower(char c) => c >= 'a' && c <= 'z';
@@ -131,17 +114,9 @@ namespace Erlang.NET
         {
             if (s.Length == 0)
                 return true;
-
             if (!IsErlangLower(s[0]))
                 return true;
-
-            foreach (char c in s)
-            {
-                if (!IsErlangLetter(c) && !char.IsDigit(c) && c != '@')
-                    return true;
-            }
-
-            return false;
+            return s.Any((c) => !IsErlangLetter(c) && !char.IsDigit(c) && c != '@');
         }
 
         /*
@@ -189,5 +164,6 @@ namespace Erlang.NET
             }
             return so.ToString();
         }
+        #endregion
     }
 }

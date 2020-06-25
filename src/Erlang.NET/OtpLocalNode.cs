@@ -65,7 +65,7 @@ namespace Erlang.NET
         {
         }
 
-        public OtpTransport Epmd { get; set; }
+        public IOtpTransport Epmd { get; set; }
 
         /**
          * Close the Epmd socket.

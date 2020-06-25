@@ -135,7 +135,7 @@ using System.Linq;
 
 namespace Erlang.NET
 {
-    public class BigInteger : IEquatable<BigInteger>
+    public class BigInteger : IEquatable<BigInteger>, IComparable<BigInteger>
     {
         // maximum length of the BigInteger in uint (4 bytes)
         // change this to suit the required level of precision.
@@ -976,7 +976,7 @@ namespace Erlang.NET
 
         public bool Equals(BigInteger o)
         {
-            if (o == null)
+            if (o is null)
                 return false;
             if (ReferenceEquals(this, o))
                 return true;
@@ -989,6 +989,15 @@ namespace Erlang.NET
         public override int GetHashCode()
         {
             return ToString().GetHashCode();
+        }
+
+        public int CompareTo(object obj) => CompareTo(obj as BigInteger);
+
+        public int CompareTo(BigInteger other)
+        {
+            if (other is null)
+                return 1;
+            return this > other ? 1 : this == other ? 0 : -1;
         }
 
 

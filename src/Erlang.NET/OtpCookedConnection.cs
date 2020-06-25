@@ -77,7 +77,7 @@ namespace Erlang.NET
          * error
          */
         // package scope
-        internal OtpCookedConnection(OtpNode self, OtpTransport s)
+        internal OtpCookedConnection(OtpNode self, IOtpTransport s)
             : base(self, s)
         {
             this.self = self;
@@ -151,7 +151,7 @@ namespace Erlang.NET
         /*
          * send to pid
          */
-        public void Send(OtpErlangPid from, OtpErlangPid dest, OtpErlangObject msg)
+        public void Send(OtpErlangPid from, OtpErlangPid dest, IOtpErlangObject msg)
         {
             // encode and send the message
             SendBuf(from, dest, new OtpOutputStream(msg));
@@ -161,7 +161,7 @@ namespace Erlang.NET
          * send to remote name dest is recipient's registered name, the nodename is
          * implied by the choice of connection.
          */
-        public void Send(OtpErlangPid from, string dest, OtpErlangObject msg)
+        public void Send(OtpErlangPid from, string dest, IOtpErlangObject msg)
         {
             // encode and send the message
             SendBuf(from, dest, new OtpOutputStream(msg));
@@ -182,7 +182,7 @@ namespace Erlang.NET
         /*
          * this one called by dying/killed process
          */
-        public void Exit(OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
+        public void Exit(OtpErlangPid from, OtpErlangPid to, IOtpErlangObject reason)
         {
             try
             {
@@ -196,7 +196,7 @@ namespace Erlang.NET
         /*
          * this one called explicitely by user code => use exit2
          */
-        public void Exit2(OtpErlangPid from, OtpErlangPid to, OtpErlangObject reason)
+        public void Exit2(OtpErlangPid from, OtpErlangPid to, IOtpErlangObject reason)
         {
             try
             {

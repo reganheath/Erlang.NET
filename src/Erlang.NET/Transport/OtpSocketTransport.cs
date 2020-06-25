@@ -20,7 +20,7 @@ using System.Net.Sockets;
 
 namespace Erlang.NET
 {
-    public class OtpSocketTransport : OtpTransport
+    public class OtpSocketTransport : IOtpTransport
     {
         private readonly TcpClient client;
         private readonly Stream inputStream;
