@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System;
 using System.Net;
 using System.Net.Sockets;
 
@@ -41,5 +42,29 @@ namespace Erlang.NET
         }
 
         public void Close() => socket.Stop();
+
+        #region IDisposable
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    try { Close(); }
+                    catch (Exception) { }
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            System.GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

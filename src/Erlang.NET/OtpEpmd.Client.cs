@@ -116,54 +116,31 @@ namespace Erlang.NET
         /**
          * Register with Epmd, so that other nodes are able to find and connect to
          * it.
-         * 
-         * @param node
-         *            the server node that should be registered with Epmd.
-         * 
-         * @return true if the operation was successful. False if the node was
-         *         already registered.
-         * 
-         * @exception java.io.IOException
-         *                if there was no response from the name server.
          */
-        public static bool PublishPort(OtpLocalNode node)
-        {
-            node.Epmd = Publish_R4(node);
-            return node.Epmd != null;
-        }
+        public static IOtpTransport PublishPort(OtpLocalNode node) => Publish_R4(node);
 
-        // Ask epmd to close his end of the connection.
-        // Caller should close his epmd socket as well.
-        // This method is pretty forgiving...
         /**
          * Unregister from Epmd. Other nodes wishing to connect will no longer be
-         * able to.
-         * 
-         * <p>
+         * able to. Caller should close his epmd socket.
          * This method does not report any failures.
          */
         public static void UnPublishPort(OtpLocalNode node)
         {
             try
             {
-                using (IOtpTransport s = node.CreateTransport(Dns.GetHostName(), EpmdPort))
+                OtpOutputStream obuf = new OtpOutputStream();
+                obuf.Write2BE(node.Alive.Length + 1);
+                obuf.Write1(stopReq);
+                obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
+                obuf.WriteTo(node.Epmd.GetOutputStream());
+                // don't even wait for a response (is there one?)
+                if (traceLevel >= traceThreshold)
                 {
-                    OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.Write2BE(node.Alive.Length + 1);
-                    obuf.Write1(stopReq);
-                    obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
-                    obuf.WriteTo(s.GetOutputStream());
-                    // don't even wait for a response (is there one?)
-                    if (traceLevel >= traceThreshold)
-                    {
-                        log.Debug("-> UNPUBLISH " + node + " port=" + node.Port);
-                        log.Debug("<- OK (assumed)");
-                    }
+                    log.Debug("-> UNPUBLISH " + node + " port=" + node.Port);
+                    log.Debug("<- OK (assumed)");
                 }
             }
-            catch (Exception) /* ignore all failures */
-            {
-            }
+            catch (Exception) { /* ignore all failures */ }
         }
 
         private static int LookupPort_R4(AbstractNode node)
@@ -346,7 +323,7 @@ namespace Erlang.NET
             return LookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0], new OtpSocketTransportFactory());
         }
 
-        public static string[] LookupNames(IPAddress address, OtpTransportFactory transportFactory)
+        public static string[] LookupNames(IPAddress address, IOtpTransportFactory transportFactory)
         {
 
             try

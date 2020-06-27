@@ -84,6 +84,21 @@ namespace Erlang.NET
 
         protected GenericQueue Queue { get; private set; }
 
+        /**
+         * Get the registered name of this mailbox.
+         */
+        public string Name { get; set; }
+
+        /**
+         * Get the identifying {@link OtpErlangPid pid} associated with this mailbox.
+         * 
+         * The {@link OtpErlangPid pid} associated with this mailbox uniquely
+         * identifies the mailbox and can be used to address the mailbox. You can
+         * send the {@link OtpErlangPid pid} to a remote communicating part so that
+         * he can know where to send his response.
+         */
+        public OtpErlangPid Self { get; private set; }
+
         // package constructor: called by OtpNode:createMbox(name)
         // to create a named mbox
         internal OtpMbox(OtpNode home, OtpErlangPid self, string name)
@@ -101,23 +116,6 @@ namespace Erlang.NET
             : this(home, self, null)
         {
         }
-
-        /**
-         * <p>
-         * Get the identifying {@link OtpErlangPid pid} associated with this
-         * mailbox.
-         * </p>
-         * 
-         * <p>
-         * The {@link OtpErlangPid pid} associated with this mailbox uniquely
-         * identifies the mailbox and can be used to address the mailbox. You can
-         * send the {@link OtpErlangPid pid} to a remote communicating part so that
-         * he can know where to send his response.
-         * </p>
-         * 
-         * @return the self pid for this mailbox.
-         */
-        public OtpErlangPid Self { get; private set; }
 
         /**
          * <p>
@@ -139,14 +137,6 @@ namespace Erlang.NET
             lock (lockObj)
                 return home.RegisterName(name, this);
         }
-
-        /**
-         * Get the registered name of this mailbox.
-         * 
-         * @return the registered name of this mailbox, or null if the mailbox had
-         *         no registered name.
-         */
-        public string Name { get; set; }
 
         /**
          * Block until a message arrives for this mailbox.

@@ -133,44 +133,28 @@ namespace Erlang.NET
          * OtpSelf#accept() OtpSelf.accept()} to create a connection based on data
          * received when handshaking with the peer node, when the remote node is the
          * connection initiator.
-         * 
-         * @exception java.io.IOException if it was not possible to connect to the
-         * peer.
-         * 
-         * @exception OtpAuthException if handshake resulted in an authentication
-         * error
          */
         protected AbstractConnection(OtpLocalNode self, IOtpTransport s)
             : base("receive", true)
         {
             localNode = self;
-            peer = new OtpPeer(self.transportFactory);
             socket = s;
-
             traceLevel = defaultLevel;
 
             if (traceLevel >= handshakeThreshold)
                 log.Debug("<- ACCEPT FROM " + s);
 
             DoAccept();
-            Name = peer.Node;
         }
 
         /**
          * Intiate and open a connection to a remote node.
-         * 
-         * @exception java.io.IOException if it was not possible to connect to the
-         * peer.
-         * 
-         * @exception OtpAuthException if handshake resulted in an authentication
-         * error.
          */
         protected AbstractConnection(OtpLocalNode self, OtpPeer other)
             : base("receive", true)
         {
             peer = other;
             localNode = self;
-            socket = null;
             traceLevel = defaultLevel;
 
             // Locate peer
@@ -186,7 +170,6 @@ namespace Erlang.NET
             peer.DistChoose = Math.Min(peer.DistHigh, self.DistHigh);
 
             DoConnect(port);
-            Name = peer.Node;
         }
 
         /**
@@ -948,7 +931,8 @@ namespace Erlang.NET
 
         protected void DoAccept()
         {
-            int send_name_tag = RecvName(peer);
+            peer = new OtpPeer() { TransportFactory = localNode.TransportFactory };
+            int send_name_tag = RecvName();
             try
             {
                 SendStatus("ok");
@@ -981,6 +965,8 @@ namespace Erlang.NET
 
             if (traceLevel >= handshakeThreshold)
                 log.Debug("<- MD5 ACCEPTED " + peer.Host);
+
+            Name = peer.Node;
         }
 
         protected void DoConnect(int port)
@@ -1018,6 +1004,8 @@ namespace Erlang.NET
                 Close();
                 throw new IOException("Cannot connect to peer node", e);
             }
+
+            Name = peer.Node;
         }
 
         // This is nooo good as a challenge,
@@ -1185,7 +1173,7 @@ namespace Erlang.NET
             return tmpbuf;
         }
 
-        protected int RecvName(OtpPeer apeer)
+        protected int RecvName()
         {
             int send_name_tag;
             string hisname;
@@ -1200,20 +1188,20 @@ namespace Erlang.NET
                 switch (send_name_tag)
                 {
                     case 'n':
-                        apeer.DistLow = apeer.DistHigh = ibuf.Read2BE();
-                        if (apeer.DistLow != 5)
+                        peer.DistLow = peer.DistHigh = ibuf.Read2BE();
+                        if (peer.DistLow != 5)
                             throw new IOException("Invalid handshake version");
-                        apeer.CapFlags = ibuf.Read4BE();
+                        peer.CapFlags = ibuf.Read4BE();
                         tmpname = new byte[len - 7];
                         ibuf.ReadN(tmpname);
                         hisname = OtpErlangString.FromEncoding(tmpname);
                         break;
                     case 'N':
-                        apeer.DistLow = apeer.DistHigh = 6;
-                        apeer.CapFlags = ibuf.Read8BE();
-                        if ((apeer.CapFlags & AbstractNode.dFlagHandshake23) == 0)
+                        peer.DistLow = peer.DistHigh = 6;
+                        peer.CapFlags = ibuf.Read8BE();
+                        if ((peer.CapFlags & AbstractNode.dFlagHandshake23) == 0)
                             throw new IOException("Missing DFLAG_HANDSHAKE_23");
-                        apeer.Creation = ibuf.Read4BE();
+                        peer.Creation = ibuf.Read4BE();
                         int namelen = ibuf.Read2BE();
                         tmpname = new byte[namelen];
                         ibuf.ReadN(tmpname);
@@ -1223,10 +1211,10 @@ namespace Erlang.NET
                         throw new IOException("Unknown remote node type");
                 }
 
-                if ((apeer.CapFlags & AbstractNode.dFlagExtendedReferences) == 0)
+                if ((peer.CapFlags & AbstractNode.dFlagExtendedReferences) == 0)
                     throw new IOException("Handshake failed - peer cannot handle extended references");
 
-                if ((apeer.CapFlags & AbstractNode.dFlagExtendedPidsPorts) == 0)
+                if ((peer.CapFlags & AbstractNode.dFlagExtendedPidsPorts) == 0)
                     throw new IOException("Handshake failed - peer cannot handle extended pids and ports");
             }
             catch (OtpDecodeException)
@@ -1234,13 +1222,12 @@ namespace Erlang.NET
                 throw new IOException("Handshake failed - not enough data");
             }
 
-            (apeer.Alive, apeer.Host) = hisname.Split('@');
-            if (apeer.Alive == null || apeer.Host == null)
+            peer.Node = hisname;
+            if (peer.Alive == null || peer.Host == null)
                 throw new IOException("Handshake failed - peer name invalid: " + hisname);
-            apeer.Node = hisname;
 
             if (traceLevel >= handshakeThreshold)
-                log.Debug("<- " + "HANDSHAKE" + " ntype=" + apeer.Type + " dist=" + apeer.DistHigh + " remote=" + apeer);
+                log.Debug("<- " + "HANDSHAKE" + " ntype=" + peer.Type + " dist=" + peer.DistHigh + " remote=" + peer);
 
             return send_name_tag;
         }

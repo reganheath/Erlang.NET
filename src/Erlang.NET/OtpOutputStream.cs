@@ -59,7 +59,6 @@ namespace Erlang.NET
             WriteAny(o);
         }
 
-        // package scope
         /*
          * Get the contents of the output stream as an input stream instead. This is
          * used internally in {@link OtpCconnection} for tracing outgoing packages.

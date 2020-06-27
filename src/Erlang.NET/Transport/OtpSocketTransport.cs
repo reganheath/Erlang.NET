@@ -82,16 +82,27 @@ namespace Erlang.NET
 
         public override string ToString() => client.Client.RemoteEndPoint.ToString();
 
+        #region IDisposable
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    try { Close(); }
+                    catch (Exception) { }
+                }
+                disposedValue = true;
+            }
+        }
+
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-                Close();
-        }
+        #endregion
     }
 }

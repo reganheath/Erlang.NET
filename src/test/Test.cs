@@ -15,8 +15,6 @@
  */
 using log4net;
 using log4net.Config;
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace Erlang.NET.Test
@@ -32,10 +30,12 @@ namespace Erlang.NET.Test
 
         public static void Main(string[] args)
         {
-            OtpNode self = new OtpNode("vaplug", "edsrv_cookie")
+            OtpNode self = new OtpNode(new NodeDetails()
             {
+                Node = "vaplug",
+                Cookie = "edsrv_cookie",
                 Flags = OtpInputStream.StreamFlags.DecodeIntListsAsStrings
-            };
+            });
             OtpMbox mbox = self.CreateMbox("test", true);
             OtpErlangTuple tuple = new OtpErlangTuple(new IOtpErlangObject[2]
             {

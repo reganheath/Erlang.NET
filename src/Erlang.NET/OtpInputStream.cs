@@ -64,7 +64,7 @@ namespace Erlang.NET
             Flags = flags;
         }
 
-        public void Mark() =>mark = base.Position;
+        public void Mark() => mark = base.Position;
 
         public void Reset() => base.Position = mark;
 

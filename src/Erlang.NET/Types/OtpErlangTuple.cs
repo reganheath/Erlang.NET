@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace Erlang.NET
 {
@@ -46,6 +44,8 @@ namespace Erlang.NET
          * Create a tuple from an array of terms.
          */
         public OtpErlangTuple(IEnumerable<IOtpErlangObject> elems) => AddRange(elems ?? throw new ArgumentNullException(nameof(elems)));
+
+        public OtpErlangTuple(params IOtpErlangObject[] elems) => AddRange(elems ?? throw new ArgumentNullException(nameof(elems)));
 
         /**
          * Create a tuple from an array of terms.
@@ -90,7 +90,7 @@ namespace Erlang.NET
         public void Encode(OtpOutputStream buf)
         {
             buf.WriteTupleHead(Arity);
-            foreach(var item in this)
+            foreach (var item in this)
                 buf.WriteAny(item);
         }
 

@@ -20,45 +20,37 @@ using System.IO;
 namespace Erlang.NET
 {
     /**
-     * <p>
      * Represents a local OTP node. This class is used when you do not wish to
      * manage connections yourself - outgoing connections are established as needed,
      * and incoming connections accepted automatically. This class supports the use
      * of a mailbox API for communication, while management of the underlying
      * communication mechanism is automatic and hidden from the application
      * programmer.
-     * </p>
      * 
-     * <p>
      * Once an instance of this class has been created, obtain one or more mailboxes
      * in order to send or receive messages. The first message sent to a given node
      * will cause a connection to be set up to that node. Any messages received will
      * be delivered to the appropriate mailboxes.
-     * </p>
      * 
-     * <p>
      * To shut down the node, call {@link #close close()}. This will prevent the
      * node from accepting additional connections and it will cause all existing
      * connections to be closed. Any unread messages in existing mailboxes can still
      * be read, however no new messages will be delivered to the mailboxes.
-     * </p>
      * 
-     * <p>
      * Note that the use of this class requires that Epmd (Erlang Port Mapper
      * Daemon) is running on each cooperating host. This class does not start Epmd
      * automatically as Erlang does, you must start it manually or through some
      * other means. See the Erlang documentation for more information about this.
-     * </p>
      */
     public class OtpNode : OtpLocalNode
     {
         private readonly object lockObj = new object();
 
+        // thread to schedule actors
+        private readonly OtpActorSched sched = new OtpActorSched();
+
         // thread to manage incoming connections
         private Acceptor acceptor = null;
-
-        // thread to schedule actors
-        private OtpActorSched sched = null;
 
         // keep track of all mailboxes
         private Mailboxes mboxes = null;
@@ -66,97 +58,13 @@ namespace Erlang.NET
         // handle status changes
         private OtpNodeStatus handler;
 
-        public Dictionary<string, OtpCookedConnection> Connections { get; private set; } = null;
+        public Dictionary<string, OtpCookedConnection> Connections { get; private set; } = new Dictionary<string, OtpCookedConnection>();
 
-        /**
-         * <p>
-         * Create a node using the default cookie. The default cookie is found by
-         * reading the first line of the .erlang.cookie file in the user's home
-         * directory. The home directory is obtained from the System property
-         * "user.home".
-         * </p>
-         * 
-         * <p>
-         * If the file does not exist, an empty string is used. This method makes no
-         * attempt to create the file.
-         * </p>
-         * 
-         * @param node
-         *            the name of this node.
-         * 
-         * @exception IOException
-         *                if communication could not be initialized.
-         * 
-         */
-        public OtpNode(string node)
-            : base(node)
+        public OtpNode(NodeDetails details)
         {
-            Init(0);
-        }
-
-        public OtpNode(string node, OtpTransportFactory transportFactory)
-            : base(node, transportFactory)
-        {
-            Init(0);
-        }
-
-        /**
-         * Create a node.
-         * 
-         * @param node
-         *            the name of this node.
-         * 
-         * @param cookie
-         *            the authorization cookie that will be used by this node when
-         *            it communicates with other nodes.
-         * 
-         * @exception IOException
-         *                if communication could not be initialized.
-         * 
-         */
-        public OtpNode(string node, string cookie)
-            : base(node, cookie)
-        {
-            Init(0);
-        }
-
-        public OtpNode(string node, string cookie, OtpTransportFactory transportFactory)
-            : base(node, cookie, transportFactory)
-        {
-            Init(0);
-        }
-
-        /**
-         * Create a node.
-         * 
-         * @param node
-         *            the name of this node.
-         * 
-         * @param cookie
-         *            the authorization cookie that will be used by this node when
-         *            it communicates with other nodes.
-         * 
-         * @param port
-         *            the port number you wish to use for incoming connections.
-         *            Specifying 0 lets the system choose an available port.
-         * 
-         * @exception IOException
-         *                if communication could not be initialized.
-         * 
-         */
-        public OtpNode(string node, string cookie, int port, OtpTransportFactory transportFactory)
-            : base(node, cookie, transportFactory)
-        {
-            Init(port);
-        }
-
-        private void Init(int port)
-        {
-            Connections = new Dictionary<string, OtpCookedConnection>();
-
-            sched = new OtpActorSched();
+            Initialise(details);
             mboxes = new Mailboxes(this, sched);
-            acceptor = new Acceptor(this, port);
+            acceptor = new Acceptor(this);
         }
 
         /**
@@ -188,54 +96,34 @@ namespace Erlang.NET
          * receive messages with other, similar mailboxes and with Erlang processes.
          * Messages can be sent to this mailbox by using its associated
          * {@link OtpMbox#self() pid}.
-         * 
-         * @return a mailbox.
          */
         public OtpMbox CreateMbox(bool sync) => mboxes.Create(sync);
 
         /**
          * Close the specified mailbox with reason 'normal'.
          * 
-         * @param mbox
-         *            the mailbox to close.
-         * 
-         *            <p>
-         *            After this operation, the mailbox will no longer be able to
-         *            receive messages. Any delivered but as yet unretrieved
-         *            messages can still be retrieved however.
-         *            </p>
-         * 
-         *            <p>
-         *            If there are links from the mailbox to other
-         *            {@link OtpErlangPid pids}, they will be broken when this
-         *            method is called and exit signals with reason 'normal' will be
-         *            sent.
-         *            </p>
-         * 
+         * After this operation, the mailbox will no longer be able to
+         * receive messages. Any delivered but as yet unretrieved
+         * messages can still be retrieved however.
+         *
+         * If there are links from the mailbox to other
+         * {@link OtpErlangPid pids}, they will be broken when this
+         * method is called and exit signals with reason 'normal' will be
+         * sent.
          */
         public void CloseMbox(OtpMbox mbox) => CloseMbox(mbox, new OtpErlangAtom("normal"));
 
         /**
          * Close the specified mailbox with the given reason.
          * 
-         * @param mbox
-         *            the mailbox to close.
-         * @param reason
-         *            an Erlang term describing the reason for the termination.
-         * 
-         *            <p>
-         *            After this operation, the mailbox will no longer be able to
-         *            receive messages. Any delivered but as yet unretrieved
-         *            messages can still be retrieved however.
-         *            </p>
-         * 
-         *            <p>
-         *            If there are links from the mailbox to other
-         *            {@link OtpErlangPid pids}, they will be broken when this
-         *            method is called and exit signals with the given reason will
-         *            be sent.
-         *            </p>
-         * 
+         * After this operation, the mailbox will no longer be able to
+         * receive messages. Any delivered but as yet unretrieved
+         * messages can still be retrieved however.
+         *
+         * If there are links from the mailbox to other
+         * {@link OtpErlangPid pids}, they will be broken when this
+         * method is called and exit signals with the given reason will
+         * be sent.
          */
         public void CloseMbox(OtpMbox mbox, IOtpErlangObject reason)
         {
@@ -252,50 +140,26 @@ namespace Erlang.NET
          * with other, similar mailboxes and with Erlang processes. Messages can be
          * sent to this mailbox by using its registered name or the associated
          * {@link OtpMbox#self pid}.
-         * 
-         * @param name
-         *            a name to register for this mailbox. The name must be unique
-         *            within this OtpNode.
-         * 
-         * @return a mailbox, or null if the name was already in use.
-         * 
          */
         public OtpMbox CreateMbox(string name, bool sync) => mboxes.Create(name, sync);
 
         /**
-         * <p>
          * Register or remove a name for the given mailbox. Registering a name for a
          * mailbox enables others to send messages without knowing the
          * {@link OtpErlangPid pid} of the mailbox. A mailbox can have at most one
          * name; if the mailbox already had a name, calling this method will
          * supercede that name.
-         * </p>
-         * 
-         * @param name
-         *            the name to register for the mailbox. Specify null to
-         *            unregister the existing name from this mailbox.
-         * 
-         * @param mbox
-         *            the mailbox to associate with the name.
-         * 
-         * @return true if the name was available, or false otherwise.
          */
         public bool RegisterName(string name, OtpMbox mbox) => mboxes.Register(name, mbox);
 
         /**
          * Get a list of all known registered names on this node.
-         * 
-         * @return an array of Strings, containins all known registered names on
-         *         this node.
          */
         public string[] Names() => mboxes.Names();
 
         /**
          * Determine the {@link OtpErlangPid pid} corresponding to a registered name
          * on this node.
-         * 
-         * @return the {@link OtpErlangPid pid} corresponding to the registered
-         *         name, or null if the name is not known on this node.
          */
         public OtpErlangPid WhereIs(string name)
         {
@@ -309,11 +173,6 @@ namespace Erlang.NET
          * Register interest in certain system events. The {@link OtpNodeStatus
          * OtpNodeStatus} handler object contains callback methods, that will be
          * called when certain events occur.
-         * 
-         * @param handler
-         *            the callback object to register. To clear the handler, specify
-         *            null as the handler to use.
-         * 
          */
         public void RegisterStatusHandler(OtpNodeStatus handler)
         {
@@ -322,38 +181,21 @@ namespace Erlang.NET
         }
 
         /**
-         * <p>
          * Determine if another node is alive. This method has the side effect of
          * setting up a connection to the remote node (if possible). Only a single
          * outgoing message is sent; the timeout is how long to wait for a response.
-         * </p>
          * 
-         * <p>
          * Only a single attempt is made to connect to the remote node, so for
          * example it is not possible to specify an extremely long timeout and
          * expect to be notified when the node eventually comes up. If you wish to
          * wait for a remote node to be started, the following construction may be
          * useful:
-         * </p>
          * 
-         * <pre>
          * // ping every 2 seconds until positive response
          * while (!me.ping(him, 2000))
          *     ;
-         * </pre>
-         * 
-         * @param node
-         *            the name of the node to ping.
-         * 
-         * @param timeout
-         *            the time, in milliseconds, to wait for response before
-         *            returning false.
-         * 
-         * @return true if the node was alive and the correct ping response was
-         *         returned. false if the correct response was not returned on time.
-         */
-        /*
-         * internal info about the message formats...
+         *     
+         * Internal info about the message formats...
          * 
          * the request: -> REG_SEND {6,#Pid<bingo@aule.1.0>,'',net_kernel}
          * {'$gen_call',{#Pid<bingo@aule.1.0>,#Ref<bingo@aule.2>},{is_auth,bingo@aule}}
@@ -363,13 +205,10 @@ namespace Erlang.NET
         public bool Ping(string node, long timeout)
         {
             if (node.Equals(Node))
-            {
                 return true;
-            }
-            else if (node.IndexOf('@', 0) < 0 && node.Equals(Node.Substring(0, Node.IndexOf('@', 0))))
-            {
+
+            if (node.IndexOf('@', 0) < 0 && node.Equals(Node.Substring(0, Node.IndexOf('@', 0))))
                 return true;
-            }
 
             // other node
             OtpMbox mbox = null;
@@ -377,10 +216,9 @@ namespace Erlang.NET
             {
                 mbox = CreateMbox(true);
                 mbox.Send("net_kernel", node, GetPingTuple(mbox));
-                IOtpErlangObject reply = mbox.Receive(timeout);
-                OtpErlangTuple t = (OtpErlangTuple)reply;
-                OtpErlangAtom a = (OtpErlangAtom)t.ElementAt(1);
-                return "yes".Equals(a.Value);
+                OtpErlangTuple reply = (OtpErlangTuple)mbox.Receive(timeout);
+                OtpErlangAtom a = (OtpErlangAtom)reply.ElementAt(1);
+                return "yes".Equals(a?.Value);
             }
             catch (Exception)
             {
@@ -389,6 +227,7 @@ namespace Erlang.NET
             {
                 CloseMbox(mbox);
             }
+
             return false;
         }
 
@@ -514,7 +353,7 @@ namespace Erlang.NET
                     return Connections[node];
 
                 // in case node had no '@' add localhost info and try again
-                OtpPeer peer = new OtpPeer(node);
+                OtpPeer peer = new OtpPeer() { Node = node };
 
                 if (Connections.ContainsKey(peer.Node))
                     return Connections[peer.Node];
@@ -746,71 +585,25 @@ namespace Erlang.NET
         public class Acceptor : ThreadBase
         {
             private readonly OtpNode node;
-            private readonly IOtpServerTransport sock;
+            private readonly IOtpServerTransport serverSocket;
 
-            public int Port { get; }
-
-            public Acceptor(OtpNode node, int port)
+            public Acceptor(OtpNode node)
                 : base("OtpNode.Acceptor", true)
             {
                 this.node = node;
 
-                sock = node.CreateServerTransport(port);
-                Port = sock.GetLocalPort();
-                node.Port = Port;
-                PublishPort();
+                serverSocket = node.CreateServerTransport(node.Port);
+                node.Port = serverSocket.GetLocalPort();
+                node.PublishPort();
                 base.Start();
-            }
-
-            private bool PublishPort()
-            {
-                if (node.Epmd != null)
-                    return false; // already published
-
-                OtpEpmd.PublishPort(node);
-                return true;
-            }
-
-            private void UnPublishPort()
-            {
-                // unregister with epmd
-                OtpEpmd.UnPublishPort(node);
-
-                // close the local descriptor (if we have one)
-                CloseSock(node.Epmd);
-                node.Epmd = null;
             }
 
             public void Quit()
             {
-                UnPublishPort();
+                node.UnPublishPort();
                 Stop();
-                CloseSock(sock);
+                serverSocket.Dispose();
                 node.LocalStatus(node.Node, false, null);
-            }
-
-            private void CloseSock(IOtpTransport s)
-            {
-                try
-                {
-                    if (s != null)
-                        s.Close();
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            private void CloseSock(IOtpServerTransport s)
-            {
-                try
-                {
-                    if (s != null)
-                        s.Close();
-                }
-                catch (Exception)
-                {
-                }
             }
 
             public override void Run()
@@ -824,18 +617,12 @@ namespace Erlang.NET
 
                     try
                     {
-                        newsock = sock.Accept();
+                        newsock = serverSocket.Accept();
                     }
                     catch (Exception e)
                     {
-                        // Problem in java1.2.2: accept throws SocketException
-                        // when socket is closed. This will happen when
-                        // acceptor.quit()
-                        // is called. acceptor.quit() will call localStatus(...), so
-                        // we have to check if that's where we come from.
                         if (!Stopping)
                             node.LocalStatus(node.Node, false, e);
-
                         continue;
                     }
 
@@ -853,7 +640,7 @@ namespace Erlang.NET
                             node.ConnAttempt(conn.Name, true, e);
                         else
                             node.ConnAttempt("unknown", true, e);
-                        CloseSock(newsock);
+                        newsock.Dispose();
                     }
                     catch (IOException e)
                     {
@@ -861,18 +648,18 @@ namespace Erlang.NET
                             node.ConnAttempt(conn.Name, true, e);
                         else
                             node.ConnAttempt("unknown", true, e);
-                        CloseSock(newsock);
+                        newsock.Dispose();
                     }
                     catch (Exception e)
                     {
-                        CloseSock(newsock);
-                        CloseSock(sock);
+                        newsock.Dispose();
+                        serverSocket.Dispose();
                         node.LocalStatus(node.Node, false, e);
                     }
                 }
 
                 // if we have exited loop we must do this too
-                UnPublishPort();
+                node.UnPublishPort();
             }
         }
     }

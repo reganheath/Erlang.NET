@@ -18,7 +18,6 @@ using System.Collections.Generic;
 
 namespace Erlang.NET
 {
-    // package scope
     public class Link : IEquatable<Link>, IComparable, IComparable<Link>
     {
         public OtpErlangPid Local { get; private set; }

@@ -22,173 +22,53 @@ namespace Erlang.NET
      * Represents an OTP node. It is used to connect to remote nodes or accept
      * incoming connections from remote nodes.
      * 
-     * <p>
-     * When the Java node will be connecting to a remote Erlang, Java or C node, it
+     * When the C# node will be connecting to a remote Erlang, C# or C node, it
      * must first identify itself as a node by creating an instance of this class,
      * after which it may connect to the remote node.
      * 
-     * <p>
      * When you create an instance of this class, it will bind a socket to a port so
      * that incoming connections can be accepted. However the port number will not
      * be made available to other nodes wishing to connect until you explicitely
      * register with the port mapper daemon by calling {@link #publishPort()}.
-     * </p>
-     * 
-     * <pre>
-     * OtpSelf self = new OtpSelf(&quot;client&quot;, &quot;authcookie&quot;); // identify self
-     * OtpPeer other = new OtpPeer(&quot;server&quot;); // identify peer
-     * 
-     * OtpConnection conn = self.connect(other); // connect to peer
-     * </pre>
-     * 
      */
     public class OtpSelf : OtpLocalNode
     {
-        private readonly IOtpServerTransport sock;
-
-        /**
-         * <p>
-         * Create a self node using the default cookie. The default cookie is found
-         * by reading the first line of the .erlang.cookie file in the user's home
-         * directory. The home directory is obtained from the System property
-         * "user.home".
-         * </p>
-         * 
-         * <p>
-         * If the file does not exist, an empty string is used. This method makes no
-         * attempt to create the file.
-         * </p>
-         * 
-         * @param node
-         *                the name of this node.
-         * 
-         */
-        public OtpSelf(string node)
-            : this(node, defaultCookie, 0)
-        {
-        }
-
-        public OtpSelf(string node, OtpTransportFactory transportFactory)
-            : this(node, defaultCookie, 0, transportFactory)
-        {
-        }
-
-        /**
-         * Create a self node.
-         * 
-         * @param node
-         *                the name of this node.
-         * 
-         * @param cookie
-         *                the authorization cookie that will be used by this node
-         *                when it communicates with other nodes.
-         */
-        public OtpSelf(string node, string cookie)
-            : this(node, cookie, 0)
-        {
-        }
-
-        public OtpSelf(string node, string cookie, OtpTransportFactory transportFactory)
-            : this(node, cookie, 0, transportFactory)
-        {
-        }
-
-        public OtpSelf(string node, string cookie, int port)
-            : base(node, cookie)
-        {
-            sock = CreateServerTransport(port);
-            if (port != 0)
-                this.Port = port;
-            else
-                this.Port = sock.GetLocalPort();
-            Pid = CreatePid();
-        }
-
-        public OtpSelf(string node, string cookie, int port, OtpTransportFactory transportFactory)
-            : base(node, cookie, transportFactory)
-        {
-            sock = CreateServerTransport(port);
-            if (port != 0)
-                this.Port = port;
-            else
-                this.Port = sock.GetLocalPort();
-            Pid = CreatePid();
-        }
+        private IOtpServerTransport serverSocket;
 
         /**
          * Get the Erlang PID that will be used as the sender id in all "anonymous"
          * messages sent by this node. Anonymous messages are those sent via send
          * methods in {@link OtpConnection OtpConnection} that do not specify a
          * sender.
-         * 
-         * @return the Erlang PID that will be used as the sender id in all
-         *         anonymous messages sent by this node.
          */
-        public OtpErlangPid Pid { get; }
-
-        /**
-         * Make public the information needed by remote nodes that may wish to
-         * connect to this one. This method establishes a connection to the Erlang
-         * port mapper (Epmd) and registers the server node's name and port so that
-         * remote nodes are able to connect.
-         * 
-         * <p>
-         * This method will fail if an Epmd process is not running on the localhost.
-         * See the Erlang documentation for information about starting Epmd.
-         * 
-         * <p>
-         * Note that once this method has been called, the node is expected to be
-         * available to accept incoming connections. For that reason you should make
-         * sure that you call {@link #accept()} shortly after calling
-         * {@link #publishPort()}. When you no longer intend to accept connections
-         * you should call {@link #unPublishPort()}.
-         * 
-         * @return true if the operation was successful, false if the node was
-         *         already registered.
-         * 
-         * @exception java.io.IOException
-         *                    if the port mapper could not be contacted.
-         */
-        public bool PublishPort()
+        private OtpErlangPid pid;
+        public OtpErlangPid Pid
         {
-            if (Epmd != null)
-                return false; // already published
-
-            return OtpEpmd.PublishPort(this);
+            get
+            {
+                if (pid is null)
+                    pid = CreatePid();
+                return pid;
+            }
         }
 
         /**
-         * Unregister the server node's name and port number from the Erlang port
-         * mapper, thus preventing any new connections from remote nodes.
+         * Open a connection to a remote node.
          */
-        public void UnPublishPort()
-        {
-            // unregister with epmd
-            OtpEpmd.UnPublishPort(this);
+        public OtpConnection Connect(OtpPeer other) => new OtpConnection(this, other);
 
-            // close the local descriptor (if we have one)
-            try
-            {
-                CloseEpmd();
-            }
-            catch (IOException) /* ignore close errors */
-            {
-            }
+        /**
+         * Start listening for incoming connections
+         */
+        public void Listen()
+        {
+            serverSocket = CreateServerTransport(Port);
+            Port = serverSocket.GetLocalPort();
         }
 
         /**
          * Accept an incoming connection from a remote node. A call to this method
          * will block until an incoming connection is at least attempted.
-         * 
-         * @return a connection to a remote node.
-         * 
-         * @exception java.io.IOException
-         *                    if a remote node attempted to connect but no common
-         *                    protocol was found.
-         * 
-         * @exception OtpAuthException
-         *                    if a remote node attempted to connect, but was not
-         *                    authorized to connect.
          */
         public OtpConnection Accept()
         {
@@ -198,36 +78,15 @@ namespace Erlang.NET
             {
                 try
                 {
-                    newsock = sock.Accept();
+                    newsock = serverSocket.Accept();
                     return new OtpConnection(this, newsock);
                 }
                 catch (SocketException e)
                 {
-                    try { newsock?.Close(); }
-                    catch (SocketException) { }
-
+                    newsock?.Dispose();
                     throw new IOException("Failed to accept connection", e);
                 }
             }
         }
-
-        /**
-         * Open a connection to a remote node.
-         * 
-         * @param other
-         *                the remote node to which you wish to connect.
-         * 
-         * @return a connection to the remote node.
-         * 
-         * @exception java.net.UnknownHostException
-         *                    if the remote host could not be found.
-         * 
-         * @exception java.io.IOException
-         *                    if it was not possible to connect to the remote node.
-         * 
-         * @exception OtpAuthException
-         *                    if the connection was refused by the remote node.
-         */
-        public OtpConnection Connect(OtpPeer other) => new OtpConnection(this, other);
     }
 }

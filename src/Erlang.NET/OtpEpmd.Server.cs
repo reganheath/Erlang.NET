@@ -22,23 +22,11 @@ namespace Erlang.NET
 {
     public partial class OtpEpmd : ThreadBase
     {
-        /**
-         * Provides an preliminary implementation of epmd in C#
-         */
-        public class OtpPublishedNode : AbstractNode
-        {
-            public OtpPublishedNode(string node, int port)
-                : base(node, string.Empty)
-            {
-                Port = port;
-            }
-        }
-
         private readonly object lockObj = new object();
         private readonly IOtpServerTransport sock;
         private int creation = 0;
 
-        public Dictionary<string, OtpPublishedNode> Portmap { get; } = new Dictionary<string, OtpPublishedNode>();
+        public Dictionary<string, AbstractNode> Portmap { get; } = new Dictionary<string, AbstractNode>();
 
         private int Creation
         {
@@ -105,7 +93,7 @@ namespace Erlang.NET
         private class OtpEpmdConnection : ThreadBase
         {
             private readonly OtpEpmd epmd;
-            private readonly Dictionary<string, OtpPublishedNode> portmap;
+            private readonly Dictionary<string, AbstractNode> portmap;
             private readonly List<string> publishedPort = new List<string>();
             private readonly IOtpTransport sock;
 
@@ -192,8 +180,10 @@ namespace Erlang.NET
                     byte[] extra = new byte[elen];
                     ibuf.ReadN(extra);
                     string name = OtpErlangString.FromEncoding(alive);
-                    OtpPublishedNode node = new OtpPublishedNode(name, port)
+                    AbstractNode node = new AbstractNode()
                     {
+                        Node = name,
+                        Port = port,
                         Type = type,
                         DistHigh = distHigh,
                         DistLow = distLow,
@@ -230,7 +220,7 @@ namespace Erlang.NET
                     byte[] alive = new byte[len];
                     ibuf.ReadN(alive);
                     string name = OtpErlangString.FromEncoding(alive);
-                    OtpPublishedNode node = null;
+                    AbstractNode node = null;
 
                     if (traceLevel >= traceThreshold)
                         log.Debug("<- PORT (r4) " + name);
@@ -284,9 +274,9 @@ namespace Erlang.NET
                     obuf.Write4BE(EpmdPort);
                     lock (portmap)
                     {
-                        foreach (KeyValuePair<string, OtpPublishedNode> pair in portmap)
+                        foreach (KeyValuePair<string, AbstractNode> pair in portmap)
                         {
-                            OtpPublishedNode node = pair.Value;
+                            AbstractNode node = pair.Value;
                             string info = string.Format("name {0} at port {1}\n", node.Alive, node.Port);
                             byte[] bytes = Encoding.GetEncoding("ISO-8859-1").GetBytes(info);
                             obuf.WriteN(bytes);

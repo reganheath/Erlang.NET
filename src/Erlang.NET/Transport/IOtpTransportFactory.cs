@@ -17,7 +17,7 @@ using System.Net;
 
 namespace Erlang.NET
 {
-    public interface OtpTransportFactory
+    public interface IOtpTransportFactory
     {
         IOtpTransport CreateTransport(string addr, int port);
         IOtpTransport CreateTransport(IPEndPoint addr);

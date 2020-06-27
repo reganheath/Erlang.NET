@@ -17,7 +17,7 @@ using System.Net;
 
 namespace Erlang.NET
 {
-    public class OtpSocketTransportFactory : OtpTransportFactory
+    public class OtpSocketTransportFactory : IOtpTransportFactory
     {
         public IOtpTransport CreateTransport(string addr, int port) => new OtpSocketTransport(addr, port);
 

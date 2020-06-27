@@ -22,56 +22,23 @@ namespace Erlang.NET
      */
     public class OtpPeer : AbstractNode
     {
-        public int DistChoose { get; set; } = 0;
-
         /*
          * this is set by OtpConnection and is the highest
          * common protocol version we both support
          */
+        public int DistChoose { get; set; } = 0;
 
-        public OtpPeer(OtpTransportFactory transportFactory)
-            : base(transportFactory)
-        {
-        }
-
-        /**
-         * Create a peer node.
-         * 
-         * @param node
-         *                the name of the node.
-         */
-        public OtpPeer(string node)
-            : base(node)
-        {
-        }
-
-        /**
-         * Create a peer node.
-         * 
-         * @param node
-         *                the name of the node.
-         */
-        public OtpPeer(string node, OtpTransportFactory transportFactory)
-            : base(node, transportFactory)
-        {
-        }
-
-        // package
         /*
          * Get the port number used by the remote node.
-         * 
-         * @return the port number used by the remote node, or 0 if the node was not
-         * registered with the port mapper.
-         * 
-         * @exception java.io.IOException if the port mapper could not be contacted.
          */
+        private int peerPort = 0;
         public override int Port
         {
             get
             {
-                if (base.Port == 0)
-                    base.Port = OtpEpmd.LookupPort(this);
-                return base.Port;
+                if (peerPort == 0)
+                    peerPort = OtpEpmd.LookupPort(this);
+                return peerPort;
             }
         }
     }

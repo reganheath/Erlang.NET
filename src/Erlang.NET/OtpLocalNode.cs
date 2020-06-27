@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 using System;
-using System.IO;
 
 namespace Erlang.NET
 {
@@ -22,7 +21,7 @@ namespace Erlang.NET
      * This class represents local node types. It is used to group the node types
      * {@link OtpNode OtpNode} and {@link OtpSelf OtpSelf}.
      */
-    public class OtpLocalNode : AbstractNode
+    public class OtpLocalNode : AbstractNode, IDisposable
     {
         private readonly object lockObj = new object();
         private readonly int[] refId = new int[3] { 1, 0, 0 };
@@ -30,78 +29,59 @@ namespace Erlang.NET
         private int pidCount = 1;
         private int portCount = 1;
 
-        public OtpInputStream.StreamFlags Flags { get; set; } = 0;
-
-
-        /**
-         * Create a node with the given name and the default cookie.
-         */
-        protected OtpLocalNode(string node)
-            : base(node)
-        {
-        }
+        public IOtpTransport Epmd { get; protected set; }
+        private bool disposedValue;
 
         /**
-         * Create a node with the given name, transport factory and the default cookie.
-         */
-        protected OtpLocalNode(string node, OtpTransportFactory transportFactory)
-            : base(node, transportFactory)
-        {
-        }
-
-        /**
-         * Create a node with the given name and cookie.
-         */
-        protected OtpLocalNode(string node, string cookie)
-            : base(node, cookie)
-        {
-        }
-
-        /**
-         * Create a node with the given name, cookie and transport factory.
-         */
-        protected OtpLocalNode(string node, string cookie, OtpTransportFactory transportFactory)
-            : base(node, cookie, transportFactory)
-        {
-        }
-
-        public IOtpTransport Epmd { get; set; }
-
-        /**
-         * Close the Epmd socket.
+         * Make public the information needed by remote nodes that may wish to
+         * connect to this one. This method establishes a connection to the Erlang
+         * port mapper (Epmd) and registers the server node's name and port so that
+         * remote nodes are able to connect.
          * 
-         * @param s
-         *                The socket connecting this node to Epmd.
+         * This method will fail if an Epmd process is not running on the localhost.
+         * See the Erlang documentation for information about starting Epmd.
+         * 
+         * Note that once this method has been called, the node is expected to be
+         * available to accept incoming connections. For that reason you should make
+         * sure that you call {@link #accept()} shortly after calling
+         * {@link #publishPort()}. When you no longer intend to accept connections
+         * you should call {@link #unPublishPort()}.
          */
-        public void CloseEpmd()
+        public bool PublishPort()
         {
-            if (Epmd != null)
-            {
-                try
-                {
-                    Epmd.Close();
-                    Epmd = null;
-                }
-                catch (Exception e)
-                {
-                    Epmd = null;
-                    throw new IOException(e.Message);
-                }
-            }
+            if (Epmd is null)
+                Epmd = OtpEpmd.PublishPort(this);
+            return (Epmd != null);
+        }
+
+        /**
+         * Unregister the server node's name and port number from the Erlang port
+         * mapper, thus preventing any new connections from remote nodes.
+         */
+        public void UnPublishPort()
+        {
+            if (Epmd == null)
+                return;
+
+            // Unregister
+            OtpEpmd.UnPublishPort(this);
+
+            // Close and ignore errors
+            try { Epmd.Close(); }
+            catch (Exception) { }
+            Epmd = null;
         }
 
         /**
          * Create an Erlang {@link OtpErlangPid pid}. Erlang pids are based upon
          * some node specific information; this method creates a pid using the
          * information in this node. Each call to this method produces a unique pid.
-         * 
-         * @return an Erlang pid.
          */
         public OtpErlangPid CreatePid()
         {
             lock (lockObj)
             {
-                OtpErlangPid p = new OtpErlangPid(OtpExternal.newPidTag, base.Node, pidCount, serial, base.Creation);
+                OtpErlangPid newPid = new OtpErlangPid(OtpExternal.newPidTag, Node, pidCount, serial, Creation);
 
                 pidCount++;
                 if (pidCount > 0x7fff)
@@ -113,7 +93,7 @@ namespace Erlang.NET
                         serial = 0;
                 }
 
-                return p;
+                return newPid;
             }
         }
 
@@ -123,20 +103,18 @@ namespace Erlang.NET
          * information in this node. Each call to this method produces a unique
          * port. It may not be meaningful to create a port in a non-Erlang
          * environment, but this method is provided for completeness.
-         * 
-         * @return an Erlang port.
          */
         public OtpErlangPort CreatePort()
         {
             lock (lockObj)
             {
-                OtpErlangPort p = new OtpErlangPort(OtpExternal.newPortTag, Node, portCount, Creation);
+                OtpErlangPort newPort = new OtpErlangPort(OtpExternal.newPortTag, Node, portCount, Creation);
 
                 portCount++;
                 if (portCount > 0xfffffff) /* 28 bits */
                     portCount = 0;
 
-                return p;
+                return newPort;
             }
         }
 
@@ -145,14 +123,12 @@ namespace Erlang.NET
          * based upon some node specific information; this method creates a
          * reference using the information in this node. Each call to this method
          * produces a unique reference.
-         * 
-         * @return an Erlang reference.
          */
         public OtpErlangRef CreateRef()
         {
             lock (lockObj)
             {
-                OtpErlangRef r = new OtpErlangRef(OtpExternal.newerRefTag, Node, refId, Creation);
+                OtpErlangRef newRef = new OtpErlangRef(OtpExternal.newerRefTag, Node, refId, Creation);
 
                 // increment ref ids (3 ints: 18 + 32 + 32 bits)
                 refId[0]++;
@@ -165,8 +141,25 @@ namespace Erlang.NET
                         refId[2]++;
                 }
 
-                return r;
+                return newRef;
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                    UnPublishPort();
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -127,7 +127,7 @@ namespace Erlang.NET
         private string Escape(string s)
         {
             StringBuilder so = new StringBuilder();
-            foreach(var c in s)
+            foreach (var c in s)
             {
                 /*
                  * note that some of these escape sequences are unique to Erlang,
@@ -137,17 +137,17 @@ namespace Erlang.NET
                 switch (c)
                 {
                     // some special escape sequences
-                    case '\b':      so.Append(@"\b"); break;
+                    case '\b': so.Append(@"\b"); break;
                     case (char)127: so.Append(@"\d"); break;
-                    case (char)27:  so.Append(@"\e"); break;
-                    case '\f':      so.Append(@"\f"); break;
-                    case '\n':      so.Append(@"\n"); break;
-                    case '\r':      so.Append(@"\r"); break;
-                    case '\t':      so.Append(@"\t"); break;
-                    case (char)11:  so.Append(@"\v"); break;
-                    case '\\':      so.Append(@"\\"); break;
-                    case '\'':      so.Append(@"\'"); break;
-                    case '\"':      so.Append(@"\"""); break;
+                    case (char)27: so.Append(@"\e"); break;
+                    case '\f': so.Append(@"\f"); break;
+                    case '\n': so.Append(@"\n"); break;
+                    case '\r': so.Append(@"\r"); break;
+                    case '\t': so.Append(@"\t"); break;
+                    case (char)11: so.Append(@"\v"); break;
+                    case '\\': so.Append(@"\\"); break;
+                    case '\'': so.Append(@"\'"); break;
+                    case '\"': so.Append(@"\"""); break;
                     case char n when n < 027:
                         // control chars show as "\^@", "\^A" etc
                         so.Append("\\^" + (char)('A' - 1 + n));

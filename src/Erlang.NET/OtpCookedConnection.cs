@@ -69,14 +69,7 @@ namespace Erlang.NET
          * OtpSelf#accept() OtpSelf.accept()} to create a connection based on data
          * received when handshaking with the peer node, when the remote node is the
          * connection intitiator.
-         * 
-         * @exception java.io.IOException if it was not possible to connect to the
-         * peer.
-         * 
-         * @exception OtpAuthException if handshake resulted in an authentication
-         * error
          */
-        // package scope
         internal OtpCookedConnection(OtpNode self, IOtpTransport s)
             : base(self, s)
         {
@@ -86,14 +79,7 @@ namespace Erlang.NET
 
         /*
          * Intiate and open a connection to a remote node.
-         * 
-         * @exception java.io.IOException if it was not possible to connect to the
-         * peer.
-         * 
-         * @exception OtpAuthException if handshake resulted in an authentication
-         * error.
          */
-        // package scope
         internal OtpCookedConnection(OtpNode self, OtpPeer other)
             : base(self, other)
         {
@@ -101,15 +87,13 @@ namespace Erlang.NET
             Start();
         }
 
-        // pass the error to the node
-        public override void Deliver(Exception e)
-        {
-            self.DeliverError(this, e);
-            return;
-        }
+        /*
+         * Pass an error to the node 
+         */
+        public override void Deliver(Exception e) => self.DeliverError(this, e);
 
         /*
-         * pass the message to the node for final delivery. Note that the connection
+         * Pass a message to the node for final delivery. Note that the connection
          * itself needs to know about links (in case of connection failure), so we
          * snoop for link/unlink too here.
          */
@@ -129,7 +113,7 @@ namespace Erlang.NET
                     try
                     {
                         // no such pid - send exit to sender
-                        base.SendExit(msg.GetRecipientPid(), msg.GetSenderPid(), new OtpErlangAtom("noproc"));
+                        SendExit(msg.GetRecipientPid(), msg.GetSenderPid(), new OtpErlangAtom("noproc"));
                     }
                     catch (IOException)
                     {
@@ -149,23 +133,15 @@ namespace Erlang.NET
         }
 
         /*
-         * send to pid
+         * Send to pid
          */
-        public void Send(OtpErlangPid from, OtpErlangPid dest, IOtpErlangObject msg)
-        {
-            // encode and send the message
-            SendBuf(from, dest, new OtpOutputStream(msg));
-        }
+        public void Send(OtpErlangPid from, OtpErlangPid dest, IOtpErlangObject msg) => SendBuf(from, dest, new OtpOutputStream(msg));
 
         /*
          * send to remote name dest is recipient's registered name, the nodename is
          * implied by the choice of connection.
          */
-        public void Send(OtpErlangPid from, string dest, IOtpErlangObject msg)
-        {
-            // encode and send the message
-            SendBuf(from, dest, new OtpOutputStream(msg));
-        }
+        public void Send(OtpErlangPid from, string dest, IOtpErlangObject msg) => SendBuf(from, dest, new OtpOutputStream(msg));
 
         public override void Close()
         {
@@ -186,7 +162,7 @@ namespace Erlang.NET
         {
             try
             {
-                base.SendExit(from, to, reason);
+                SendExit(from, to, reason);
             }
             catch (Exception)
             {
@@ -200,7 +176,7 @@ namespace Erlang.NET
         {
             try
             {
-                base.SendExit2(from, to, reason);
+                SendExit2(from, to, reason);
             }
             catch (Exception)
             {
@@ -216,7 +192,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    base.SendLink(from, to);
+                    SendLink(from, to);
                     links.AddLink(from, to);
                 }
                 catch (IOException)
@@ -236,7 +212,7 @@ namespace Erlang.NET
                 links.RemoveLink(from, to);
                 try
                 {
-                    base.SendUnlink(from, to);
+                    SendUnlink(from, to);
                 }
                 catch (IOException)
                 {

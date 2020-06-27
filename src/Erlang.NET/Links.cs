@@ -18,7 +18,6 @@ using System.Linq;
 
 namespace Erlang.NET
 {
-    // package scope
     public class Links
     {
         private readonly object lockObj = new object();
