@@ -92,5 +92,13 @@ namespace Erlang.NET
             Port = other.Port;
             Flags = other.Flags;
         }
+
+        public override string ToString() => Node;
+
+        public override bool Equals(object obj) => Equals(obj as NodeDetails);
+
+        public override int GetHashCode() => Node.GetHashCode();
+
+        public bool Equals(NodeDetails o) => string.Equals(Node, o.Node);
     }
 }

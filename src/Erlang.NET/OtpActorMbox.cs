@@ -39,21 +39,9 @@ namespace Erlang.NET
             sched.Cancel(this);
         }
 
-        public override OtpMsg ReceiveMsg()
-        {
-            object m = Queue.TryGet();
-            if (m == null)
-                return null;
-            return (OtpMsg)m;
-        }
+        public override OtpMsg ReceiveMsg() => Queue.TryDequeue(out OtpMsg m) ? m : null;
 
-        public override OtpMsg ReceiveMsg(long timeout)
-        {
-            object m = Queue.Get(timeout);
-            if (m == null)
-                return null;
-            return (OtpMsg)m;
-        }
+        public override OtpMsg ReceiveMsg(long timeout) => Queue.Dequeue(timeout, out OtpMsg m) ? m : null;
 
         public override void Deliver(OtpMsg m)
         {

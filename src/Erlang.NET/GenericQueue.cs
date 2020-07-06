@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -24,129 +25,66 @@ namespace Erlang.NET
      * length of the queue, items are linked.
      */
 
-    public class GenericQueue
+    public class GenericQueue<T> : ConcurrentQueue<T>
     {
-        private enum QueueState { Open, Closing, Closed };
+        private readonly AutoResetEvent wakeEvent = new AutoResetEvent(false);
 
-        private QueueState status;
-        private readonly object lockObj = new object();
-        private LinkedList<object> queue = new LinkedList<object>();
-
-        /** Create an empty queue */
-        public GenericQueue()
+        /**
+         * Empty the queue
+         */
+        public void Clear()
         {
-            status = QueueState.Open;
-        }
-
-        /** Clear a queue */
-        public void Flush()
-        {
-            lock (lockObj)
-                queue = new LinkedList<object>();
-        }
-
-        public void Close()
-        {
-            status = QueueState.Closing;
+            while (TryDequeue(out _)) { }
         }
 
         /**
-         * Add an object to the tail of the queue.
-         * 
-         * @param o
-         *                Object to insert in the queue
-         */
-        public void Put(object o)
+         * Enqueue and wake any waiting Dequeue
+         */ 
+        public new void Enqueue(T o)
         {
-            lock (lockObj)
-            {
-                queue.AddLast(o);
-                Monitor.Pulse(lockObj);
-            }
+            base.Enqueue(o);
+            wakeEvent.Set();
         }
 
         /**
-         * Retrieve an object from the head of the queue, or block until one
-         * arrives.
-         * 
-         * @return The object at the head of the queue.
+         * Blocking dequeue
          */
-        public object Get()
+        public bool Dequeue(out T o)
         {
-            lock (lockObj)
+            while (!TryDequeue(out o))
             {
-                object o = null;
-
-                while ((o = TryGet()) == null)
+                try { wakeEvent.WaitOne(); }
+                catch (ThreadInterruptedException)
                 {
-                    try { Monitor.Wait(lockObj); }
-                    catch (ThreadInterruptedException)
-                    {
-                        break;
-                    }
+                    return false;
                 }
-
-                return o;
             }
+
+            return true;
         }
 
         /**
-         * Retrieve an object from the head of the queue, blocking until one arrives
-         * or until timeout occurs.
-         * 
-         * @param timeout
-         *                Maximum time to block on queue, in ms. Use 0 to poll the
-         *                queue.
-         * 
-         * @exception InterruptedException
-         *                    if the operation times out.
-         * 
-         * @return The object at the head of the queue, or null if none arrived in
-         *         time.
+         * Blocking dequeue with timeout
          */
-        public object Get(long timeout)
+        public bool Dequeue(long timeout, out T o)
         {
-            if (status == QueueState.Closed)
-                return null;
-
             Stopwatch stopwatch = new Stopwatch();
-            lock (lockObj)
+
+            stopwatch.Start();
+            while (!TryDequeue(out o))
             {
-                object o = null;
+                long elapsed = stopwatch.ElapsedMilliseconds;
+                if (elapsed > timeout)
+                    return false;
 
-                stopwatch.Start();
-                while (true)
+                try { wakeEvent.WaitOne((int)(timeout - elapsed)); }
+                catch (ThreadInterruptedException)
                 {
-                    if ((o = TryGet()) != null)
-                        return o;
-
-                    long elapsed = stopwatch.ElapsedMilliseconds;
-                    if (elapsed > timeout)
-                        break;
-
-                    try { Monitor.Wait(lockObj, (int)(timeout - elapsed)); }
-                    catch (ThreadInterruptedException)
-                    {
-                        break;
-                    }
+                    return false;
                 }
             }
 
-            return null;
+            return true;
         }
-
-        // attempt to retrieve message from queue head
-        public object TryGet()
-        {
-            lock (lockObj)
-            {
-                LinkedListNode<object> o = queue.First;
-                if (o != null)
-                    queue.RemoveFirst();
-                return o?.Value ?? null;
-            }
-        }
-
-        public int GetCount() => queue.Count;
     }
 }

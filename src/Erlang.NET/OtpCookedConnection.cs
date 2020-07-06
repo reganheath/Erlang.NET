@@ -101,19 +101,19 @@ namespace Erlang.NET
         {
             bool delivered = self.Deliver(msg);
 
-            switch (msg.Type())
+            switch (msg.Type)
             {
                 case OtpMsg.linkTag:
                     if (delivered)
                     {
-                        links.AddLink(msg.GetRecipientPid(), msg.GetSenderPid());
+                        links.AddLink(msg.ToPid, msg.FromPid);
                         break;
                     }
 
                     try
                     {
                         // no such pid - send exit to sender
-                        SendExit(msg.GetRecipientPid(), msg.GetSenderPid(), new OtpErlangAtom("noproc"));
+                        SendExit(msg.ToPid, msg.FromPid, new OtpErlangAtom("noproc"));
                     }
                     catch (IOException)
                     {
@@ -122,7 +122,7 @@ namespace Erlang.NET
 
                 case OtpMsg.unlinkTag:
                 case OtpMsg.exitTag:
-                    links.RemoveLink(msg.GetRecipientPid(), msg.GetSenderPid());
+                    links.RemoveLink(msg.ToPid, msg.FromPid);
                     break;
 
                 case OtpMsg.exit2Tag:

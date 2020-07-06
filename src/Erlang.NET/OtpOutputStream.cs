@@ -24,105 +24,45 @@ namespace Erlang.NET
      * Provides a stream for encoding Erlang terms to external format, for
      * transmission or storage.
      * 
-     * <p>
      * Note that this class is not synchronized, if you need synchronization you
      * must provide it yourself.
-     * 
      */
     public class OtpOutputStream : MemoryStream
     {
-        /** The default initial size of the stream. * */
+        /** The default initial size of the stream. */
         public const int defaultInitialSize = 2048;
 
         /**
          * Create a stream with the default initial size (2048 bytes).
          */
-        public OtpOutputStream()
-            : this(defaultInitialSize)
-        {
-        }
+        public OtpOutputStream() : this(defaultInitialSize) { }
 
         /**
          * Create a stream with the specified initial size.
          */
-        public OtpOutputStream(int size)
-            : base(size)
-        {
-        }
+        public OtpOutputStream(int size) : base(size) { }
 
         /**
          * Create a stream containing the encoded version of the given Erlang term.
          */
-        public OtpOutputStream(IOtpErlangObject o)
-            : base()
-        {
-            WriteAny(o);
-        }
+        public OtpOutputStream(IOtpErlangObject o) : base() => WriteAny(o);
 
-        /*
+        /**
          * Get the contents of the output stream as an input stream instead. This is
          * used internally in {@link OtpCconnection} for tracing outgoing packages.
-         * 
-         * @param offset where in the output stream to read data from when creating
-         * the input stream. The offset is necessary because header contents start 5
-         * bytes into the header buffer, whereas payload contents start at the
-         * beginning
-         * 
-         * @return an input stream containing the same raw data.
          */
-        internal OtpInputStream GetOtpInputStream(int offset)
-        {
-            return new OtpInputStream(base.GetBuffer(), offset, ((int)base.Length) - offset, 0);
-        }
-
-        /**
-         * Get the current position in the stream.
-         * 
-         * @return the current position in the stream.
-         */
-        public int GetPos()
-        {
-            return (int)base.Position;
-        }
-
-        /**
-         * Trims the capacity of this <tt>OtpOutputStream</tt> instance to be the
-         * buffer's current size.  An application can use this operation to minimize
-         * the storage of an <tt>OtpOutputStream</tt> instance.
-         */
-        public void TrimToSize()
-        {
-            base.Capacity = (int)base.Length;
-        }
+        internal OtpInputStream GetOtpInputStream(int offset) => new OtpInputStream(base.GetBuffer(), offset, (int)(base.Length - offset));
 
         /**
          * Write one byte to the stream.
-         * 
-         * @param b
-         *            the byte to write.
-         * 
          */
-        public void Write(byte b)
-        {
-            base.WriteByte(b);
-        }
-
-        public void Write(int b)
-        {
-            base.WriteByte((byte)b);
-        }
+        public void Write(byte b) => base.WriteByte(b);
+        public void Write(int b) => base.WriteByte((byte)b);
 
         /**
          * Write an array of bytes to the stream.
-         * 
-         * @param buf
-         *            the array of bytes to write.
-         * 
          */
-        public void Write(byte[] buf)
-        {
-            base.Write(buf, 0, buf.Length);
-        }
+        public void Write(byte[] buf) => base.Write(buf, 0, buf.Length);
 
         public override void WriteTo(Stream stream)
         {
@@ -139,33 +79,16 @@ namespace Erlang.NET
 
         /**
          * Write the low byte of a value to the stream.
-         * 
-         * @param n
-         *            the value to use.
-         * 
          */
-        public void Write1(long n)
-        {
-            Write((byte)(n & 0xff));
-        }
+        public void Write1(long n) => Write((byte)(n & 0xff));
 
         /**
          * Write an array of bytes to the stream.
-         * 
-         * @param buf
-         *            the array of bytes to write.
-         * 
          */
-        public void WriteN(byte[] bytes)
-        {
-            Write(bytes);
-        }
+        public void WriteN(byte[] bytes) => Write(bytes);
 
         /**
          * Write the low two bytes of a value to the stream in big endian order.
-         * 
-         * @param n
-         *            the value to use.
          */
         public void Write2BE(long n)
         {
@@ -175,9 +98,6 @@ namespace Erlang.NET
 
         /**
          * Write the low four bytes of a value to the stream in big endian order.
-         * 
-         * @param n
-         *            the value to use.
          */
         public void Write4BE(long n)
         {
@@ -190,9 +110,6 @@ namespace Erlang.NET
         /**
          * Write the low eight (all) bytes of a value to the stream in big endian
          * order.
-         * 
-         * @param n
-         *            the value to use.
          */
         public void Write8BE(long n)
         {
@@ -208,11 +125,6 @@ namespace Erlang.NET
 
         /**
          * Write any number of bytes in little endian format.
-         * 
-         * @param n
-         *            the value to use.
-         * @param b
-         *            the number of bytes to write from the little end.
          */
         public void WriteLE(long n, int b)
         {
@@ -225,9 +137,6 @@ namespace Erlang.NET
 
         /**
          * Write the low two bytes of a value to the stream in little endian order.
-         * 
-         * @param n
-         *            the value to use.
          */
         public void Write2LE(long n)
         {
@@ -237,9 +146,6 @@ namespace Erlang.NET
 
         /**
          * Write the low four bytes of a value to the stream in little endian order.
-         * 
-         * @param n
-         *            the value to use.
          */
         public void Write4LE(long n)
         {
@@ -252,9 +158,6 @@ namespace Erlang.NET
         /**
          * Write the low eight bytes of a value to the stream in little endian
          * order.
-         * 
-         * @param n
-         *            the value to use.
          */
         public void Write8LE(long n)
         {
@@ -285,12 +188,6 @@ namespace Erlang.NET
          *    // later... when we know the length value
          *    s.poke4BE(pos, length);
          * </pre>
-         * 
-         * 
-         * @param offset
-         *            the position in the stream.
-         * @param n
-         *            the value to use.
          */
         public void Poke4BE(int offset, long n)
         {
@@ -306,10 +203,12 @@ namespace Erlang.NET
         }
 
         /**
+         * Write an arbitrary Erlang term to the stream.
+         */
+        public void WriteAny(IOtpErlangObject o) => o.Encode(this);
+
+        /**
          * Write a string to the stream as an Erlang atom.
-         * 
-         * @param atom
-         *            the string to write.
          */
         public void WriteAtom(string atom)
         {
@@ -333,9 +232,6 @@ namespace Erlang.NET
 
         /**
          * Write an array of bytes to the stream as an Erlang binary.
-         * 
-         * @param bin
-         *            the array of bytes to write.
          */
         public void WriteBinary(byte[] bin)
         {
@@ -346,11 +242,6 @@ namespace Erlang.NET
 
         /**
          * Write an array of bytes to the stream as an Erlang bitstr.
-         * 
-         * @param bin
-         *            the array of bytes to write.
-         * @param pad_bits
-         *            the number of zero pad bits at the low end of the last byte
          */
         public void WriteBitstr(byte[] bin, int padBits)
         {
@@ -367,26 +258,14 @@ namespace Erlang.NET
 
         /**
          * Write a boolean value to the stream as the Erlang atom 'true' or 'false'.
-         * 
-         * @param b
-         *            the boolean value to write.
          */
-        public void WriteBoolean(bool b)
-        {
-            WriteAtom(b.ToString());
-        }
+        public void WriteBoolean(bool b) => WriteAtom(b.ToString());
 
         /**
          * Write a single byte to the stream as an Erlang integer. The byte is
          * really an IDL 'octet', that is, unsigned.
-         * 
-         * @param b
-         *            the byte to use.
          */
-        public new void WriteByte(byte b)
-        {
-            WriteLong(b & 0xffL, true);
-        }
+        public new void WriteByte(byte b) => WriteLong(b & 0xffL, true);
 
         /**
          * Write a character to the stream as an Erlang integer. The character may
@@ -396,16 +275,10 @@ namespace Erlang.NET
          * @param c
          *            the character to use.
          */
-        public void WriteChar(char c)
-        {
-            WriteLong(c & 0xffffL, true);
-        }
+        public void WriteChar(char c) => WriteLong(c & 0xffffL, true);
 
         /**
          * Write a double value to the stream.
-         * 
-         * @param d
-         *            the double to use.
          */
         public void WriteDouble(double d)
         {
@@ -415,14 +288,8 @@ namespace Erlang.NET
 
         /**
          * Write a float value to the stream.
-         * 
-         * @param f
-         *            the float to use.
          */
-        public void WriteFloat(float f)
-        {
-            WriteDouble(f);
-        }
+        public void WriteFloat(float f) => WriteDouble(f);
 
         public void WriteBigInteger(BigInteger v)
         {
@@ -470,110 +337,70 @@ namespace Erlang.NET
                 // will fit in one byte
                 Write1(OtpExternal.smallIntTag);
                 Write1(v);
+                return;
+            }
+
+            // note that v != 0L
+            if (v < 0 && unsigned || v < OtpExternal.erlMin || v > OtpExternal.erlMax)
+            {
+                // some kind of bignum
+                long abs = unsigned ? v : v < 0 ? -v : v;
+                int sign = unsigned ? 0 : v < 0 ? 1 : 0;
+                int n;
+                long mask;
+                for (mask = 0xFFFFffffL, n = 4; (abs & mask) != abs; n++, mask = mask << 8 | 0xffL)
+                {
+                    ; // count nonzero bytes
+                }
+                Write1(OtpExternal.smallBigTag);
+                Write1(n); // length
+                Write1(sign); // sign
+                WriteLE(abs, n); // value. obs! little endian
             }
             else
             {
-                // note that v != 0L
-                if (v < 0 && unsigned || v < OtpExternal.erlMin || v > OtpExternal.erlMax)
-                {
-                    // some kind of bignum
-                    long abs = unsigned ? v : v < 0 ? -v : v;
-                    int sign = unsigned ? 0 : v < 0 ? 1 : 0;
-                    int n;
-                    long mask;
-                    for (mask = 0xFFFFffffL, n = 4; (abs & mask) != abs; n++, mask = mask << 8 | 0xffL)
-                    {
-                        ; // count nonzero bytes
-                    }
-                    Write1(OtpExternal.smallBigTag);
-                    Write1(n); // length
-                    Write1(sign); // sign
-                    WriteLE(abs, n); // value. obs! little endian
-                }
-                else
-                {
-                    Write1(OtpExternal.intTag);
-                    Write4BE(v);
-                }
+                Write1(OtpExternal.intTag);
+                Write4BE(v);
             }
         }
 
         /**
          * Write a long to the stream.
-         * 
-         * @param l
-         *            the long to use.
          */
-        public void WriteLong(long l)
-        {
-            WriteLong(l, false);
-        }
+        public void WriteLong(long l) => WriteLong(l, false);
 
         /**
          * Write a positive long to the stream. The long is interpreted as a two's
          * complement unsigned long even if it is negative.
-         * 
-         * @param ul
-         *            the long to use.
          */
-        public void WriteULong(long ul)
-        {
-            WriteLong(ul, true);
-        }
+        public void WriteULong(long ul) => WriteLong(ul, true);
 
         /**
          * Write an integer to the stream.
-         * 
-         * @param i
-         *            the integer to use.
          */
-        public void WriteInt(int i)
-        {
-            WriteLong(i, false);
-        }
+        public void WriteInt(int i) => WriteLong(i, false);
 
         /**
          * Write a positive integer to the stream. The integer is interpreted as a
          * two's complement unsigned integer even if it is negative.
-         * 
-         * @param ui
-         *            the integer to use.
          */
-        public void WriteUInt(uint ui)
-        {
-            WriteLong(ui & 0xFFFFffffL, true);
-        }
+        public void WriteUInt(uint ui) => WriteLong(ui & 0xFFFFffffL, true);
 
         /**
          * Write a short to the stream.
-         * 
-         * @param s
-         *            the short to use.
          */
-        public void WriteShort(short s)
-        {
-            WriteLong(s, false);
-        }
+        public void WriteShort(short s) => WriteLong(s, false);
 
         /**
          * Write a positive short to the stream. The short is interpreted as a two's
          * complement unsigned short even if it is negative.
-         * 
-         * @param s
-         *            the short to use.
          */
-        public void WriteUShort(ushort us)
-        {
-            WriteLong(us & 0xffffL, true);
-        }
+        public void WriteUShort(ushort us) => WriteLong(us & 0xffffL, true);
 
         /**
          * Write an Erlang list header to the stream. After calling this method, you
          * must write 'arity' elements to the stream followed by nil, or it will not
          * be possible to decode it later.
-         * 
-         * @param arity
-         *            the number of elements in the list.
          */
         public void WriteListHead(int arity)
         {
@@ -591,18 +418,12 @@ namespace Erlang.NET
         /**
          * Write an empty Erlang list to the stream.
          */
-        public void WriteNil()
-        {
-            Write1(OtpExternal.nilTag);
-        }
+        public void WriteNil() => Write1(OtpExternal.nilTag);
 
         /**
          * Write an Erlang tuple header to the stream. After calling this method,
          * you must write 'arity' elements to the stream or it will not be possible
          * to decode it later.
-         * 
-         * @param arity
-         *            the number of elements in the tuple.
          */
         public void WriteTupleHead(int arity)
         {
@@ -620,21 +441,6 @@ namespace Erlang.NET
 
         /**
          * Write an Erlang PID to the stream.
-         * 
-         * @param node
-         *            the nodename.
-         * 
-         * @param id
-         *            an arbitrary number. Only the low order 15 bits will be used.
-         * 
-         * @param serial
-         *            another arbitrary number. Only the low order 13 bits will be
-         *            used.
-         * 
-         * @param creation
-         *            yet another arbitrary number. Only the low order 2 bits will
-         *            be used.
-         * 
          */
         public void WritePid(string node, int id, int serial, int creation)
         {
@@ -647,9 +453,6 @@ namespace Erlang.NET
 
         /**
          * Write an Erlang PID to the stream.
-         *
-         * @param pid
-         *            the pid
          */
         public void WritePid(OtpErlangPid pid)
         {
@@ -662,17 +465,6 @@ namespace Erlang.NET
 
         /**
          * Write an Erlang port to the stream.
-         * 
-         * @param node
-         *            the nodename.
-         * 
-         * @param id
-         *            an arbitrary number. Only the low order 28 bits will be used.
-         * 
-         * @param creation
-         *            another arbitrary number. Only the low order 2 bits will be
-         *            used.
-         * 
          */
         public void WritePort(string node, int id, int creation)
         {
@@ -684,9 +476,6 @@ namespace Erlang.NET
 
         /**
          * Write an Erlang port to the stream.
-         *
-         * @param port
-         *            the port.
          */
         public void WritePort(OtpErlangPort port)
         {
@@ -698,17 +487,6 @@ namespace Erlang.NET
 
         /**
          * Write an old style Erlang ref to the stream.
-         * 
-         * @param node
-         *            the nodename.
-         * 
-         * @param id
-         *            an arbitrary number. Only the low order 18 bits will be used.
-         * 
-         * @param creation
-         *            another arbitrary number. Only the low order 2 bits will be
-         *            used.
-         * 
          */
         public void WriteRef(string node, int id, int creation)
         {
@@ -720,18 +498,6 @@ namespace Erlang.NET
 
         /**
          * Write an Erlang ref to the stream.
-         * 
-         * @param node
-         *            the nodename.
-         * 
-         * @param ids
-         *            an array of arbitrary numbers. Only the low order 18 bits of
-         *            the first number will be used. At most three numbers
-         *            will be read from the array.
-         * 
-         * @param creation
-         *            another arbitrary number. Only the low order 2 bits will be used.
-         * 
          */
         public void WriteRef(string node, int[] ids, int creation)
         {
@@ -759,9 +525,6 @@ namespace Erlang.NET
 
         /**
          * Write an Erlang ref to the stream.
-         *
-         * @param ref
-         *            the reference
          */
         public void WriteRef(OtpErlangRef r)
         {
@@ -777,9 +540,6 @@ namespace Erlang.NET
 
         /**
          * Write a string to the stream.
-         * 
-         * @param s
-         *            the string to write.
          */
         public void WriteString(string s)
         {
@@ -834,14 +594,8 @@ namespace Erlang.NET
 
         /**
          * Write an arbitrary Erlang term to the stream in compressed format.
-         * 
-         * @param o
-         *            the Erlang tem to write.
          */
-        public void WriteCompressed(IOtpErlangObject o)
-        {
-            WriteCompressed(o, CompressionLevel.Optimal);
-        }
+        public void WriteCompressed(IOtpErlangObject o) => WriteCompressed(o, CompressionLevel.Optimal);
 
         public void WriteCompressed(IOtpErlangObject o, CompressionLevel level)
         {
@@ -871,18 +625,6 @@ namespace Erlang.NET
             }
         }
 
-        /**
-         * Write an arbitrary Erlang term to the stream.
-         * 
-         * @param o
-         *            the Erlang term to write.
-         */
-        public void WriteAny(IOtpErlangObject o)
-        {
-            // calls one of the above functions, depending on o
-            o.Encode(this);
-        }
-
         public void WriteFun(OtpErlangPid pid, string module,
                       long old_index, int arity, byte[] md5,
                       long index, long uniq, IOtpErlangObject[] freeVars)
@@ -903,7 +645,7 @@ namespace Erlang.NET
             else
             {
                 Write1(OtpExternal.newFunTag);
-                int saveSizePos = GetPos();
+                long saveSizePos = Position;
                 Write4BE(0); // this is where we patch in the size
                 Write1(arity);
                 WriteN(md5);
@@ -917,7 +659,7 @@ namespace Erlang.NET
                 {
                     fv.Encode(this);
                 }
-                Poke4BE(saveSizePos, GetPos() - saveSizePos);
+                Poke4BE((int)saveSizePos, Position - saveSizePos);
             }
         }
 

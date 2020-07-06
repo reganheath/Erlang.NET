@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace Erlang.NET
 {
@@ -42,7 +43,7 @@ namespace Erlang.NET
         }
 
         public OtpEpmd()
-            : base("OtpEpmd", true)
+              : base("OtpEpmd", true)
         {
             sock = new OtpServerSocketTransport(EpmdPort, false);
         }
@@ -304,11 +305,11 @@ namespace Erlang.NET
                     while (!Stopping)
                     {
                         ReadSock(sock, lbuf);
-                        ibuf = new OtpInputStream(lbuf, 0);
+                        ibuf = new OtpInputStream(lbuf);
                         len = ibuf.Read2BE();
                         byte[] tmpbuf = new byte[len];
                         ReadSock(sock, tmpbuf);
-                        ibuf = new OtpInputStream(tmpbuf, 0);
+                        ibuf = new OtpInputStream(tmpbuf);
 
                         int request = ibuf.Read1();
                         switch (request)
@@ -319,12 +320,12 @@ namespace Erlang.NET
 
                             case port4req:
                                 Port_R4(sock, ibuf);
-                                Stop();
+                                this.Stop();
                                 break;
 
                             case names4req:
                                 Names_R4(sock, ibuf);
-                                Stop();
+                                this.Stop();
                                 break;
 
                             case stopReq:

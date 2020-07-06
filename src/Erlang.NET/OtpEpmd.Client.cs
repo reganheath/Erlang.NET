@@ -178,7 +178,7 @@ namespace Erlang.NET
                         throw new IOException("Nameserver not responding on " + node.Host + " when looking up " + node.Alive);
                     }
 
-                    OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
+                    OtpInputStream ibuf = new OtpInputStream(tmpbuf);
 
                     int response = ibuf.Read1();
                     if (response == port4resp)
@@ -275,7 +275,7 @@ namespace Erlang.NET
                     throw new IOException("Nameserver not responding on " + node.Host + " when publishing " + node.Alive);
                 }
 
-                OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
+                OtpInputStream ibuf = new OtpInputStream(tmpbuf);
 
                 int response = ibuf.Read1();
                 if (response == ALIVE2_RESP || response == ALIVE2_X_RESP)
@@ -353,7 +353,7 @@ namespace Erlang.NET
                         ms.Write(buffer, 0, bytesRead);
                     }
                     byte[] tmpbuf = ms.GetBuffer();
-                    OtpInputStream ibuf = new OtpInputStream(tmpbuf, 0);
+                    OtpInputStream ibuf = new OtpInputStream(tmpbuf);
                     ibuf.Read4BE(); // read port int
                     // int port = ibuf.read4BE();
                     // check if port = epmdPort

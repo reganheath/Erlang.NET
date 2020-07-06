@@ -30,39 +30,22 @@ namespace Erlang.NET
     {
         [Flags] public enum StreamFlags { DecodeIntListsAsStrings };
 
-        public StreamFlags Flags { get; private set; }
+        public StreamFlags Flags { get; set; }
 
         private long mark;
 
-        public OtpInputStream(int capacity, StreamFlags flags)
-            : base(capacity)
-        {
-            Flags = flags;
-        }
-
-        public OtpInputStream(byte[] buf)
-            : base(buf)
-        {
-        }
+        public OtpInputStream(int capacity) : base(capacity) { }
 
         /**
          * Create a stream from a buffer containing encoded Erlang terms.
          */
-        public OtpInputStream(byte[] buf, StreamFlags flags)
-            : base(buf)
-        {
-            Flags = flags;
-        }
+        public OtpInputStream(byte[] buf) : base(buf) { }
 
         /**
          * Create a stream from a buffer containing encoded Erlang terms at the
          * given offset and length.
          */
-        public OtpInputStream(byte[] buf, int offset, int length, StreamFlags flags)
-            : base(buf, offset, length)
-        {
-            Flags = flags;
-        }
+        public OtpInputStream(byte[] buf, int offset, int length) : base(buf, offset, length) { }
 
         public void Mark() => mark = base.Position;
 
@@ -801,7 +784,7 @@ namespace Erlang.NET
                 throw new OtpDecodeException("Failed to decode compressed", e);
             }
 
-            OtpInputStream ois = new OtpInputStream(buf, Flags);
+            OtpInputStream ois = new OtpInputStream(buf) { Flags = Flags };
             return ois.ReadAny();
         }
 

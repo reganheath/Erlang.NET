@@ -30,8 +30,7 @@ namespace Erlang.NET
         private int portCount = 1;
 
         public IOtpTransport Epmd { get; protected set; }
-        private bool disposedValue;
-
+        
         /**
          * Make public the information needed by remote nodes that may wish to
          * connect to this one. This method establishes a connection to the Erlang
@@ -145,12 +144,17 @@ namespace Erlang.NET
             }
         }
 
+        #region IDisposable
+        private bool disposedValue;
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
                 if (disposing)
-                    UnPublishPort();
+                {
+                    try { UnPublishPort(); }
+                    catch (Exception) { }
+                }
                 disposedValue = true;
             }
         }
@@ -161,5 +165,6 @@ namespace Erlang.NET
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+        #endregion
     }
 }

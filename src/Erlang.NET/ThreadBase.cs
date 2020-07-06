@@ -34,25 +34,10 @@ namespace Erlang.NET
 
         public bool Stopping => done;
 
-        public virtual void Start()
-        {
-            thread.Start();
-        }
-
-        public virtual void Stop()
-        {
-            done = true;
-        }
-
-        public virtual void Join()
-        {
-            thread.Join();
-        }
-
-        public virtual void Join(TimeSpan timeout)
-        {
-            thread.Join(timeout);
-        }
+        public virtual void Start() => thread.Start();
+        public virtual void Stop() => done = true;
+        public virtual void Join() => thread.Join();
+        public virtual void Join(TimeSpan timeout) => thread.Join(timeout);
 
         public abstract void Run();
     }

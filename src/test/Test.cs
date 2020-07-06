@@ -15,6 +15,7 @@
  */
 using log4net;
 using log4net.Config;
+using System;
 using System.Reflection;
 
 namespace Erlang.NET.Test
@@ -37,14 +38,13 @@ namespace Erlang.NET.Test
                 Flags = OtpInputStream.StreamFlags.DecodeIntListsAsStrings
             });
             OtpMbox mbox = self.CreateMbox("test", true);
-            OtpErlangTuple tuple = new OtpErlangTuple(new IOtpErlangObject[2]
-            {
+            OtpErlangTuple tuple = new OtpErlangTuple(
                 mbox.Self,
-                new OtpErlangTuple(new IOtpErlangObject[] {
+                new OtpErlangTuple(
                     new OtpErlangAtom("echo"),
                     new OtpErlangString(OtpErlangString.FromCodePoints(new int[] { 127744,32,69,108,32,78,105,241,111 })) // 🌀 El Niño
-                })
-            });
+                )
+            );
 
             //send message to registered process hello_server on node one @grannysmith
             //> { hello_server, 'one@grannysmith'} ! test.

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Erlang.NET
@@ -41,12 +42,7 @@ namespace Erlang.NET
      */
     public class OtpConnection : AbstractConnection
     {
-        protected readonly GenericQueue queue; // messages get delivered here
-
-        /**
-         * Get information about the node at the peer end of this connection.
-         */
-        public OtpPeer Peer { get; protected set; }
+        protected readonly GenericQueue<object> queue = new GenericQueue<object>(); // messages get delivered here
 
         /**
          * Get information about the node at the local end of this connection.
@@ -57,7 +53,7 @@ namespace Erlang.NET
          * Return the number of messages currently waiting in the receive queue for
          * this connection.
          */
-        public int MsgCount() => queue.GetCount();
+        public int MsgCount() => queue.Count;
 
         /*
          * Accept an incoming connection from a remote node. Used by {@link
@@ -65,28 +61,26 @@ namespace Erlang.NET
          * received when handshaking with the peer node, when the remote node is the
          * connection intitiator.
          */
-        internal OtpConnection(OtpSelf self, IOtpTransport s)
-            : base(self, s)
+        internal OtpConnection(OtpSelf self, IOtpTransport socket)
+            : base(self, socket)
         {
             Self = self;
-            queue = new GenericQueue();
             Start();
         }
 
         /*
          * Intiate and open a connection to a remote node.
          */
-        internal OtpConnection(OtpSelf self, OtpPeer other)
-            : base(self, other)
+        internal OtpConnection(OtpSelf self, OtpPeer peer)
+            : base(self, peer)
         {
             Self = self;
-            queue = new GenericQueue();
             Start();
         }
 
-        public override void Deliver(Exception e) => queue.Put(e);
+        public override void Deliver(Exception e) => queue.Enqueue(e);
 
-        public override void Deliver(OtpMsg msg) => queue.Put(msg);
+        public override void Deliver(OtpMsg msg) => queue.Enqueue(msg);
 
         /**
          * Receive a message from a remote process. This method blocks until a valid
@@ -99,7 +93,7 @@ namespace Erlang.NET
         {
             try
             {
-                return ReceiveMsg().GetMsg();
+                return ReceiveMsg().Payload;
             }
             catch (OtpDecodeException e)
             {
@@ -120,7 +114,7 @@ namespace Erlang.NET
         {
             try
             {
-                return ReceiveMsg(timeout).GetMsg();
+                return ReceiveMsg(timeout).Payload;
             }
             catch (OtpDecodeException e)
             {
@@ -136,7 +130,7 @@ namespace Erlang.NET
          * If the remote node sends a message that cannot be decoded properly, the
          * connection is closed and the method throws an exception.
          */
-        public OtpInputStream ReceiveBuf() => ReceiveMsg().GetMsgBuf();
+        public OtpInputStream ReceiveBuf() => ReceiveMsg().Stream;
 
         /**
          * Receive a raw (still encoded) message from a remote process. This message
@@ -146,23 +140,23 @@ namespace Erlang.NET
          * If the remote node sends a message that cannot be decoded properly, the
          * connection is closed and the method throws an exception.
          */
-        public OtpInputStream ReceiveBuf(long timeout) => ReceiveMsg(timeout).GetMsgBuf();
+        public OtpInputStream ReceiveBuf(long timeout) => ReceiveMsg(timeout).Stream;
 
         /**
          * Receive a messge complete with sender and recipient information.
          */
         public OtpMsg ReceiveMsg()
         {
-            object o = queue.Get();
-            if (o is OtpMsg msg)
-                return msg;
-            if (o is IOException ioex)
-                throw ioex;
-            if (o is OtpExit exit)
-                throw exit;
-            if (o is OtpAuthException ex)
-                throw ex;
-            return null;
+            if (!queue.Dequeue(out object o))
+                return null;
+            switch (o)
+            {
+                case OtpMsg m: return m;
+                case IOException ioex: throw ioex;
+                case OtpExit exit: throw exit;
+                case OtpAuthException ex: throw ex;
+                default: return null;
+            }
         }
 
         /**
@@ -171,16 +165,16 @@ namespace Erlang.NET
          */
         public OtpMsg ReceiveMsg(long timeout)
         {
-            object o = queue.Get(timeout);
-            if (o is OtpMsg msg)
-                return msg;
-            if (o is IOException ioex)
-                throw ioex;
-            if (o is OtpExit exit)
-                throw exit;
-            if (o is OtpAuthException ex)
-                throw ex;
-            return null;
+            if (!queue.Dequeue(timeout, out object o))
+                return null;
+            switch(o)
+            {
+                case OtpMsg m:            return m;
+                case IOException ioex:    throw ioex;
+                case OtpExit exit:        throw exit;
+                case OtpAuthException ex: throw ex;
+                default:                  return null;
+            }
         }
 
         /**
@@ -212,7 +206,7 @@ namespace Erlang.NET
          * Note that this method has unpredicatble results if the remote node is not
          * an Erlang node.
          */
-        public void SendRPC(string mod, string fun, IOtpErlangObject[] args) => SendRPC(mod, fun, new OtpErlangList(args));
+        public void SendRPC(string mod, string fun, IEnumerable<IOtpErlangObject> args) => SendRPC(mod, fun, new OtpErlangList(args));
 
         /**
          * Send an RPC request to the remote Erlang node. This convenience function
@@ -225,21 +219,17 @@ namespace Erlang.NET
          */
         public void SendRPC(string mod, string fun, OtpErlangList args)
         {
-            IOtpErlangObject[] rpc = new IOtpErlangObject[2];
-            IOtpErlangObject[] call = new IOtpErlangObject[5];
-
             /* {self, { call, Mod, Fun, Args, user}} */
-
-            call[0] = new OtpErlangAtom("call");
-            call[1] = new OtpErlangAtom(mod);
-            call[2] = new OtpErlangAtom(fun);
-            call[3] = args;
-            call[4] = new OtpErlangAtom("user");
-
-            rpc[0] = Self.Pid;
-            rpc[1] = new OtpErlangTuple(call);
-
-            Send("rex", new OtpErlangTuple(rpc));
+            Send("rex", new OtpErlangTuple(
+                Self.Pid,
+                new OtpErlangTuple(
+                    new OtpErlangAtom("call"),
+                    new OtpErlangAtom(mod),
+                    new OtpErlangAtom(fun),
+                    args,
+                    new OtpErlangAtom("user")
+                ))
+            );
         }
 
         /**
@@ -253,11 +243,8 @@ namespace Erlang.NET
         {
             IOtpErlangObject msg = Receive();
 
-            if (msg is OtpErlangTuple t)
-            {
-                if (t.Arity == 2)
-                    return t.ElementAt(1); // obs: second element
-            }
+            if (msg is OtpErlangTuple t && t.Arity == 2)
+               return t[1];
 
             return null;
         }

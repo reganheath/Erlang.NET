@@ -44,8 +44,8 @@ namespace Erlang.NET.Test
                 while (true)
                 {
                     yield return (delegate (OtpMsg m) { msg = m; });
-                    log.Debug("-> ECHO " + msg.GetMsg());
-                    OtpErlangTuple t = (OtpErlangTuple)msg.GetMsg();
+                    log.Debug("-> ECHO " + msg.Payload);
+                    OtpErlangTuple t = (OtpErlangTuple)msg.Payload;
                     OtpErlangPid sender = (OtpErlangPid)t.ElementAt(0);
                     t[0] = mbox.Self;
                     mbox.Send(sender, t);

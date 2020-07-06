@@ -22,8 +22,11 @@ namespace Erlang.NET
      */
     public class OtpPeer : AbstractNode
     {
+        // Implicit construction
+        public static implicit operator OtpPeer(string node) => new OtpPeer() { Node = node };
+
         /*
-         * this is set by OtpConnection and is the highest
+         * This is set by OtpConnection and is the highest
          * common protocol version we both support
          */
         public int DistChoose { get; set; } = 0;
