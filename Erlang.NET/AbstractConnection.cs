@@ -435,8 +435,8 @@ namespace Erlang.NET
                     {
                         lock (objWrite)
                         {
-                            socket.GetOutputStream().Write(tock, 0, tock.Length);
-                            socket.GetOutputStream().Flush();
+                            socket.OutputStream.Write(tock, 0, tock.Length);
+                            socket.OutputStream.Flush();
                         }
 
                         continue;
@@ -651,19 +651,11 @@ namespace Erlang.NET
             Connected = false;
             lock (objRead)
             {
-                try
+                if (socket != null)
                 {
-                    if (socket != null)
-                    {
-                        if (TraceLevel >= ctrlThreshold)
-                            log.Debug("-> CLOSE");
-                        socket.Close();
-                    }
-                }
-                catch (SocketException) { }
-                catch (InvalidOperationException) { }
-                finally
-                {
+                    if (TraceLevel >= ctrlThreshold)
+                        log.Debug("-> CLOSE");
+                    OtpTransport.Close(socket);
                     socket = null;
                 }
             }
@@ -683,10 +675,10 @@ namespace Erlang.NET
                         // First make OtpInputStream, then decode.
                         try
                         {
-                            IOtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
+                            IOtpErlangObject h = header.Slice(5).ReadAny();
                             log.Debug("-> " + HeaderType(h) + " " + h);
 
-                            IOtpErlangObject o = payload.GetOtpInputStream(0).ReadAny();
+                            IOtpErlangObject o = payload.Slice(0).ReadAny();
                             log.Debug("   " + o);
                         }
                         catch (OtpDecodeException e)
@@ -695,8 +687,8 @@ namespace Erlang.NET
                         }
                     }
 
-                    header.WriteTo(socket.GetOutputStream());
-                    payload.WriteTo(socket.GetOutputStream());
+                    header.WriteTo(socket.OutputStream);
+                    payload.WriteTo(socket.OutputStream);
                 }
                 catch (IOException)
                 {
@@ -717,7 +709,7 @@ namespace Erlang.NET
                     {
                         try
                         {
-                            IOtpErlangObject h = header.GetOtpInputStream(5).ReadAny();
+                            IOtpErlangObject h = header.Slice(5).ReadAny();
                             log.Debug("-> " + HeaderType(h) + " " + h);
                         }
                         catch (OtpDecodeException e)
@@ -726,7 +718,7 @@ namespace Erlang.NET
                         }
                     }
 
-                    header.WriteTo(socket.GetOutputStream());
+                    header.WriteTo(socket.OutputStream);
                 }
                 catch (IOException)
                 {
@@ -773,7 +765,7 @@ namespace Erlang.NET
             {
                 if (socket == null)
                     throw new IOException("expected " + len + " bytes, socket was closed");
-                st = socket.GetInputStream();
+                st = socket.InputStream;
             }
 
             while (got < len)
@@ -964,7 +956,7 @@ namespace Erlang.NET
                 obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.OutputStream);
 
             if (TraceLevel >= handshakeThreshold)
                 log.Debug("-> " + "HANDSHAKE sendName" + " flags=" + aflags + " dist=" + dist + " local=" + Local);
@@ -984,7 +976,7 @@ namespace Erlang.NET
                 obuf.Write4BE(flagsHigh);
                 obuf.Write4BE(Local.Creation);
 
-                obuf.WriteTo(socket.GetOutputStream());
+                obuf.WriteTo(socket.OutputStream);
 
                 if (TraceLevel >= handshakeThreshold)
                     log.Debug("-> " + "HANDSHAKE sendComplement" + " flagsHigh=" + flagsHigh + " creation=" + Local.Creation);
@@ -1015,7 +1007,7 @@ namespace Erlang.NET
                 obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(str));
             }
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.OutputStream);
 
             if (TraceLevel >= handshakeThreshold)
                 log.Debug("-> " + "HANDSHAKE sendChallenge" + " flags=" + our_flags + " challenge=" + challenge + " local=" + Local);
@@ -1183,7 +1175,7 @@ namespace Erlang.NET
             obuf.Write1(ChallengeReply);
             obuf.Write4BE(challenge);
             obuf.Write(digest);
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.OutputStream);
 
             if (TraceLevel >= handshakeThreshold)
             {
@@ -1233,7 +1225,7 @@ namespace Erlang.NET
             obuf.Write1(ChallengeAck);
             obuf.Write(digest);
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.OutputStream);
 
             if (TraceLevel >= handshakeThreshold)
             {
@@ -1281,7 +1273,7 @@ namespace Erlang.NET
             obuf.Write1(ChallengeStatus);
             obuf.Write(Encoding.GetEncoding("ISO-8859-1").GetBytes(status));
 
-            obuf.WriteTo(socket.GetOutputStream());
+            obuf.WriteTo(socket.OutputStream);
 
             if (TraceLevel >= handshakeThreshold)
             {

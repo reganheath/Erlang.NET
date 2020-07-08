@@ -29,23 +29,16 @@ namespace Erlang.NET
 
         public Dictionary<string, AbstractNode> Portmap { get; } = new Dictionary<string, AbstractNode>();
 
-        private int Creation
-        {
-            get
-            {
-                lock (lockObj)
-                {
-                    int next = (creation % 3) + 1;
-                    creation++;
-                    return next;
-                }
-            }
-        }
-
         public OtpEpmd()
               : base("OtpEpmd", true)
         {
             sock = new OtpServerSocketTransport(EpmdPort, false);
+        }
+
+        private int NextCreation()
+        {
+            lock (lockObj)
+                return (creation++ % 3) + 1;
         }
 
         public override void Start()
@@ -54,27 +47,15 @@ namespace Erlang.NET
             base.Start();
         }
 
-        private void CloseSock(IOtpServerTransport s)
-        {
-            try
-            {
-                if (s != null)
-                    s.Close();
-            }
-            catch (Exception)
-            {
-            }
-        }
-
         public void Quit()
         {
             Stop();
-            CloseSock(sock);
+            OtpTransport.Close(sock);
         }
 
         public override void Run()
         {
-            log.InfoFormat("[OtpEpmd] start at port {0}", EpmdPort);
+            log.InfoFormat($"[OtpEpmd] start at port {EpmdPort}");
 
             while (!Stopping)
             {
@@ -106,24 +87,12 @@ namespace Erlang.NET
                 this.sock = sock;
             }
 
-            private void CloseSock(IOtpTransport s)
-            {
-                try
-                {
-                    if (s != null)
-                        s.Close();
-                }
-                catch (Exception)
-                {
-                }
-            }
-
             private int ReadSock(IOtpTransport s, byte[] b)
             {
                 int got = 0;
                 int len = b.Length;
                 int i;
-                Stream st = s.GetInputStream();
+                Stream st = s.InputStream;
 
                 while (got < len)
                 {
@@ -131,7 +100,7 @@ namespace Erlang.NET
                     {
                         i = st.Read(b, got, len - got);
                         if (i < 0)
-                            throw new IOException("expected " + len + " bytes, got EOF after " + got + " bytes");
+                            throw new IOException($"expected {len} bytes, got EOF after {got} bytes");
                         if (i == 0 && len != 0)
                             throw new IOException("Remote connection closed");
                         got += i;
@@ -152,7 +121,7 @@ namespace Erlang.NET
             private void Quit()
             {
                 Stop();
-                CloseSock(sock);
+                OtpTransport.Close(sock);
 
                 foreach (string name in publishedPort)
                 {
@@ -192,13 +161,13 @@ namespace Erlang.NET
                     };
 
                     if (traceLevel >= traceThreshold)
-                        log.Debug("<- PUBLISH (r4) " + name + " port=" + node.Port);
+                        log.Debug($"<- PUBLISH (r4) {name} port={node.Port}");
 
                     OtpOutputStream obuf = new OtpOutputStream();
                     obuf.Write1(ALIVE2_RESP);
                     obuf.Write1(0);
-                    obuf.Write2BE(epmd.Creation);
-                    obuf.WriteTo(s.GetOutputStream());
+                    obuf.Write2BE(epmd.NextCreation());
+                    obuf.WriteTo(s.OutputStream);
 
                     lock (portmap)
                         portmap.Add(name, node);
@@ -224,7 +193,7 @@ namespace Erlang.NET
                     AbstractNode node = null;
 
                     if (traceLevel >= traceThreshold)
-                        log.Debug("<- PORT (r4) " + name);
+                        log.Debug($"<- PORT (r4) {name}");
 
                     lock (portmap)
                     {
@@ -251,7 +220,7 @@ namespace Erlang.NET
                         obuf.Write1(port4resp);
                         obuf.Write1(1);
                     }
-                    obuf.WriteTo(s.GetOutputStream());
+                    obuf.WriteTo(s.OutputStream);
                 }
                 catch (IOException e)
                 {
@@ -278,12 +247,12 @@ namespace Erlang.NET
                         foreach (KeyValuePair<string, AbstractNode> pair in portmap)
                         {
                             AbstractNode node = pair.Value;
-                            string info = string.Format("name {0} at port {1}\n", node.Alive, node.Port);
+                            string info = $"name {node.Alive} at port {node.Port}\n";
                             byte[] bytes = Encoding.GetEncoding("ISO-8859-1").GetBytes(info);
                             obuf.WriteN(bytes);
                         }
                     }
-                    obuf.WriteTo(s.GetOutputStream());
+                    obuf.WriteTo(s.OutputStream);
                 }
                 catch (IOException e)
                 {
@@ -332,7 +301,7 @@ namespace Erlang.NET
                                 break;
 
                             default:
-                                log.InfoFormat("[OtpEpmd] Unknown request (request={0}, length={1}) from {2}", request, len, sock);
+                                log.InfoFormat($"[OtpEpmd] Unknown request (request={request}, length={len}) from {sock}");
                                 break;
                         }
                     }

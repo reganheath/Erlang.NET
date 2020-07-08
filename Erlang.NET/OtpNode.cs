@@ -550,7 +550,7 @@ namespace Erlang.NET
                 this.node = node;
 
                 serverSocket = node.CreateServerTransport(node.Port);
-                node.Port = serverSocket.GetLocalPort();
+                node.Port = serverSocket.LocalPort;
                 node.PublishPort();
                 Start();
             }

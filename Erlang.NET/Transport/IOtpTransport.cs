@@ -20,8 +20,8 @@ namespace Erlang.NET
 {
     public interface IOtpTransport : IDisposable
     {
-        Stream GetInputStream();
-        Stream GetOutputStream();
+        Stream InputStream { get; }
+        Stream OutputStream { get; }
         void Close();
     }
 }

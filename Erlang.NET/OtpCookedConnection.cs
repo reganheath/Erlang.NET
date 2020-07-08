@@ -128,8 +128,6 @@ namespace Erlang.NET
                 case OtpMsg.exit2Tag:
                     break;
             }
-
-            return;
         }
 
         /*
@@ -145,14 +143,8 @@ namespace Erlang.NET
 
         public override void Close()
         {
-            try
-            {
-                base.Close();
-            }
-            finally
-            {
-                BreakLinks();
-            }
+            base.Close();
+            BreakLinks();
         }
 
         /*

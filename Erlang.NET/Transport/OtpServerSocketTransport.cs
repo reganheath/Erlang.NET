@@ -32,7 +32,7 @@ namespace Erlang.NET
 
         public void Start() => socket.Start();
 
-        public int GetLocalPort() => ((IPEndPoint)socket.LocalEndpoint).Port;
+        public int LocalPort => ((IPEndPoint)socket.LocalEndpoint).Port;
 
         public IOtpTransport Accept()
         {
@@ -41,7 +41,7 @@ namespace Erlang.NET
             return new OtpSocketTransport(sock);
         }
 
-        public void Close() => socket.Stop();
+        public void Close() => OtpTransport.Close(socket);
 
         #region IDisposable
         private bool disposedValue;
@@ -51,10 +51,7 @@ namespace Erlang.NET
             if (!disposedValue)
             {
                 if (disposing)
-                {
-                    try { Close(); }
-                    catch (Exception) { }
-                }
+                    Close();
                 disposedValue = true;
             }
         }

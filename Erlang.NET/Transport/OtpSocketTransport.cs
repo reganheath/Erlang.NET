@@ -23,38 +23,33 @@ namespace Erlang.NET
     public class OtpSocketTransport : IOtpTransport
     {
         private readonly TcpClient client;
-        private readonly Stream inputStream;
-        private readonly Stream outputStream;
+        
+        public Stream InputStream { get; private set; }
+        public Stream OutputStream { get; private set; }
 
         public OtpSocketTransport(string addr, int port)
         {
-            client = new TcpClient()
-            {
-                NoDelay = true
-            };
+            client = new TcpClient() { NoDelay = true };
             client.Connect(addr, port);
-            inputStream = new BufferedStream(client.GetStream());
-            outputStream = client.GetStream();
+            InputStream = new BufferedStream(client.GetStream());
+            OutputStream = client.GetStream();
             KeepAlive = true;
         }
 
         public OtpSocketTransport(IPEndPoint addr)
         {
-            client = new TcpClient()
-            {
-                NoDelay = true
-            };
+            client = new TcpClient() { NoDelay = true };
             client.Connect(addr);
-            inputStream = new BufferedStream(client.GetStream());
-            outputStream = client.GetStream();
+            InputStream = new BufferedStream(client.GetStream());
+            OutputStream = client.GetStream();
             KeepAlive = true;
         }
 
-        public OtpSocketTransport(TcpClient s)
+        public OtpSocketTransport(TcpClient sock)
         {
-            client = s;
-            inputStream = new BufferedStream(client.GetStream());
-            outputStream = client.GetStream();
+            client = sock;
+            InputStream = new BufferedStream(client.GetStream());
+            OutputStream = client.GetStream();
             KeepAlive = true;
         }
 
@@ -70,15 +65,7 @@ namespace Erlang.NET
             set => client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
         }
 
-        public Stream GetInputStream() => inputStream;
-
-        public Stream GetOutputStream() => outputStream;
-
-        public void Close()
-        {
-            client.GetStream().Close();
-            client.Close();
-        }
+        public void Close() => OtpTransport.Close(client);
 
         public override string ToString() => client.Client.RemoteEndPoint.ToString();
 
@@ -90,10 +77,7 @@ namespace Erlang.NET
             if (!disposedValue)
             {
                 if (disposing)
-                {
-                    try { Close(); }
-                    catch (Exception) { }
-                }
+                    Close();
                 disposedValue = true;
             }
         }

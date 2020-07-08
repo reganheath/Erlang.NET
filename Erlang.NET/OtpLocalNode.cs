@@ -66,8 +66,7 @@ namespace Erlang.NET
             OtpEpmd.UnPublishPort(this);
 
             // Close and ignore errors
-            try { Epmd.Close(); }
-            catch (Exception) { }
+            OtpTransport.Close(Epmd);
             Epmd = null;
         }
 

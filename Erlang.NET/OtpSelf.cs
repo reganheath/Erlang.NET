@@ -63,7 +63,7 @@ namespace Erlang.NET
         public void Listen()
         {
             serverSocket = CreateServerTransport(Port);
-            Port = serverSocket.GetLocalPort();
+            Port = serverSocket.LocalPort;
         }
 
         /**

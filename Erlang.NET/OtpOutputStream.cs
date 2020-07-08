@@ -51,7 +51,7 @@ namespace Erlang.NET
          * Get the contents of the output stream as an input stream instead. This is
          * used internally in {@link OtpCconnection} for tracing outgoing packages.
          */
-        internal OtpInputStream GetOtpInputStream(int offset) => new OtpInputStream(base.GetBuffer(), offset, (int)(base.Length - offset));
+        internal OtpInputStream Slice(int offset) => new OtpInputStream(base.GetBuffer(), offset, (int)(base.Length - offset));
 
         /**
          * Write one byte to the stream.

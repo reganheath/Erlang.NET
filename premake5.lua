@@ -3,17 +3,8 @@ defines { "TRACE" }
 
 workspace "Erlang.NET"
     configurations { "Debug", "Release" }
-    platforms { "AnyCPU" }
 
-project "test"
-    location "src/test"
-    kind "ConsoleApp"
-    language "C#"
-    targetdir "bin/%{cfg.buildcfg}"
-    objdir "obj/%{prj.name}"
-
-    files { "src/test/**.cs", "src/test/**.Config" }
-    links { "System", "System.Configuration", "deps/log4net", "Erlang.NET" }
+    nuget { "Nito.AsyncEx:5.0.0" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -22,70 +13,52 @@ project "test"
     filter "configurations:Release"
         optimize "On"
 
+project "test"
+    location "test"
+    kind "ConsoleApp"
+    language "C#"
+    targetdir "bin/%{cfg.buildcfg}"
+    objdir "obj/%{prj.name}"
+
+    files { "test/**.cs", "test/**.Config" }
+    links { "System", "System.Configuration", "deps/log4net", "Erlang.NET" }
+
 project "Erlang.NET"
-    location "src/Erlang.NET"
+    location "Erlang.NET"
     kind "SharedLib"
     language "C#"
     targetdir "bin/%{cfg.buildcfg}"
     objdir "obj/%{prj.name}"
 
-    files { "src/Erlang.NET/**.cs", "src/Erlang.NET/**.Config" }
+    files { "Erlang.NET/**.cs", "Erlang.NET/**.Config" }
     links { "System", "System.Configuration", "deps/log4net" }
 
-    filter "configurations:Debug"
-        defines { "DEBUG" }
-        symbols "On"
-
-    filter "configurations:Release"
-        optimize "On"
-
 project "echo"
-    location "src/echo"
+    location "echo"
     kind "ConsoleApp"
     language "C#"
     targetdir "bin/%{cfg.buildcfg}"
     objdir "obj/%{prj.name}"
 
-    files { "src/echo/**.cs", "src/echo/**.Config" }
+    files { "echo/**.cs", "echo/**.Config" }
     links { "System", "System.Configuration", "deps/log4net", "Erlang.NET" }
-
-    filter "configurations:Debug"
-        defines { "DEBUG" }
-        symbols "On"
-
-    filter "configurations:Release"
-        optimize "On"
 
 project "epmd"
-    location "src/epmd"
+    location "epmd"
     kind "ConsoleApp"
     language "C#"
     targetdir "bin/%{cfg.buildcfg}"
     objdir "obj/%{prj.name}"
 
-    files { "src/epmd/**.cs", "src/epmd/**.Config" }
+    files { "epmd/**.cs", "epmd/**.Config" }
     links { "System", "System.Configuration", "System.Configuration.Install", "System.ServiceProcess", "deps/log4net", "Erlang.NET" }
 
-    filter "configurations:Debug"
-        defines { "DEBUG" }
-        symbols "On"
-
-    filter "configurations:Release"
-        optimize "On"
-
 project "ping"
-    location "src/ping"
+    location "ping"
     kind "ConsoleApp"
     language "C#"
     targetdir "bin/%{cfg.buildcfg}"
     objdir "obj/%{prj.name}"
 
-    files { "src/ping/**.cs", "src/ping/**.Config" }
+    files { "ping/**.cs", "ping/**.Config" }
     links { "System", "System.Configuration", "deps/log4net", "Erlang.NET" }
-
-    filter "configurations:Debug"
-        defines { "DEBUG" }
-        symbols "On"
-
-    filter "configurations:Release"
-        optimize "On"

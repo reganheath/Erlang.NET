@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 using System;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
     public interface IOtpServerTransport : IDisposable
     {
         void Start();
-        int GetLocalPort();
+        int LocalPort { get; }
         IOtpTransport Accept();
         void Close();
     }
