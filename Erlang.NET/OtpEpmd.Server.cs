@@ -14,25 +14,25 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
-    public partial class OtpEpmd : ThreadBase
+    public partial class OtpEpmd
     {
         private readonly object lockObj = new object();
-        private readonly IOtpServerTransport sock;
+        private readonly ConcurrentDictionary<string, AbstractNode> portmap = new ConcurrentDictionary<string, AbstractNode>();
+
+        private IOtpServerTransport listen;
+        private volatile bool stopping;
         private int creation = 0;
 
-        public Dictionary<string, AbstractNode> Portmap { get; } = new Dictionary<string, AbstractNode>();
-
         public OtpEpmd()
-              : base("OtpEpmd", true)
         {
-            sock = new OtpServerSocketTransport(EpmdPort, false);
         }
 
         private int NextCreation()
@@ -41,278 +41,189 @@ namespace Erlang.NET
                 return (creation++ % 3) + 1;
         }
 
-        public override void Start()
+        public async void ServeAsync()
         {
-            sock.Start();
-            base.Start();
-        }
-
-        public void Quit()
-        {
-            Stop();
-            OtpTransport.Close(sock);
-        }
-
-        public override void Run()
-        {
-            log.InfoFormat($"[OtpEpmd] start at port {EpmdPort}");
-
-            while (!Stopping)
+            stopping = false;
+            listen = new OtpServerSocketTransport(EpmdPort, false);
+            listen.Start();
+            while (!stopping)
             {
                 try
                 {
-                    IOtpTransport newsock = sock.Accept();
-                    OtpEpmdConnection conn = new OtpEpmdConnection(this, newsock);
-                    conn.Start();
+                    var socket = await listen.AcceptAsync();
+                    HandleConnectionAsync(socket);
                 }
-                catch (Exception)
-                {
-                }
+                catch(Exception) { }
             }
-            return;
         }
 
-        private class OtpEpmdConnection : ThreadBase
+        public void Stop()
         {
-            private readonly OtpEpmd epmd;
-            private readonly Dictionary<string, AbstractNode> portmap;
-            private readonly List<string> publishedPort = new List<string>();
-            private readonly IOtpTransport sock;
+            stopping = true;
+            OtpTransport.Close(listen);
+        }
 
-            public OtpEpmdConnection(OtpEpmd epmd, IOtpTransport sock)
-                : base("OtpEpmd.OtpEpmdConnection", true)
+        private async void HandleConnectionAsync(IOtpTransport socket)
+        {
+            log.InfoFormat($"[OtpEpmd] connected {socket}");
+            List<string> publishedNodes = new List<string>();
+
+            try
             {
-                this.epmd = epmd;
-                portmap = epmd.Portmap;
-                this.sock = sock;
-            }
-
-            private int ReadSock(IOtpTransport s, byte[] b)
-            {
-                int got = 0;
-                int len = b.Length;
-                int i;
-                Stream st = s.InputStream;
-
-                while (got < len)
+                while (true)
                 {
-                    try
+                    var ibuf = await ReadRequestAsync(socket);
+                    int request = ibuf.Read1();
+
+                    // This request retains the connection
+                    if (request == ALIVE2_REQ)
                     {
-                        i = st.Read(b, got, len - got);
-                        if (i < 0)
-                            throw new IOException($"expected {len} bytes, got EOF after {got} bytes");
-                        if (i == 0 && len != 0)
-                            throw new IOException("Remote connection closed");
-                        got += i;
-                    }
-                    catch (IOException e)
-                    {
-                        throw new IOException("Read failed", e);
-                    }
-                    catch (ObjectDisposedException e)
-                    {
-                        throw new IOException("Read failed", e);
-                    }
-                }
-
-                return got;
-            }
-
-            private void Quit()
-            {
-                Stop();
-                OtpTransport.Close(sock);
-
-                foreach (string name in publishedPort)
-                {
-                    lock (portmap)
-                    {
-                        if (portmap.ContainsKey(name))
-                            portmap.Remove(name);
-                    }
-                }
-                publishedPort.Clear();
-            }
-
-            private void Publish_R4(IOtpTransport s, OtpInputStream ibuf)
-            {
-                try
-                {
-                    int port = ibuf.Read2BE();
-                    int type = ibuf.Read1();
-                    int proto = ibuf.Read1();
-                    int distHigh = ibuf.Read2BE();
-                    int distLow = ibuf.Read2BE();
-                    int len = ibuf.Read2BE();
-                    byte[] alive = new byte[len];
-                    ibuf.ReadN(alive);
-                    int elen = ibuf.Read2BE();
-                    byte[] extra = new byte[elen];
-                    ibuf.ReadN(extra);
-                    string name = OtpErlangString.FromEncoding(alive);
-                    AbstractNode node = new AbstractNode()
-                    {
-                        Node = name,
-                        Port = port,
-                        Type = type,
-                        DistHigh = distHigh,
-                        DistLow = distLow,
-                        Proto = proto
-                    };
-
-                    if (traceLevel >= traceThreshold)
-                        log.Debug($"<- PUBLISH (r4) {name} port={node.Port}");
-
-                    OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.Write1(ALIVE2_RESP);
-                    obuf.Write1(0);
-                    obuf.Write2BE(epmd.NextCreation());
-                    obuf.WriteTo(s.OutputStream);
-
-                    lock (portmap)
-                        portmap.Add(name, node);
-                    publishedPort.Add(name);
-                }
-                catch (IOException e)
-                {
-                    if (traceLevel >= traceThreshold)
-                        log.Debug("<- (no response)");
-                    throw new IOException("Request not responding", e);
-                }
-                return;
-            }
-
-            private void Port_R4(IOtpTransport s, OtpInputStream ibuf)
-            {
-                try
-                {
-                    int len = (int)(ibuf.Length - 1);
-                    byte[] alive = new byte[len];
-                    ibuf.ReadN(alive);
-                    string name = OtpErlangString.FromEncoding(alive);
-                    AbstractNode node = null;
-
-                    if (traceLevel >= traceThreshold)
-                        log.Debug($"<- PORT (r4) {name}");
-
-                    lock (portmap)
-                    {
-                        if (portmap.ContainsKey(name))
-                            node = portmap[name];
+                        publishedNodes.Add(await Publish_R4(socket, ibuf));
+                        continue;
                     }
 
-                    OtpOutputStream obuf = new OtpOutputStream();
-                    if (node != null)
-                    {
-                        obuf.Write1(port4resp);
-                        obuf.Write1(0);
-                        obuf.Write2BE(node.Port);
-                        obuf.Write1(node.Type);
-                        obuf.Write1(node.Proto);
-                        obuf.Write2BE(node.DistHigh);
-                        obuf.Write2BE(node.DistLow);
-                        obuf.Write2BE(len);
-                        obuf.WriteN(alive);
-                        obuf.Write2BE(0);
-                    }
+                    // These requests terminate the connection
+                    if (request == stopReq) { }
+                    else if (request == port4req)
+                        await Port_R4(socket, ibuf);
+                    else if (request == names4req)
+                        await Names_R4(socket);
                     else
-                    {
-                        obuf.Write1(port4resp);
-                        obuf.Write1(1);
-                    }
-                    obuf.WriteTo(s.OutputStream);
+                        log.InfoFormat($"[OtpEpmd] Unknown request (request={request}, length={ibuf.Length}) from {socket}");
+                    break;
                 }
-                catch (IOException e)
-                {
-                    if (traceLevel >= traceThreshold)
-                        log.Debug("<- (no response)");
-                    throw new IOException("Request not responding", e);
-                }
-                return;
+            }
+            catch (Exception e)
+            {
+                log.ErrorFormat($"[OtpEpmd] socket {socket} error {e}");
             }
 
-            private void Names_R4(IOtpTransport s, OtpInputStream ibuf)
-            {
-                try
-                {
-                    if (traceLevel >= traceThreshold)
-                    {
-                        log.Debug("<- NAMES(r4) ");
-                    }
+            log.InfoFormat($"[OtpEpmd] closing {socket}");
+            OtpTransport.Close(socket);
 
-                    OtpOutputStream obuf = new OtpOutputStream();
-                    obuf.Write4BE(EpmdPort);
-                    lock (portmap)
-                    {
-                        foreach (KeyValuePair<string, AbstractNode> pair in portmap)
-                        {
-                            AbstractNode node = pair.Value;
-                            string info = $"name {node.Alive} at port {node.Port}\n";
-                            byte[] bytes = Encoding.GetEncoding("ISO-8859-1").GetBytes(info);
-                            obuf.WriteN(bytes);
-                        }
-                    }
-                    obuf.WriteTo(s.OutputStream);
-                }
-                catch (IOException e)
+            foreach (var name in publishedNodes)
+                portmap.TryRemove(name, out _);
+        }
+
+        internal async Task<OtpInputStream> ReadRequestAsync(IOtpTransport sock)
+        {
+            OtpInputStream ibuf = await sock.ReadAsync(2);
+            ibuf = await sock.ReadAsync(ibuf.Read2BE());
+            return ibuf;
+        }
+
+        private async Task<string> Publish_R4(IOtpTransport socket, OtpInputStream ibuf)
+        {
+            try
+            {
+                int port = ibuf.Read2BE();
+                int type = ibuf.Read1();
+                int proto = ibuf.Read1();
+                int distHigh = ibuf.Read2BE();
+                int distLow = ibuf.Read2BE();
+                string name = ibuf.ReadStringData();
+                ibuf.ReadStringData(); // extra
+                AbstractNode node = new AbstractNode()
                 {
-                    if (traceLevel >= traceThreshold)
-                        log.Debug("<- (no response)");
-                    throw new IOException("Request not responding", e);
-                }
-                return;
+                    Node = name,
+                    Port = port,
+                    Type = type,
+                    DistHigh = distHigh,
+                    DistLow = distLow,
+                    Proto = proto
+                };
+
+                if (traceLevel >= traceThreshold)
+                    log.Debug($"<- PUBLISH (r4) {name} port={node.Port}");
+
+                OtpOutputStream obuf = new OtpOutputStream();
+                obuf.Write1(ALIVE2_RESP);
+                obuf.Write1(0);
+                obuf.Write2BE(NextCreation());
+                await obuf.WriteToAsync(socket.OutputStream);
+
+                portmap.TryAdd(name, node);
+                return name;
             }
-
-            public override void Run()
+            catch (IOException e)
             {
-                byte[] lbuf = new byte[2];
-                OtpInputStream ibuf;
-                int len;
+                if (traceLevel >= traceThreshold)
+                    log.Debug("<- (no response)");
+                throw new IOException("Request not responding", e);
+            }
+        }
 
-                try
+        private async Task Port_R4(IOtpTransport socket, OtpInputStream ibuf)
+        {
+            try
+            {
+                int len = (int)(ibuf.Length - 1);
+                byte[] alive = ibuf.ReadN(len);
+                
+                string name = OtpErlangString.FromEncoding(alive);                
+                if (traceLevel >= traceThreshold)
+                    log.Debug($"<- PORT (r4) {name}");
+
+                if (!portmap.TryGetValue(name, out AbstractNode node))
+                    node = null;
+
+                OtpOutputStream obuf = new OtpOutputStream();
+                if (node != null)
                 {
-                    while (!Stopping)
-                    {
-                        ReadSock(sock, lbuf);
-                        ibuf = new OtpInputStream(lbuf);
-                        len = ibuf.Read2BE();
-                        byte[] tmpbuf = new byte[len];
-                        ReadSock(sock, tmpbuf);
-                        ibuf = new OtpInputStream(tmpbuf);
-
-                        int request = ibuf.Read1();
-                        switch (request)
-                        {
-                            case ALIVE2_REQ:
-                                Publish_R4(sock, ibuf);
-                                break;
-
-                            case port4req:
-                                Port_R4(sock, ibuf);
-                                this.Stop();
-                                break;
-
-                            case names4req:
-                                Names_R4(sock, ibuf);
-                                this.Stop();
-                                break;
-
-                            case stopReq:
-                                break;
-
-                            default:
-                                log.InfoFormat($"[OtpEpmd] Unknown request (request={request}, length={len}) from {sock}");
-                                break;
-                        }
-                    }
+                    obuf.Write1(port4resp);
+                    obuf.Write1(0);
+                    obuf.Write2BE(node.Port);
+                    obuf.Write1(node.Type);
+                    obuf.Write1(node.Proto);
+                    obuf.Write2BE(node.DistHigh);
+                    obuf.Write2BE(node.DistLow);
+                    obuf.Write2BE(len);
+                    obuf.WriteN(alive);
+                    obuf.Write2BE(0);
+                    if (traceLevel >= traceThreshold)
+                        log.Debug("-> 0 (success)");
                 }
-                catch (IOException)
+                else
                 {
+                    obuf.Write1(port4resp);
+                    obuf.Write1(1);
+                    if (traceLevel >= traceThreshold)
+                        log.Debug("-> 1 (failure)");
                 }
-                finally
+
+                await obuf.WriteToAsync(socket.OutputStream);
+            }
+            catch (IOException e)
+            {
+                if (traceLevel >= traceThreshold)
+                    log.Debug("<- (no response)");
+                throw new IOException("Request not responding", e);
+            }
+        }
+
+        private async Task Names_R4(IOtpTransport socket)
+        {
+            try
+            {
+                if (traceLevel >= traceThreshold)
+                    log.Debug("<- NAMES(r4) ");
+
+                OtpOutputStream obuf = new OtpOutputStream();
+                obuf.Write4BE(EpmdPort);
+                foreach (var node in portmap.Values)
                 {
-                    Quit();
+                    byte[] bytes = Encoding.GetEncoding("ISO-8859-1").GetBytes($"name {node.Alive} at port {node.Port}\n");
+                    obuf.WriteN(bytes);
+                    log.Debug($"-> name {node.Alive} at port {node.Port}");
                 }
+
+                await obuf.WriteToAsync(socket.OutputStream);
+            }
+            catch (IOException e)
+            {
+                if (traceLevel >= traceThreshold)
+                    log.Debug("<- (no response)");
+                throw new IOException("Request not responding", e);
             }
         }
     }

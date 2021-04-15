@@ -33,7 +33,7 @@ namespace Erlang.NET
      */
     public class OtpSelf : OtpLocalNode
     {
-        private IOtpServerTransport serverSocket;
+        private IOtpServerTransport listen;
 
         /**
          * Get the Erlang PID that will be used as the sender id in all "anonymous"
@@ -62,8 +62,8 @@ namespace Erlang.NET
          */
         public void Listen()
         {
-            serverSocket = CreateServerTransport(Port);
-            Port = serverSocket.LocalPort;
+            listen = CreateServerTransport(Port);
+            Port = listen.LocalPort;
         }
 
         /**
@@ -78,7 +78,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    newsock = serverSocket.Accept();
+                    newsock = listen.Accept();
                     return new OtpConnection(this, newsock);
                 }
                 catch (SocketException e)

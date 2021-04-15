@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
@@ -39,7 +38,7 @@ namespace Erlang.NET
 
         /**
          * Enqueue and wake any waiting Dequeue
-         */ 
+         */
         public new void Enqueue(T o)
         {
             base.Enqueue(o);

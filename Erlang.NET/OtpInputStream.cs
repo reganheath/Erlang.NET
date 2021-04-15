@@ -53,6 +53,17 @@ namespace Erlang.NET
 
         /**
          * Read an array of bytes from the stream. The method reads at most
+         * len bytes from the input stream.
+         */
+        public byte[] ReadN(int len)
+        {
+            byte[] buf = new byte[len];
+            ReadN(buf, 0, buf.Length);
+            return buf;
+        }
+
+        /**
+         * Read an array of bytes from the stream. The method reads at most
          * buf.length bytes from the input stream.
          */
         public int ReadN(byte[] buf) => ReadN(buf, 0, buf.Length);
@@ -123,7 +134,7 @@ namespace Erlang.NET
         /**
          * Read a two byte big endian integer from the stream.
          */
-        public short Read2BE() => (short)ReadBE(2);
+        public int Read2BE() => (int)ReadBE(2);
 
         /**
          * Read a four byte big endian integer from the stream.
@@ -150,8 +161,8 @@ namespace Erlang.NET
 
             switch (n)
             {
-                case 2: return BitConverter.ToInt16(b, 0);
-                case 4: return BitConverter.ToInt32(b, 0);
+                case 2: return BitConverter.ToUInt16(b, 0);
+                case 4: return BitConverter.ToUInt32(b, 0);
                 case 8: return BitConverter.ToInt64(b, 0);
                 default:
                     throw new Exception("unsupported");
@@ -175,25 +186,18 @@ namespace Erlang.NET
          */
         public string ReadAtom()
         {
-            int len;
-            byte[] strbuf;
             string atom;
 
             int tag = Read1SkipVersion();
             switch (tag)
             {
                 case OtpExternal.atomTag:
-                    len = Read2BE();
-                    strbuf = new byte[len];
-                    ReadN(strbuf);
-                    atom = OtpErlangString.FromEncoding(strbuf);
+                    atom = ReadStringData();
                     break;
                 case OtpExternal.smallAtomUtf8Tag:
                 case OtpExternal.atomUtf8Tag:
-                    len = (tag == OtpExternal.smallAtomUtf8Tag ? Read1() : Read2BE());
-                    strbuf = new byte[len];
-                    ReadN(strbuf);
-                    atom = OtpErlangString.FromEncoding(strbuf, "UTF-8");
+                    int len = (tag == OtpExternal.smallAtomUtf8Tag ? Read1() : Read2BE());
+                    atom = ReadStringData(len, "UTF-8");
                     break;
                 default:
                     throw new OtpDecodeException("wrong tag encountered, expected " + OtpExternal.atomTag
@@ -216,11 +220,7 @@ namespace Erlang.NET
             if (tag != OtpExternal.binTag)
                 throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.binTag + ", got " + tag);
 
-            int len = Read4BE();
-            byte[] bin = new byte[len];
-            ReadN(bin);
-
-            return bin;
+            return ReadN(Read4BE());
         }
 
         /**
@@ -234,13 +234,12 @@ namespace Erlang.NET
                 throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.bitBinTag + ", got " + tag);
 
             int len = Read4BE();
-            byte[] bin = new byte[len];
             int tailBits = Read1();
             if (tailBits < 0 || 7 < tailBits)
                 throw new OtpDecodeException("Wrong tail bit count in bitstr: " + tailBits);
             if (len == 0 && tailBits != 0)
                 throw new OtpDecodeException("Length 0 on bitstr with tail bit count: " + tailBits);
-            ReadN(bin);
+            byte[] bin = ReadN(len);
 
             padBits = 8 - tailBits;
             return bin;
@@ -274,9 +273,7 @@ namespace Erlang.NET
 
                 case OtpExternal.floatTag:
                     // get the string
-                    byte[] strbuf = new byte[31];
-                    ReadN(strbuf);
-                    string str = OtpErlangString.FromEncoding(strbuf);
+                    string str = ReadStringData(31);
                     if (!double.TryParse(str, out val))
                         throw new OtpDecodeException("Invalid float format: '" + str + "'");
                     break;
@@ -696,8 +693,7 @@ namespace Erlang.NET
             {
                 Read4BE();
                 int arity = Read1();
-                byte[] md5 = new byte[16];
-                ReadN(md5);
+                byte[] md5 = ReadN(16);
                 int index = Read4BE();
                 int nFreeVars = Read4BE();
                 string module = ReadAtom();
@@ -737,10 +733,7 @@ namespace Erlang.NET
             switch (tag)
             {
                 case OtpExternal.stringTag:
-                    len = Read2BE();
-                    byte[] strbuf = new byte[len];
-                    ReadN(strbuf);
-                    return OtpErlangString.FromEncoding(strbuf);
+                    return ReadStringData();
                 case OtpExternal.nilTag:
                     return "";
                 case OtpExternal.listTag: // List when unicode +
@@ -754,6 +747,20 @@ namespace Erlang.NET
                 default:
                     throw new OtpDecodeException("Wrong tag encountered, expected " + OtpExternal.stringTag + " or " + OtpExternal.listTag + ", got " + tag);
             }
+        }
+
+        /**
+         * Read length prefixed string data from stream
+         */
+        public string ReadStringData(string encoding = "ISO-8859-1") => ReadStringData(Read2BE(), encoding);
+
+        /**
+         * Read string data of len from stream
+         */
+        public string ReadStringData(int len, string encoding = "ISO-8859-1")
+        {
+            byte[] strbuf = ReadN(len);
+            return OtpErlangString.FromEncoding(strbuf, encoding);
         }
 
         /**

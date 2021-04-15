@@ -15,6 +15,7 @@
  */
 using log4net.Config;
 using System;
+using System.Threading;
 
 namespace Erlang.NET.Test
 {

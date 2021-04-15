@@ -15,8 +15,9 @@
  */
 using log4net;
 using log4net.Config;
-using System.Collections.Generic;
+using System;
 using System.Reflection;
+using System.Threading;
 
 namespace Erlang.NET.Test
 {
@@ -29,40 +30,24 @@ namespace Erlang.NET.Test
             XmlConfigurator.Configure();
         }
 
-        public class OtpEchoActor : OtpActor
-        {
-            public OtpEchoActor(OtpActorMbox mbox)
-                : base(mbox)
-            {
-            }
-
-            public override IEnumerator<Continuation> GetEnumerator()
-            {
-                OtpMbox mbox = base.Mbox;
-                OtpMsg msg = null;
-
-                while (true)
-                {
-                    yield return (delegate (OtpMsg m) { msg = m; });
-                    log.Debug("-> ECHO " + msg.Payload);
-                    OtpErlangTuple t = (OtpErlangTuple)msg.Payload;
-                    OtpErlangPid sender = (OtpErlangPid)t.ElementAt(0);
-                    t[0] = mbox.Self;
-                    mbox.Send(sender, t);
-                }
-            }
-        }
-
         public static void Main(string[] args)
         {
             OtpNode b = new OtpNode("b");
-            OtpActorMbox echo = (OtpActorMbox)b.CreateMbox("echo", false);
-            b.React(new OtpEchoActor(echo));
+            var echo = b.CreateMbox("echo");
+            echo.Received += (e) =>
+            {
+                OtpErlangTuple t = (OtpErlangTuple)e.Msg.Payload;
+                OtpErlangPid sender = (OtpErlangPid)t.ElementAt(0);
+                log.Debug($"-> ECHO {t.ElementAt(1)} from {sender}");
+                t[0] = e.Mbox.Self;
+                e.Mbox.Send(sender, t);
+            };
 
             OtpNode a = new OtpNode("a");
-            OtpMbox echoback = a.CreateMbox("echoback", true);
+            OtpMbox echoback = a.CreateMbox("echoback");
+            
             echoback.Send(echo.Self, new OtpErlangTuple(echoback.Self, new OtpErlangString("Hello, World!")));
-            log.Debug("<- ECHO (back) " + echoback.Receive());
+            log.Debug($"<- ECHO (back) {echoback.ReceiveMsg()}");
 
             a.Close();
             b.Close();

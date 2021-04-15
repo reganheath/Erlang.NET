@@ -15,6 +15,7 @@
  */
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -90,7 +91,7 @@ namespace Erlang.NET
         /*
          * Pass an error to the node 
          */
-        public override void Deliver(Exception e) => self.DeliverError(this, e);
+        public override void Deliver(Exception e) => self.Deliver(this, e);
 
         /*
          * Pass a message to the node for final delivery. Note that the connection
@@ -106,7 +107,8 @@ namespace Erlang.NET
                 case OtpMsg.linkTag:
                     if (delivered)
                     {
-                        links.AddLink(msg.ToPid, msg.FromPid);
+                        lock (lockObj)
+                            links.AddLink(msg.ToPid, msg.FromPid);
                         break;
                     }
 
@@ -122,7 +124,8 @@ namespace Erlang.NET
 
                 case OtpMsg.unlinkTag:
                 case OtpMsg.exitTag:
-                    links.RemoveLink(msg.ToPid, msg.FromPid);
+                    lock (lockObj)
+                        links.RemoveLink(msg.ToPid, msg.FromPid);
                     break;
 
                 case OtpMsg.exit2Tag:
@@ -180,17 +183,15 @@ namespace Erlang.NET
          */
         public void Link(OtpErlangPid from, OtpErlangPid to)
         {
-            lock (lockObj)
+            try
             {
-                try
-                {
-                    SendLink(from, to);
+                SendLink(from, to);
+                lock (lockObj)
                     links.AddLink(from, to);
-                }
-                catch (IOException)
-                {
-                    throw new OtpExit("noproc", to);
-                }
+            }
+            catch (IOException)
+            {
+                throw new OtpExit("noproc", to);
             }
         }
 
@@ -200,15 +201,13 @@ namespace Erlang.NET
         public void Unlink(OtpErlangPid from, OtpErlangPid to)
         {
             lock (lockObj)
-            {
                 links.RemoveLink(from, to);
-                try
-                {
-                    SendUnlink(from, to);
-                }
-                catch (IOException)
-                {
-                }
+            try
+            {
+                SendUnlink(from, to);
+            }
+            catch (IOException)
+            {
             }
         }
 
@@ -218,13 +217,13 @@ namespace Erlang.NET
          */
         private void BreakLinks()
         {
+            Link[] clearLinks;
             lock (lockObj)
+                clearLinks = links.ClearLinks();
+            foreach (var link in clearLinks)
             {
-                foreach (Link link in links.ClearLinks())
-                {
-                    // send exit "from" remote pids to local ones
-                    self.Deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));
-                }
+                // send exit "from" remote pids to local ones
+                self.Deliver(new OtpMsg(OtpMsg.exitTag, link.Remote, link.Local, new OtpErlangAtom("noconnection")));
             }
         }
     }

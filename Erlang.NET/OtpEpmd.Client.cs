@@ -17,10 +17,13 @@ using log4net;
 using System;
 using System.Configuration;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -31,12 +34,10 @@ namespace Erlang.NET
      * well as which versions of the Erlang communication protocol the node
      * supports.
      * 
-     * <p>
      * Nodes wishing to contact other nodes must first request information from Epmd
      * before a connection can be set up, however this is done automatically by
      * {@link OtpSelf#connect(OtpPeer) OtpSelf.connect()} when necessary.
      * 
-     * <p>
      * The methods {@link #publishPort(OtpLocalNode) publishPort()} and
      * {@link #unPublishPort(OtpLocalNode) unPublishPort()} will fail if an Epmd
      * process is not running on the localhost. Additionally
@@ -44,10 +45,9 @@ namespace Erlang.NET
      * process running on the host where the specified node is running. See the
      * Erlang documentation for information about starting Epmd.
      * 
-     * <p>
      * This class contains only static methods, there are no constructors.
      */
-    public partial class OtpEpmd : ThreadBase
+    public partial class OtpEpmd
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private static int epmdPort = 0;
@@ -113,39 +113,65 @@ namespace Erlang.NET
          * @exception java.io.IOException
          *                if there was no response from the name server.
          */
-        public static int LookupPort(AbstractNode node) => LookupPort_R4(node);
+        public static async Task<int> LookupPortAsync(AbstractNode node)
+        {
+            try { return await LookupPort_R4Async(node); }
+            catch (Exception) { throw; }
+        }
+
+        public static int LookupPort(AbstractNode node)
+        {
+            return LookupPortAsync(node).Result;
+        }
 
         /**
          * Register with Epmd, so that other nodes are able to find and connect to
          * it.
          */
-        public static IOtpTransport PublishPort(OtpLocalNode node) => Publish_R4(node);
+        public static async Task<IOtpTransport> PublishPortAsync(OtpLocalNode node)
+        {
+            try { return await Publish_R4Async(node); }
+            catch (Exception) { throw; }
+        }
+
+        public static IOtpTransport PublishPort(OtpLocalNode node)
+        {
+            return PublishPortAsync(node).Result;
+        }
 
         /**
          * Unregister from Epmd. Other nodes wishing to connect will no longer be
          * able to. Caller should close his epmd socket.
          * This method does not report any failures.
          */
-        public static void UnPublishPort(OtpLocalNode node)
+        public static async Task UnPublishPortAsync(OtpLocalNode node)
         {
+            // don't even wait for a response (is there one?)
+            if (traceLevel >= traceThreshold)
+            {
+                log.Debug($"-> UNPUBLISH {node} port={node.Port} [{node.Epmd}]");
+                log.Debug("<- OK (assumed)");
+            }
             try
             {
                 OtpOutputStream obuf = new OtpOutputStream();
                 obuf.Write2BE(node.Alive.Length + 1);
                 obuf.Write1(stopReq);
                 obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
-                obuf.WriteTo(node.Epmd.OutputStream);
-                // don't even wait for a response (is there one?)
-                if (traceLevel >= traceThreshold)
-                {
-                    log.Debug($"-> UNPUBLISH {node} port={node.Port}");
-                    log.Debug("<- OK (assumed)");
-                }
+                await obuf.WriteToAsync(node.Epmd.OutputStream);
+                //// don't even wait for a response (is there one?)
+                //if (traceLevel >= traceThreshold)
+                //{
+                //    log.Debug($"-> UNPUBLISH {node} port={node.Port}");
+                //    log.Debug("<- OK (assumed)");
+                //}
             }
             catch (Exception) { /* ignore all failures */ }
         }
 
-        private static int LookupPort_R4(AbstractNode node)
+        public static void UnPublishPort(OtpLocalNode node) => UnPublishPortAsync(node).Wait();
+
+        private static async Task<int> LookupPort_R4Async(AbstractNode node)
         {
             int port = 0;
 
@@ -161,7 +187,7 @@ namespace Erlang.NET
                     obuf.WriteN(Encoding.GetEncoding("ISO-8859-1").GetBytes(node.Alive));
 
                     // send request
-                    obuf.WriteTo(s.OutputStream);
+                    await obuf.WriteToAsync(s.OutputStream);
 
                     if (traceLevel >= traceThreshold)
                         log.Debug($"-> LOOKUP (r4) {node}");
@@ -172,7 +198,7 @@ namespace Erlang.NET
                     // elen[2], edata[m]
                     byte[] tmpbuf = new byte[100];
 
-                    int n = s.InputStream.Read(tmpbuf, 0, tmpbuf.Length);
+                    int n = await s.InputStream.ReadAsync(tmpbuf, 0, tmpbuf.Length);
 
                     if (n < 0)
                     {
@@ -237,7 +263,7 @@ namespace Erlang.NET
          * successfully communicate with an r4 epmd, we return either the
          * socket, or null, depending on the result.
          */
-        private static IOtpTransport Publish_R4(OtpLocalNode node)
+        private static async Task<IOtpTransport> Publish_R4Async(OtpLocalNode node)
         {
             IOtpTransport s = null;
 
@@ -262,14 +288,14 @@ namespace Erlang.NET
                 obuf.Write2BE(0); // No extra
 
                 // send request
-                obuf.WriteTo(s.OutputStream);
+                await obuf.WriteToAsync(s.OutputStream);
 
                 if (traceLevel >= traceThreshold)
                     log.Debug($"-> PUBLISH (r4) {node} port={node.Port}");
 
                 // get reply
                 byte[] tmpbuf = new byte[100];
-                int n = s.InputStream.Read(tmpbuf, 0, tmpbuf.Length);
+                int n = await s.InputStream.ReadAsync(tmpbuf, 0, tmpbuf.Length);
 
                 if (n < 0)
                 {
@@ -291,7 +317,6 @@ namespace Erlang.NET
                         return s; // success
                     }
                 }
-
             }
             catch (SocketException e)
             {
@@ -319,12 +344,12 @@ namespace Erlang.NET
             return null;
         }
 
-        public static string[] LookupNames()
+        public static NodeDetails[] LookupNames()
         {
             return LookupNames(Dns.GetHostAddresses(Dns.GetHostName())[0], new OtpSocketTransportFactory());
         }
 
-        public static string[] LookupNames(IPAddress address, IOtpTransportFactory transportFactory)
+        public static NodeDetails[] LookupNames(IPAddress address, IOtpTransportFactory transportFactory)
         {
             try
             {
@@ -334,35 +359,36 @@ namespace Erlang.NET
                 {
                     obuf.Write2BE(1);
                     obuf.Write1(names4req);
-                    // send request
                     obuf.WriteTo(s.OutputStream);
 
                     if (traceLevel >= traceThreshold)
                         log.Debug("-> NAMES (r4) ");
 
-                    // get reply
+                    OtpInputStream ibuf = new OtpInputStream(256);
                     byte[] buffer = new byte[256];
-                    MemoryStream ms = new MemoryStream(256);
                     while (true)
                     {
                         int bytesRead = s.InputStream.Read(buffer, 0, buffer.Length);
-                        if (bytesRead == -1)
-                        {
+                        if (bytesRead == 0)
                             break;
-                        }
-                        ms.Write(buffer, 0, bytesRead);
+                        ibuf.Write(buffer, 0, bytesRead);
                     }
-                    byte[] tmpbuf = ms.GetBuffer();
-                    OtpInputStream ibuf = new OtpInputStream(tmpbuf);
-                    ibuf.Read4BE(); // read port int
-                    // int port = ibuf.read4BE();
-                    // check if port = epmdPort
-
-                    int n = tmpbuf.Length;
-                    byte[] buf = new byte[n - 4];
-                    Array.Copy(tmpbuf, 4, buf, 0, n - 4);
-                    string all = OtpErlangString.FromEncoding(buf);
-                    return all.Split('\n');
+                    // Skip epmdport
+                    ibuf.Position = 4;
+                    // Remaining data is list of nodes
+                    string nodes = ibuf.ReadStringData((int)(ibuf.Length - ibuf.Position));
+                    var results = nodes.Split('\n').Where(r => !string.IsNullOrEmpty(r)).Select(response =>
+                    {
+                        var match = Regex.Match(response, @"name ([^ ]+) at port (\d+)");
+                        if (!match.Success)
+                            throw new OtpDecodeException("names response format invalid");
+                        return new NodeDetails()
+                        {
+                            Alive = match.Success ? match.Groups[1].Value : "",
+                            Port = int.Parse(match.Success ? match.Groups[2].Value : "0")
+                        };
+                    });
+                    return results.ToArray();
                 }
             }
             catch (SocketException e)

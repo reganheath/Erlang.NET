@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -37,6 +37,13 @@ namespace Erlang.NET
         public IOtpTransport Accept()
         {
             TcpClient sock = socket.AcceptTcpClient();
+            sock.NoDelay = true;
+            return new OtpSocketTransport(sock);
+        }
+
+        public async Task<IOtpTransport> AcceptAsync()
+        {
+            TcpClient sock = await socket.AcceptTcpClientAsync();
             sock.NoDelay = true;
             return new OtpSocketTransport(sock);
         }

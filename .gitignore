@@ -10,6 +10,9 @@
 [Bb]in/
 [Oo]bj/
 
+# InstallUtil.exe log
+InstallUtil.InstallLog
+
 # # Build results
 # [Dd]ebug/
 # [Dd]ebugPublic/

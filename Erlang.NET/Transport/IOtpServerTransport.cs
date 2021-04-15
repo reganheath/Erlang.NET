@@ -23,6 +23,7 @@ namespace Erlang.NET
         void Start();
         int LocalPort { get; }
         IOtpTransport Accept();
+        Task<IOtpTransport> AcceptAsync();
         void Close();
     }
 }

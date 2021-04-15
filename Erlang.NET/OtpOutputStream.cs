@@ -17,6 +17,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -70,6 +71,20 @@ namespace Erlang.NET
             {
                 base.WriteTo(stream);
                 stream.Flush();
+            }
+            catch (ObjectDisposedException e)
+            {
+                throw new IOException(e.Message);
+            }
+        }
+
+        public async Task WriteToAsync(Stream destination)
+        {
+            try
+            {
+                Position = 0;
+                await base.CopyToAsync(destination);
+                await destination.FlushAsync();
             }
             catch (ObjectDisposedException e)
             {

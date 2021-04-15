@@ -204,6 +204,11 @@ namespace Erlang.NET
         {
             get => (ToName != null ? (object)ToName : (object)ToPid);
         }
+
+        public override string ToString()
+        {
+            return $"MSG {Type} from {FromPid} to {ToPid} ({ToName}) containing {Payload}";
+        }
     }
 }
 

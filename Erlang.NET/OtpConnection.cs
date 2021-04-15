@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -79,6 +80,7 @@ namespace Erlang.NET
         }
 
         public override void Deliver(Exception e) => queue.Enqueue(e);
+
 
         public override void Deliver(OtpMsg msg) => queue.Enqueue(msg);
 
@@ -167,13 +169,13 @@ namespace Erlang.NET
         {
             if (!queue.Dequeue(timeout, out object o))
                 return null;
-            switch(o)
+            switch (o)
             {
-                case OtpMsg m:            return m;
-                case IOException ioex:    throw ioex;
-                case OtpExit exit:        throw exit;
+                case OtpMsg m: return m;
+                case IOException ioex: throw ioex;
+                case OtpExit exit: throw exit;
                 case OtpAuthException ex: throw ex;
-                default:                  return null;
+                default: return null;
             }
         }
 
@@ -244,7 +246,7 @@ namespace Erlang.NET
             IOtpErlangObject msg = Receive();
 
             if (msg is OtpErlangTuple t && t.Arity == 2)
-               return t[1];
+                return t[1];
 
             return null;
         }

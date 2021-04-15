@@ -84,6 +84,8 @@ namespace Erlang.NET
 
         protected GenericQueue<OtpMsg> Queue { get; private set; } = new GenericQueue<OtpMsg>();
 
+        public event MessageEvent Received;
+
         /**
          * Get the registered name of this mailbox.
          */
@@ -296,6 +298,7 @@ namespace Erlang.NET
                 OtpCookedConnection conn = home.GetConnection(node);
                 if (conn == null)
                     return;
+
                 conn.Send(Self, name, msg);
             }
             catch (Exception)
@@ -503,6 +506,11 @@ namespace Erlang.NET
 
         public override int GetHashCode() => Self.GetHashCode();
 
+        public override string ToString()
+        {
+            return $"{Name} {Self}";
+        }
+
         /**
          * called by OtpNode to deliver message to this mailbox.
          * 
@@ -524,12 +532,18 @@ namespace Erlang.NET
 
                 case OtpMsg.exitTag:
                     links.RemoveLink(Self, m.FromPid);
-                    Queue.Enqueue(m);
+                    if (Received != null)
+                        Received?.Invoke(new MessageEventArgs(this, m));
+                    else
+                        Queue.Enqueue(m);
                     break;
 
                 case OtpMsg.exit2Tag:
                 default:
-                    Queue.Enqueue(m);
+                    if (Received != null)
+                        Received?.Invoke(new MessageEventArgs(this, m));
+                    else
+                        Queue.Enqueue(m);
                     break;
             }
         }

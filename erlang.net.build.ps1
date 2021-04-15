@@ -9,7 +9,7 @@ $MSBuild = Resolve-MSBuild
 
 task . Compile
 
-task Premake -If { !(Test-Path "$name.sln") } {
+task Premake -If { $rebuild -or !(Test-Path "$name.sln") } {
     .\premake5.exe vs2019
 }
 
@@ -27,6 +27,16 @@ task Clean {
     Get-ChildItem .\ -Filter bin -Directory -Recurse | ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
+task InstallEpmd {
+    $InstallUtil = FindInstallUtil
+    & $InstallUtil .\bin\Release\epmd.exe
+}
+
+task UninstallEpmd {
+    $InstallUtil = FindInstallUtil
+    & $InstallUtil /u .\bin\Release\epmd.exe
+}
+
 function RunMSBuild()
 {
     param(
@@ -37,21 +47,12 @@ function RunMSBuild()
     exec { & $MSBuild "$name.sln" "-t:$action" "-clp:ErrorsOnly" -m -nologo "-p:Configuration=$configuration" }
 }
 
-# task FindVA -If ($null -eq $script:vadir) {
-#     $script:vadir = (Get-ChildItem ${env:ProgramFiles(x86)} -Filter VoiceAttack -Directory).FullName
-#     if ($null -eq $script:vadir) {
-#         $script:vadir = (Get-ChildItem $env:ProgramFiles -Filter VoiceAttack -Directory).FullName
-#     }
-#     if ($null -eq $script:vadir) {
-#         Write-Error "Failed to locate the VoiceAttack installation folder"
-#     }
-#     Write-Host "Voice Attack found in $script:vadir"
-# }
-
-# task InstallVAPlug VAPlug, FindVA, {
-#     $target = "$script:vadir\Apps\VAEDSrv"
-#     mkdir "$target" -ErrorAction SilentlyContinue | Out-Null
-#     Write-Host "Copying plugin to $target"
-#     $files = @('ErlEI.dll', 'ErlEiCS.dll', 'VAEDSrv.dll')
-#     $files | ForEach-Object { Copy-Item "$priv\$_" $target }
-# }
+function FindInstallUtil()
+{
+    $SearchPath = "$env:windir\Microsoft.NET\Framework\"
+    $Result = (Get-Childitem -Path $SearchPath -Recurse -force -ErrorAction SilentlyContinue -include InstallUtil.exe) | Sort-Object -Descending | Select-Object -First 1
+    if ($null -eq $Result) {
+        Write-Error "Cannot locate InstallUtil.exe in $SearchPath"
+    }
+    return $Result
+}

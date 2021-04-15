@@ -15,7 +15,6 @@
  */
 using log4net;
 using log4net.Config;
-using System;
 using System.Reflection;
 
 namespace Erlang.NET.Test
@@ -37,12 +36,13 @@ namespace Erlang.NET.Test
                 Cookie = "edsrv_cookie",
                 Flags = OtpInputStream.StreamFlags.DecodeIntListsAsStrings
             });
-            OtpMbox mbox = self.CreateMbox("test", true);
+            //OtpMbox mbox = self.CreateMbox("test", true);
+            OtpMbox mbox = self.CreateMbox("test");
             OtpErlangTuple tuple = new OtpErlangTuple(
                 mbox.Self,
                 new OtpErlangTuple(
                     new OtpErlangAtom("echo"),
-                    new OtpErlangString(OtpErlangString.FromCodePoints(new int[] { 127744,32,69,108,32,78,105,241,111 })) // 🌀 El Niño
+                    new OtpErlangString(OtpErlangString.FromCodePoints(new int[] { 127744, 32, 69, 108, 32, 78, 105, 241, 111 })) // 🌀 El Niño
                 )
             );
 

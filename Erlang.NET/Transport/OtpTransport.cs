@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Erlang.NET
@@ -57,7 +54,7 @@ namespace Erlang.NET
             {
                 read = await s.InputStream.ReadAsync(data, offset, bytes - offset);
                 if (read == 0)
-                    throw new IOException($"Read failed; expected {bytes} bytes, got {offset} bytes");
+                    throw new EndOfStreamException($"Read failed; expected {bytes} bytes, got {offset} bytes");
                 offset += read;
             }
 
