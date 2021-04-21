@@ -15,7 +15,6 @@
  */
 using System;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -112,14 +111,9 @@ namespace Erlang.NET
                         break;
                     }
 
-                    try
-                    {
-                        // no such pid - send exit to sender
-                        SendExit(msg.ToPid, msg.FromPid, new OtpErlangAtom("noproc"));
-                    }
-                    catch (IOException)
-                    {
-                    }
+                    // no such pid - send exit to sender
+                    try { SendExit(msg.ToPid, msg.FromPid, new OtpErlangAtom("noproc")); }
+                    catch (IOException) { }
                     break;
 
                 case OtpMsg.unlinkTag:
@@ -155,13 +149,8 @@ namespace Erlang.NET
          */
         public void Exit(OtpErlangPid from, OtpErlangPid to, IOtpErlangObject reason)
         {
-            try
-            {
-                SendExit(from, to, reason);
-            }
-            catch (Exception)
-            {
-            }
+            try { SendExit(from, to, reason); }
+            catch (Exception) { }
         }
 
         /*
@@ -169,13 +158,8 @@ namespace Erlang.NET
          */
         public void Exit2(OtpErlangPid from, OtpErlangPid to, IOtpErlangObject reason)
         {
-            try
-            {
-                SendExit2(from, to, reason);
-            }
-            catch (Exception)
-            {
-            }
+            try { SendExit2(from, to, reason); }
+            catch (Exception) { }
         }
 
         /*
@@ -202,13 +186,8 @@ namespace Erlang.NET
         {
             lock (lockObj)
                 links.RemoveLink(from, to);
-            try
-            {
-                SendUnlink(from, to);
-            }
-            catch (IOException)
-            {
-            }
+            try { SendUnlink(from, to); }
+            catch (IOException) { }
         }
 
         /*

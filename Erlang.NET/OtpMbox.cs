@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 using System;
+using System.IO;
 using System.Threading;
 
 namespace Erlang.NET
@@ -138,18 +139,7 @@ namespace Erlang.NET
          */
         public IOtpErlangObject Receive()
         {
-            try
-            {
-                return ReceiveMsg().Payload;
-            }
-            catch (OtpExit e)
-            {
-                throw e;
-            }
-            catch (OtpDecodeException f)
-            {
-                throw f;
-            }
+            return ReceiveMsg().Payload;
         }
 
         /**
@@ -157,24 +147,8 @@ namespace Erlang.NET
          */
         public IOtpErlangObject Receive(long timeout)
         {
-            try
-            {
-                OtpMsg m = ReceiveMsg(timeout);
-                if (m != null)
-                    return m.Payload;
-            }
-            catch (OtpExit e)
-            {
-                throw e;
-            }
-            catch (OtpDecodeException f)
-            {
-                throw f;
-            }
-            catch (ThreadInterruptedException)
-            {
-            }
-            return null;
+            OtpMsg m = ReceiveMsg(timeout);
+            return m?.Payload;
         }
 
         /**
@@ -188,9 +162,7 @@ namespace Erlang.NET
         public OtpInputStream ReceiveBuf(long timeout)
         {
             OtpMsg m = ReceiveMsg(timeout);
-            if (m != null)
-                return m.Stream;
-            return null;
+            return m?.Stream;
         }
 
         /**
@@ -200,24 +172,7 @@ namespace Erlang.NET
         {
             if (!Queue.Dequeue(out OtpMsg m))
                 return null;
-
-            switch (m.Type)
-            {
-                case OtpMsg.exitTag:
-                case OtpMsg.exit2Tag:
-                    try
-                    {
-                        IOtpErlangObject o = m.Payload;
-                        throw new OtpExit(o, m.FromPid);
-                    }
-                    catch (OtpDecodeException)
-                    {
-                        throw new OtpExit("unknown", m.FromPid);
-                    }
-
-                default:
-                    return m;
-            }
+            return ProcessMsg(m);
         }
 
         /**
@@ -227,15 +182,21 @@ namespace Erlang.NET
         {
             if (!Queue.Dequeue(timeout, out OtpMsg m))
                 return null;
+            return ProcessMsg(m);
+        }
 
+        /*
+         * Process EXIT by throwing OtpExit, otherwise return message
+         */
+        private OtpMsg ProcessMsg(OtpMsg m)
+        {
             switch (m.Type)
             {
                 case OtpMsg.exitTag:
                 case OtpMsg.exit2Tag:
                     try
                     {
-                        IOtpErlangObject o = m.Payload;
-                        throw new OtpExit(o, m.FromPid);
+                        throw new OtpExit(m.Payload, m.FromPid);
                     }
                     catch (OtpDecodeException)
                     {
@@ -253,25 +214,18 @@ namespace Erlang.NET
          */
         public void Send(OtpErlangPid to, IOtpErlangObject msg)
         {
-            try
+            string node = to.Node;
+            if (node.Equals(home.Node))
             {
-                string node = to.Node;
-                if (node.Equals(home.Node))
-                {
-                    home.Deliver(new OtpMsg(to, (IOtpErlangObject)msg.Clone()));
-                    return;
-                }
-
-                OtpCookedConnection conn = home.GetConnection(node);
-                if (conn == null)
-                    return;
-
-                conn.Send(Self, to, msg);
+                home.Deliver(new OtpMsg(to, (IOtpErlangObject)msg.Clone()));
+                return;
             }
-            catch (Exception)
-            {
-                // TODO: WTF?!
-            }
+
+            OtpCookedConnection conn = home.GetConnection(node);
+            if (conn == null)
+                return;
+
+            conn.Send(Self, to, msg);
         }
 
         /**
@@ -283,27 +237,21 @@ namespace Erlang.NET
         /**
          * Send a message to a named mailbox created from another node.
          */
-        public void Send(string name, string node, IOtpErlangObject msg)
+        public void Send(string node, string name, IOtpErlangObject msg)
         {
-            try
+            // this node?
+            if (node.Equals(home.Node) || node.Equals(home.Alive))
             {
-                // this node?
-                if (node.Equals(home.Node) || node.Equals(home.Alive))
-                {
-                    Send(name, msg);
-                    return;
-                }
-
-                // other node
-                OtpCookedConnection conn = home.GetConnection(node);
-                if (conn == null)
-                    return;
-
-                conn.Send(Self, name, msg);
+                Send(name, msg);
+                return;
             }
-            catch (Exception)
-            {
-            }
+
+            // other node
+            OtpCookedConnection conn = home.GetConnection(node);
+            if (conn == null)
+                return;
+
+            conn.Send(Self, name, msg);
         }
 
         /**
@@ -364,9 +312,7 @@ namespace Erlang.NET
                         break;
                 }
             }
-            catch (Exception)
-            {
-            }
+            catch (Exception) { }
         }
 
         /**
@@ -396,19 +342,12 @@ namespace Erlang.NET
                 else
                 {
                     OtpCookedConnection conn = home.GetConnection(node);
-                    if (conn != null)
-                        conn.Link(Self, to);
-                    else
+                    if (conn == null)
                         throw new OtpExit("noproc", to);
+                    conn.Link(Self, to);
                 }
             }
-            catch (OtpExit)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-            }
+            catch (Exception) { }
 
             links.AddLink(Self, to);
         }
@@ -437,25 +376,96 @@ namespace Erlang.NET
                         conn.Unlink(Self, to);
                 }
             }
-            catch (Exception)
-            {
-            }
+            catch (Exception) { }
         }
 
-        /**
-         * Create a connection to a remote node.
-         * 
-         * Strictly speaking, this method is not necessary simply to set up a
-         * connection, since connections are created automatically first time a
-         * message is sent to a {@link OtpErlangPid pid} on the remote node.
-         * 
-         * This method makes it possible to wait for a node to come up, however, or
-         * check that a node is still alive.
-         * 
-         * This method calls a method with the same name in {@link OtpNode#ping
-         * Otpnode} but is provided here for convenience.
-         */
-        public bool Ping(string node, long timeout) => home.Ping(node, timeout);
+        /* ping remote node */
+        public bool Ping(string node, long timeout)
+        {
+            try
+            {
+                Send(node, "net_kernel", PingTuple());
+                var reply = (OtpErlangTuple)Receive(timeout);
+                if (reply != null && reply.Arity >= 2)
+                {
+                    OtpErlangAtom a = (OtpErlangAtom)reply.ElementAt(1);
+                    return "yes".Equals(a?.Value);
+                }
+            }
+            catch (Exception) { }
+            return false;
+        }
+
+        public OtpErlangTuple PingTuple()
+        {
+            // { $gen_call, { self, ref }, { is_auth, node } }
+            return CallTuple(new OtpErlangTuple(
+                new OtpErlangAtom("is_auth"),
+                new OtpErlangAtom(home.Node))
+            );
+        }
+
+        /* RPC to remote node */
+        public IOtpErlangObject RPC(string node, long timeout, string module, string function, params IOtpErlangObject[] args)
+        {
+            Send(node, "rex", RPCTuple(module, function, args));
+            var reply = (OtpErlangTuple)Receive(timeout);
+            if (reply != null)
+            {
+                (var rex, var result) = reply;
+                if (((OtpErlangAtom)rex)?.Value != "rex")
+                    throw new IOException($"badrpc: {reply}");
+                return result;
+            }
+            return null;
+        }
+
+        public OtpErlangTuple RPCTuple(string module, string function, params IOtpErlangObject[] args)
+        {
+            return new OtpErlangTuple(
+                Self,
+                new OtpErlangTuple(
+                    new OtpErlangAtom("call"),
+                    new OtpErlangAtom(module),
+                    new OtpErlangAtom(function),
+                    args != null ? new OtpErlangList(args) : new OtpErlangList(),
+                    new OtpErlangAtom("user")
+                ));
+        }
+
+        public IOtpErlangObject Call(string node, string module, IOtpErlangObject msg, long timeout)
+        {
+            Send(node, module, CallTuple(msg));
+            var reply = (OtpErlangTuple)Receive(timeout);
+            if (reply != null && reply.Arity >= 2)
+                return reply.ElementAt(1);
+            return null;
+        }
+
+        public OtpErlangTuple CallTuple(IOtpErlangObject msg)
+        {
+            // { $gen_call, { self, ref }, <msg> }
+            return new OtpErlangTuple(
+                new OtpErlangAtom("$gen_call"),
+                new OtpErlangTuple(
+                    Self,
+                    home.CreateRef()),
+                msg);
+        }
+
+        /* Perform a gen_cast to a node and module */
+        public void Cast(string node, string module, IOtpErlangObject msg)
+        {
+            // { $gen_cast, { self, <msg> } }
+            Send(node, module, new OtpErlangTuple(new OtpErlangAtom("$gen_cast"), msg));
+        }
+
+        /* Perform a gen server info to a node and module */
+        public void Info(string node, string module, IOtpErlangObject msg)
+        {
+            // { self, <msg> }
+            Send(node, module, new OtpErlangTuple(Self, msg));
+        }
 
         /**
          * Get a list of all known registered names on the same {@link OtpNode node}

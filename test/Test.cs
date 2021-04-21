@@ -13,21 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using log4net;
-using log4net.Config;
-using System.Reflection;
 
 namespace Erlang.NET.Test
 {
     public class Test
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        static Test()
-        {
-            XmlConfigurator.Configure();
-        }
-
         public static void Main(string[] args)
         {
             OtpNode self = new OtpNode(new NodeDetails()
@@ -36,7 +26,6 @@ namespace Erlang.NET.Test
                 Cookie = "edsrv_cookie",
                 Flags = OtpInputStream.StreamFlags.DecodeIntListsAsStrings
             });
-            //OtpMbox mbox = self.CreateMbox("test", true);
             OtpMbox mbox = self.CreateMbox("test");
             OtpErlangTuple tuple = new OtpErlangTuple(
                 mbox.Self,
@@ -49,8 +38,12 @@ namespace Erlang.NET.Test
             //send message to registered process hello_server on node one @grannysmith
             //> { hello_server, 'one@grannysmith'} ! test.
 
-            mbox.Send("player_srv", "edsrv@GAMING", tuple);
-            log.Debug("<- " + mbox.Receive());
+            mbox.Send("edsrv@GAMING", "player_srv", tuple);
+            Logger.Debug("<- REPLY " + mbox.Receive());
+
+            var reply = self.RPC("edsrv@GAMING", 1000, "edlib", "log_dir");
+            Logger.Debug("<- LOG " + reply);
+
         }
     }
 }

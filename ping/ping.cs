@@ -13,19 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using log4net.Config;
 using System;
-using System.Threading;
 
 namespace Erlang.NET.Test
 {
     public class Ping
     {
-        static Ping()
-        {
-            XmlConfigurator.Configure();
-        }
-
         public static void Main(string[] args)
         {
             OtpNode pingNode = new OtpNode("ping");

@@ -207,7 +207,7 @@ namespace Erlang.NET
 
         public override string ToString()
         {
-            return $"MSG {Type} from {FromPid} to {ToPid} ({ToName}) containing {Payload}";
+            return $"MSG {Type} from {FromPid} to {To} containing {Payload}";
         }
     }
 }

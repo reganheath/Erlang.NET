@@ -13,16 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using log4net;
-using log4net.Config;
 using System;
-using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -40,7 +35,6 @@ namespace Erlang.NET
      */
     public abstract class AbstractConnection : ThreadBase
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected static readonly byte[] TOCK = { 0, 0, 0, 0 };
 
         protected const int headerLen = 2048; // more than enough
@@ -79,34 +73,11 @@ namespace Erlang.NET
         protected bool cookieOk = false; // already checked the cookie for this connection
         protected bool sendCookie = true; // Send cookies in messages?
 
-        private int traceLevel;
-        public int TraceLevel
-        {
-            get => traceLevel;
-            protected set => traceLevel = Math.Min(Math.Max(value, 0), 4);
-        }
+        public int TraceLevel { get; set; }
 
-        protected static int defaultLevel = 0;
-        protected static int sendThreshold = 1;
-        protected static int ctrlThreshold = 2;
-        protected static int handshakeThreshold = 3;
-
-        static AbstractConnection()
-        {
-            XmlConfigurator.Configure();
-
-            // trace this connection?
-            string trace = ConfigurationManager.AppSettings["OtpConnection.trace"];
-            try
-            {
-                if (trace != null)
-                    defaultLevel = int.Parse(trace);
-            }
-            catch (FormatException)
-            {
-                defaultLevel = 0;
-            }
-        }
+        protected static int TraceSend = 1;
+        protected static int TraceCTRL = 2;
+        protected static int TraceHandshake = 3;
 
         /**
          * Accept an incoming connection from a remote node. Used by {@link
@@ -117,12 +88,12 @@ namespace Erlang.NET
         protected AbstractConnection(OtpLocalNode self, IOtpTransport s)
             : base("accept", true)
         {
-            TraceLevel = defaultLevel;
+            TraceLevel = Logger.DefaultTraceLevel;
             Local = self;
             socket = s;
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug("<- ACCEPT FROM " + s);
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- ACCEPT FROM {s}");
 
             Accept();
         }
@@ -133,7 +104,7 @@ namespace Erlang.NET
         protected AbstractConnection(OtpLocalNode self, OtpPeer other)
             : base("connect", true)
         {
-            TraceLevel = defaultLevel;
+            TraceLevel = Logger.DefaultTraceLevel;
             Peer = other;
             Local = self;
 
@@ -149,6 +120,11 @@ namespace Erlang.NET
             Peer.DistChoose = Math.Min(Peer.DistHigh, self.DistHigh);
 
             Connect();
+        }
+
+        public override string ToString()
+        {
+            return $"{Peer.Host}:{Peer.Port}";
         }
 
         /**
@@ -493,13 +469,13 @@ namespace Erlang.NET
                                 cookieOk = true;
                             }
 
-                            if (traceLevel >= sendThreshold)
+                            if (TraceLevel >= TraceSend)
                             {
-                                log.Debug($"<- {HeaderType(head)} {head}");
+                                Logger.Debug($"<- {HeaderType(head)} {head}");
 
                                 /* show received payload too */
                                 ibuf.Mark();
-                                log.Debug($"   {ibuf.ReadAny()}");
+                                Logger.Debug($"   {ibuf.ReadAny()}");
                                 ibuf.Reset();
                             }
 
@@ -531,13 +507,13 @@ namespace Erlang.NET
                                 cookieOk = true;
                             }
 
-                            if (traceLevel >= sendThreshold)
+                            if (TraceLevel >= TraceSend)
                             {
-                                log.Debug($"<- {HeaderType(head)} {head}");
+                                Logger.Debug($"<- {HeaderType(head)} {head}");
 
                                 /* show received payload too */
                                 ibuf.Mark();
-                                log.Debug($"   {ibuf.ReadAny()}");
+                                Logger.Debug($"   {ibuf.ReadAny()}");
                                 ibuf.Reset();
                             }
 
@@ -552,8 +528,8 @@ namespace Erlang.NET
                             if (head.ElementAt(3) == null)
                                 continue;
 
-                            if (traceLevel >= ctrlThreshold)
-                                log.Debug($"<- {HeaderType(head)} {head}");
+                            if (TraceLevel >= TraceCTRL)
+                                Logger.Debug($"<- {HeaderType(head)} {head}");
 
                             from = (OtpErlangPid)head.ElementAt(1);
                             to = (OtpErlangPid)head.ElementAt(2);
@@ -568,8 +544,8 @@ namespace Erlang.NET
                             if (head.ElementAt(4) == null)
                                 continue;
 
-                            if (traceLevel >= ctrlThreshold)
-                                log.Debug($"<- {HeaderType(head)} {head}");
+                            if (TraceLevel >= TraceCTRL)
+                                Logger.Debug($"<- {HeaderType(head)} {head}");
 
                             from = (OtpErlangPid)head.ElementAt(1);
                             to = (OtpErlangPid)head.ElementAt(2);
@@ -580,8 +556,8 @@ namespace Erlang.NET
 
                         case linkTag:   // { LINK, FromPid, ToPid}
                         case unlinkTag: // { UNLINK, FromPid, ToPid}
-                            if (traceLevel >= ctrlThreshold)
-                                log.Debug($"<- {HeaderType(head)} {head}");
+                            if (TraceLevel >= TraceCTRL)
+                                Logger.Debug($"<- {HeaderType(head)} {head}");
 
                             from = (OtpErlangPid)head.ElementAt(1);
                             to = (OtpErlangPid)head.ElementAt(2);
@@ -592,8 +568,8 @@ namespace Erlang.NET
                         // absolutely no idea what to do with these, so we ignore them...
                         case groupLeaderTag: // { GROUPLEADER, FromPid, ToPid}
                             // (just show trace)
-                            if (traceLevel >= ctrlThreshold)
-                                log.Debug("<- " + HeaderType(head) + " " + head);
+                            if (TraceLevel >= TraceCTRL)
+                                Logger.Debug("<- " + HeaderType(head) + " " + head);
                             break;
 
                         default:
@@ -637,8 +613,8 @@ namespace Erlang.NET
             {
                 if (socket != null)
                 {
-                    if (TraceLevel >= ctrlThreshold)
-                        log.Debug($"-> CLOSE {socket}");
+                    if (TraceLevel >= TraceCTRL)
+                        Logger.Debug($"-> CLOSE {socket}");
                     OtpTransport.Close(socket);
                     socket = null;
                 }
@@ -652,7 +628,7 @@ namespace Erlang.NET
             {
                 try
                 {
-                    if (TraceLevel >= sendThreshold)
+                    if (TraceLevel >= TraceSend)
                     {
                         // Need to decode header and output buffer to show trace
                         // message!
@@ -660,14 +636,14 @@ namespace Erlang.NET
                         try
                         {
                             IOtpErlangObject h = header.Slice(5).ReadAny();
-                            log.Debug("-> " + HeaderType(h) + " " + h);
+                            Logger.Debug("-> " + HeaderType(h) + " " + h);
 
                             IOtpErlangObject o = payload.Slice(0).ReadAny();
-                            log.Debug("   " + o);
+                            Logger.Debug("   " + o);
                         }
                         catch (OtpDecodeException e)
                         {
-                            log.Debug("   " + "can't decode output buffer:" + e);
+                            Logger.Debug("   " + "can't decode output buffer:" + e);
                         }
                     }
 
@@ -689,16 +665,16 @@ namespace Erlang.NET
             {
                 try
                 {
-                    if (TraceLevel >= ctrlThreshold)
+                    if (TraceLevel >= TraceCTRL)
                     {
                         try
                         {
                             IOtpErlangObject h = header.Slice(5).ReadAny();
-                            log.Debug("-> " + HeaderType(h) + " " + h);
+                            Logger.Debug("-> " + HeaderType(h) + " " + h);
                         }
                         catch (OtpDecodeException e)
                         {
-                            log.Debug("   " + "can't decode output buffer: " + e);
+                            Logger.Debug("   " + "can't decode output buffer: " + e);
                         }
                     }
 
@@ -774,6 +750,7 @@ namespace Erlang.NET
                 }
                 catch (IOException)
                 {
+                    Close();
                     throw;
                 }
                 catch (ObjectDisposedException e)
@@ -819,8 +796,8 @@ namespace Erlang.NET
                 throw new IOException("Error accepting connection from " + nn, e);
             }
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"<- MD5 ACCEPTED {Peer.Host}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- MD5 ACCEPTED {Peer.Host}");
         }
 
         protected void Connect()
@@ -829,8 +806,8 @@ namespace Erlang.NET
             {
                 socket = Peer.CreateTransport(Peer.Host, Peer.Port);
 
-                if (TraceLevel >= handshakeThreshold)
-                    log.Debug($"-> MD5 CONNECT TO {Peer.Host}:{Peer.Port}");
+                if (TraceLevel >= TraceHandshake)
+                    Logger.Debug($"-> MD5 CONNECT TO {Peer.Host}:{Peer.Port}");
 
                 int nameTag = SendName(Peer.DistChoose, Local.CapFlags, Local.Creation);
                 RecvStatus();
@@ -843,11 +820,12 @@ namespace Erlang.NET
                 Connected = true;
                 cookieOk = true;
                 sendCookie = false;
-                if (TraceLevel >= handshakeThreshold)
-                    log.Debug($"-> CONNECTED TO {Peer.Host}:{Peer.Port}");
+                if (TraceLevel >= TraceHandshake)
+                    Logger.Debug($"-> CONNECTED TO {Peer.Host}:{Peer.Port}");
             }
             catch (IOException)
             {
+                Close();
                 throw;
             }
             catch (OtpAuthException)
@@ -951,8 +929,8 @@ namespace Erlang.NET
 
             obuf.WriteTo(socket.OutputStream);
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"-> HANDSHAKE sendName flags={aflags} dist={dist} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"-> HANDSHAKE sendName flags={aflags} dist={dist} local={Local}");
 
             return nameTag;
         }
@@ -971,8 +949,8 @@ namespace Erlang.NET
 
                 obuf.WriteTo(socket.OutputStream);
 
-                if (TraceLevel >= handshakeThreshold)
-                    log.Debug($"-> HANDSHAKE sendComplement flagsHigh={flagsHigh} creation={Local.Creation}");
+                if (TraceLevel >= TraceHandshake)
+                    Logger.Debug($"-> HANDSHAKE sendComplement flagsHigh={flagsHigh} creation={Local.Creation}");
             }
         }
 
@@ -1002,8 +980,8 @@ namespace Erlang.NET
 
             obuf.WriteTo(socket.OutputStream);
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"-> HANDSHAKE sendChallenge flags={our_flags} challenge={challenge} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"-> HANDSHAKE sendChallenge flags={our_flags} challenge={challenge} local={Local}");
         }
 
         protected OtpInputStream Read2BytePackage()
@@ -1057,8 +1035,8 @@ namespace Erlang.NET
             if (Peer.Alive == null || Peer.Host == null)
                 throw new IOException("Handshake failed - peer name invalid: " + hisname);
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"<- HANDSHAKE ntype={Peer.Type} dist={Peer.DistHigh} remote={Peer}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- HANDSHAKE ntype={Peer.Type} dist={Peer.DistHigh} remote={Peer}");
 
             return nameTag;
         }
@@ -1113,8 +1091,8 @@ namespace Erlang.NET
                 throw new IOException("Handshake failed - not enough data", e);
             }
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"<- HANDSHAKE recvChallenge from={Peer.Node} challenge={challenge} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- HANDSHAKE recvChallenge from={Peer.Node} challenge={challenge} local={Local}");
 
             return challenge;
         }
@@ -1152,8 +1130,8 @@ namespace Erlang.NET
 
             obuf.WriteTo(socket.OutputStream);
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"-> HANDSHAKE sendChallengeReply challenge={challenge} digest={Hex(digest)} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"-> HANDSHAKE sendChallengeReply challenge={challenge} digest={Hex(digest)} local={Local}");
         }
 
         protected int RecvChallengeReply(int our_challenge)
@@ -1178,8 +1156,8 @@ namespace Erlang.NET
                 throw new IOException("Handshake failed - not enough data", e);
             }
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"<- HANDSHAKE recvChallengeReply from={Peer.Node} challenge={challenge} digest={Hex(peer_digest)} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- HANDSHAKE recvChallengeReply from={Peer.Node} challenge={challenge} digest={Hex(peer_digest)} local={Local}");
 
             return challenge;
         }
@@ -1193,8 +1171,8 @@ namespace Erlang.NET
 
             obuf.WriteTo(socket.OutputStream);
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"-> HANDSHAKE sendChallengeAck digest={Hex(digest)} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"-> HANDSHAKE sendChallengeAck digest={Hex(digest)} local={Local}");
         }
 
         protected void RecvChallengeAck(int our_challenge)
@@ -1217,12 +1195,12 @@ namespace Erlang.NET
             }
             catch (Exception e)
             {
-                log.Error("Peer authentication error", e);
+                Logger.Error("Peer authentication error", e);
                 throw new OtpAuthException("Peer authentication error.", e);
             }
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"<- HANDSHAKE recvChallengeAck from={Peer.Node} digest={Hex(peer_digest)} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- HANDSHAKE recvChallengeAck from={Peer.Node} digest={Hex(peer_digest)} local={Local}");
         }
 
         protected void SendStatus(string status)
@@ -1234,8 +1212,8 @@ namespace Erlang.NET
 
             obuf.WriteTo(socket.OutputStream);
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"-> HANDSHAKE sendStatus status={status} local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"-> HANDSHAKE sendStatus status={status} local={Local}");
         }
 
         protected void RecvStatus()
@@ -1255,8 +1233,8 @@ namespace Erlang.NET
                 throw new IOException("Handshake failed - not enough data", e);
             }
 
-            if (TraceLevel >= handshakeThreshold)
-                log.Debug($"<- HANDSHAKE recvStatus (ok) local={Local}");
+            if (TraceLevel >= TraceHandshake)
+                Logger.Debug($"<- HANDSHAKE recvStatus (ok) local={Local}");
         }
     }
 }

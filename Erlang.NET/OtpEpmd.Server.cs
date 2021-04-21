@@ -65,7 +65,7 @@ namespace Erlang.NET
 
         private async void HandleConnectionAsync(IOtpTransport socket)
         {
-            log.InfoFormat($"[OtpEpmd] connected {socket}");
+            Logger.Info($"[OtpEpmd] connected {socket}");
             List<string> publishedNodes = new List<string>();
 
             try
@@ -89,16 +89,16 @@ namespace Erlang.NET
                     else if (request == names4req)
                         await Names_R4(socket);
                     else
-                        log.InfoFormat($"[OtpEpmd] Unknown request (request={request}, length={ibuf.Length}) from {socket}");
+                        Logger.Info($"[OtpEpmd] Unknown request (request={request}, length={ibuf.Length}) from {socket}");
                     break;
                 }
             }
             catch (Exception e)
             {
-                log.ErrorFormat($"[OtpEpmd] socket {socket} error {e}");
+                Logger.Error($"[OtpEpmd] socket {socket} error {e}");
             }
 
-            log.InfoFormat($"[OtpEpmd] closing {socket}");
+            Logger.Info($"[OtpEpmd] closing {socket}");
             OtpTransport.Close(socket);
 
             foreach (var name in publishedNodes)
@@ -134,7 +134,7 @@ namespace Erlang.NET
                 };
 
                 if (traceLevel >= traceThreshold)
-                    log.Debug($"<- PUBLISH (r4) {name} port={node.Port}");
+                    Logger.Debug($"<- PUBLISH (r4) {name} port={node.Port}");
 
                 OtpOutputStream obuf = new OtpOutputStream();
                 obuf.Write1(ALIVE2_RESP);
@@ -148,7 +148,7 @@ namespace Erlang.NET
             catch (IOException e)
             {
                 if (traceLevel >= traceThreshold)
-                    log.Debug("<- (no response)");
+                    Logger.Debug("<- (no response)");
                 throw new IOException("Request not responding", e);
             }
         }
@@ -162,7 +162,7 @@ namespace Erlang.NET
                 
                 string name = OtpErlangString.FromEncoding(alive);                
                 if (traceLevel >= traceThreshold)
-                    log.Debug($"<- PORT (r4) {name}");
+                    Logger.Debug($"<- PORT (r4) {name}");
 
                 if (!portmap.TryGetValue(name, out AbstractNode node))
                     node = null;
@@ -181,14 +181,14 @@ namespace Erlang.NET
                     obuf.WriteN(alive);
                     obuf.Write2BE(0);
                     if (traceLevel >= traceThreshold)
-                        log.Debug("-> 0 (success)");
+                        Logger.Debug("-> 0 (success)");
                 }
                 else
                 {
                     obuf.Write1(port4resp);
                     obuf.Write1(1);
                     if (traceLevel >= traceThreshold)
-                        log.Debug("-> 1 (failure)");
+                        Logger.Debug("-> 1 (failure)");
                 }
 
                 await obuf.WriteToAsync(socket.OutputStream);
@@ -196,7 +196,7 @@ namespace Erlang.NET
             catch (IOException e)
             {
                 if (traceLevel >= traceThreshold)
-                    log.Debug("<- (no response)");
+                    Logger.Debug("<- (no response)");
                 throw new IOException("Request not responding", e);
             }
         }
@@ -206,7 +206,7 @@ namespace Erlang.NET
             try
             {
                 if (traceLevel >= traceThreshold)
-                    log.Debug("<- NAMES(r4) ");
+                    Logger.Debug("<- NAMES(r4) ");
 
                 OtpOutputStream obuf = new OtpOutputStream();
                 obuf.Write4BE(EpmdPort);
@@ -214,7 +214,7 @@ namespace Erlang.NET
                 {
                     byte[] bytes = Encoding.GetEncoding("ISO-8859-1").GetBytes($"name {node.Alive} at port {node.Port}\n");
                     obuf.WriteN(bytes);
-                    log.Debug($"-> name {node.Alive} at port {node.Port}");
+                    Logger.Debug($"-> name {node.Alive} at port {node.Port}");
                 }
 
                 await obuf.WriteToAsync(socket.OutputStream);
@@ -222,7 +222,7 @@ namespace Erlang.NET
             catch (IOException e)
             {
                 if (traceLevel >= traceThreshold)
-                    log.Debug("<- (no response)");
+                    Logger.Debug("<- (no response)");
                 throw new IOException("Request not responding", e);
             }
         }

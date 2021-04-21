@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace Erlang.NET
 {
@@ -198,58 +196,6 @@ namespace Erlang.NET
          * Send a pre-encoded message to a process on a remote node.
          */
         public void SendBuf(OtpErlangPid dest, OtpOutputStream payload) => SendBuf(Self.Pid, dest, payload);
-
-        /**
-         * Send an RPC request to the remote Erlang node. This convenience function
-         * creates the following message and sends it to 'rex' on the remote node:
-         * 
-         * { self, { call, Mod, Fun, Args, user } }
-         * 
-         * Note that this method has unpredicatble results if the remote node is not
-         * an Erlang node.
-         */
-        public void SendRPC(string mod, string fun, IEnumerable<IOtpErlangObject> args) => SendRPC(mod, fun, new OtpErlangList(args));
-
-        /**
-         * Send an RPC request to the remote Erlang node. This convenience function
-         * creates the following message and sends it to 'rex' on the remote node:
-         * 
-         * { self, { call, Mod, Fun, Args, user } }
-         * 
-         * Note that this method has unpredicatble results if the remote node is not
-         * an Erlang node.
-         */
-        public void SendRPC(string mod, string fun, OtpErlangList args)
-        {
-            /* {self, { call, Mod, Fun, Args, user}} */
-            Send("rex", new OtpErlangTuple(
-                Self.Pid,
-                new OtpErlangTuple(
-                    new OtpErlangAtom("call"),
-                    new OtpErlangAtom(mod),
-                    new OtpErlangAtom(fun),
-                    args,
-                    new OtpErlangAtom("user")
-                ))
-            );
-        }
-
-        /**
-         * Receive an RPC reply from the remote Erlang node. This convenience
-         * function receives a message from the remote node, and expects it to have
-         * the following format:
-         * 
-         * { rex, Term }
-         */
-        public IOtpErlangObject ReceiveRPC()
-        {
-            IOtpErlangObject msg = Receive();
-
-            if (msg is OtpErlangTuple t && t.Arity == 2)
-                return t[1];
-
-            return null;
-        }
 
         /**
          * Create a link between the local node and the specified process on the

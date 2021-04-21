@@ -132,35 +132,5 @@ namespace Erlang.NET
         }
 
         public object Clone() => new OtpErlangTuple(this, 0, Arity);
-
-        //#region Tuple support
-        //public void Deconstruct(out IOtpErlangObject o1) => o1 = ElementAt(0);
-        //public void Deconstruct(out IOtpErlangObject o1, out IOtpErlangObject o2)
-        //{
-        //    o1 = ElementAt(0);
-        //    o2 = ElementAt(1);
-        //}
-        //public void Deconstruct(out IOtpErlangObject o1, out IOtpErlangObject o2, out IOtpErlangObject o3)
-        //{
-        //    o1 = ElementAt(0);
-        //    o2 = ElementAt(1);
-        //    o3 = ElementAt(2);
-        //}
-        //public void Deconstruct(out IOtpErlangObject o1, out IOtpErlangObject o2, out IOtpErlangObject o3, out IOtpErlangObject o4)
-        //{
-        //    o1 = ElementAt(0);
-        //    o2 = ElementAt(1);
-        //    o3 = ElementAt(2);
-        //    o4 = ElementAt(3);
-        //}
-        //public void Deconstruct(out IOtpErlangObject o1, out IOtpErlangObject o2, out IOtpErlangObject o3, out IOtpErlangObject o4, out IOtpErlangObject o5)
-        //{
-        //    o1 = ElementAt(0);
-        //    o2 = ElementAt(1);
-        //    o3 = ElementAt(2);
-        //    o4 = ElementAt(3);
-        //    o5 = ElementAt(4);
-        //}
-        //#endregion
     }
 }

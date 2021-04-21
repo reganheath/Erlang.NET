@@ -4,8 +4,6 @@ defines { "TRACE" }
 workspace "Erlang.NET"
     configurations { "Debug", "Release" }
 
-    nuget { "Nito.AsyncEx:5.0.0" }
-
     filter "configurations:Debug"
         defines { "DEBUG" }
         symbols "On"

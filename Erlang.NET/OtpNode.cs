@@ -17,7 +17,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Erlang.NET
@@ -116,6 +115,11 @@ namespace Erlang.NET
         //public OtpMbox CreateMbox(string name, bool sync) => mboxes.Create(name, sync);
         public OtpMbox CreateMbox(string name) => mboxes.Create(name);
 
+        /*
+         * Get a pre-existing named mailbox.
+         */
+        public OtpMbox GetMbox(string name) => mboxes.Get(name);
+
         /**
          * Close the specified mailbox with reason 'normal'.
          * 
@@ -203,32 +207,36 @@ namespace Erlang.NET
         {
             if (((NodeDetails)node).Equals(this))
                 return true;
-            try
-            {
-                using (var mbox = CreateMbox())
-                {
-                    mbox.Send("net_kernel", node, GetPingTuple(mbox));
-                    OtpErlangTuple reply = (OtpErlangTuple)mbox.Receive(timeout);
-                    OtpErlangAtom a = (OtpErlangAtom)reply.ElementAt(1);
-                    return "yes".Equals(a?.Value);
-                }
-            }
-            catch (Exception) { }
-            return false;
+            using (var mbox = CreateMbox())
+                return mbox.Ping(node, timeout);
         }
 
-        /* create the outgoing ping message */
-        private OtpErlangTuple GetPingTuple(OtpMbox mbox)
+        /* RPC to remote node */
+        public IOtpErlangObject RPC(string node, long timeout, string module, string function, params IOtpErlangObject[] args)
         {
-            // { $gen_call, { self, ref }, { is_auth, node } }
-            return new OtpErlangTuple(
-                new OtpErlangAtom("$gen_call"),
-                new OtpErlangTuple(
-                    mbox.Self,
-                    CreateRef()),
-                new OtpErlangTuple(
-                    new OtpErlangAtom("is_auth"),
-                    new OtpErlangAtom(Node)));
+            using (var mbox = CreateMbox())
+                return mbox.RPC(node, timeout, module, function, args);
+        }
+
+        /* Perform a gen_call to a node and module */
+        public IOtpErlangObject Call(string node, string module, IOtpErlangObject msg, long timeout)
+        {
+            using (var mbox = CreateMbox())
+                return mbox.Call(node, module, msg, timeout);
+        }
+
+        /* Perform a gen_cast to a node and module */
+        public void Cast(string node, string module, IOtpErlangObject msg)
+        {
+            using (var mbox = CreateMbox())
+                mbox.Cast(node, module, msg);
+        }
+
+        /* Perform a gen server info to a node and module */
+        public void Info(string node, string module, IOtpErlangObject msg)
+        {
+            using (var mbox = CreateMbox())
+                mbox.Info(node, module, msg);
         }
 
         /*
@@ -324,7 +332,6 @@ namespace Erlang.NET
                 /* false = outgoing */
                 try { ConnAttempt?.Invoke(new ConnAttemptEventArgs(node, false, e)); }
                 catch (Exception) { }
-
                 throw;
             }
         }
